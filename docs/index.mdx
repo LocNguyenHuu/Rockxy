@@ -1,0 +1,81 @@
+---
+title: Introduction
+description: Rockxy is an open-source, native macOS network debugging tool with log intelligence, error analysis, and performance insights.
+---
+
+# Rockxy
+
+Rockxy is a free, open-source, native macOS developer tool for network debugging. Built with SwiftUI, AppKit, and SwiftNIO, it captures HTTP, HTTPS, WebSocket, and GraphQL-over-HTTP traffic while correlating it with application logs, error patterns, and performance data. Everything runs locally on your Mac — no cloud accounts, no telemetry, no subscriptions.
+
+<Frame caption="Rockxy running on macOS — three-column layout with sidebar, request list, and inspector.">
+  <img className="block dark:hidden" src="/images/Rockxy-Light.png" alt="Rockxy main window on macOS" />
+  <img className="hidden dark:block" src="/images/Rockxy-Dark.png" alt="Rockxy main window on macOS (dark mode)" />
+</Frame>
+
+## Why Rockxy?
+
+<CardGroup cols={2}>
+  <Card title="Network Traffic Capture" icon="network-wired">
+    Intercept and inspect HTTP, HTTPS, WebSocket, and GraphQL traffic from any application on your Mac. Full request/response bodies, headers, cookies, and timing data.
+  </Card>
+  <Card title="Log Intelligence" icon="scroll">
+    Capture OSLog streams and process stdout/stderr in real time. Logs are automatically correlated with network requests by timestamp and process, so you see the full picture without switching tools.
+  </Card>
+  <Card title="Error Analysis" icon="triangle-exclamation">
+    Automatically detect and group errors across HTTP 4xx/5xx responses and application log entries. Identify recurring patterns, track error frequency, and drill into root causes.
+  </Card>
+  <Card title="Performance Insights" icon="gauge-high">
+    Flag slow requests using percentile thresholds, track payload sizes per endpoint, detect sequential request chains, and compare current sessions against historical baselines.
+  </Card>
+  <Card title="Traffic Rules" icon="filter">
+    Set breakpoints to pause and edit requests mid-flight. Map requests to local files or remote URLs. Block, throttle, or modify headers with an ordered rule engine.
+  </Card>
+</CardGroup>
+
+## Key Features
+
+### HTTPS Interception
+
+Rockxy generates a root CA certificate on first launch and creates per-host TLS certificates on the fly (cached via LRU, up to 1,000 hosts). The root CA private key is stored in your macOS Keychain. Once you trust the root CA, all HTTPS traffic is transparently decrypted for inspection.
+
+### WebSocket and GraphQL
+
+WebSocket frames are captured and displayed alongside HTTP traffic. GraphQL-over-HTTP operations are automatically detected from POST requests to `/graphql` endpoints and labeled by operation name and type, making it easy to filter and search API calls.
+
+### Request Timeline
+
+A visual waterfall view shows request sequences, parallel connections, and dependency chains. Identify bottlenecks at a glance by seeing which requests block others and where latency accumulates.
+
+### Request Replay
+
+Select any captured request and re-send it with **Repeat** (fast path) or **Edit and Repeat** (edit method, URL, headers, and body first). Replay uses a proxy-bypass session, so replayed traffic does not re-enter the proxy pipeline. The response is shown inline with status, headers, and body.
+
+### Sessions and Export
+
+Save and restore captured traffic with native `.rockxysession` files or the industry-standard HAR format. Copy any request as cURL, raw HTTP, or JSON for use in other tools.
+
+## System Requirements
+
+| Requirement | Value |
+|-------------|-------|
+| Operating System | macOS 14.0 (Sonoma) or later |
+| Processor | Apple Silicon or Intel |
+| Disk Space | ~100 MB for the application |
+| Runtime | No additional runtime dependencies |
+
+## Getting Started
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Get Rockxy running and capturing traffic in under 5 minutes.
+  </Card>
+  <Card title="Installation" icon="download" href="/installation">
+    Detailed installation steps, certificate setup, build-from-source instructions, and data storage locations.
+  </Card>
+</CardGroup>
+
+## Open Source
+
+<Card title="GitHub Repository" icon="github" href="https://github.com/LocNguyenHuu/Rockxy">
+  Rockxy is open source under the AGPL-3.0 license. Browse the source, file issues, or submit pull requests on GitHub.
+</Card>

@@ -1,0 +1,7 @@
+// CommunityProduction.xcconfig — Public Community release channel.
+
+#include "Base.xcconfig"
+
+ROCKXY_RELEASE_CHANNEL = community-prod
+ROCKXY_UPDATES_ENABLED = YES
+ROCKXY_SPARKLE_FEED_URL = __PENDING__

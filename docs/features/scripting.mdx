@@ -1,0 +1,71 @@
+---
+title: "JavaScript Scripting"
+description: "Create JavaScript scripts to inspect, modify, or filter traffic passing through the proxy."
+---
+
+# JavaScript Scripting
+
+Rockxy includes a JavaScript scripting engine (JavaScriptCore) that lets you write scripts to inspect, modify, or filter traffic. Scripts run against matched requests in the proxy pipeline with a 5-second execution timeout.
+
+## Entry Points
+
+| Action | How to Access |
+|--------|---------------|
+| Open Script List | **Scripting > Script List...** (`Cmd+Opt+I`) |
+| Create New Script | Click **+** in the Script List window, or use the empty-state "Create Your First Script" button |
+
+## Script List
+
+The Script List window shows all scripts with their status:
+
+- **Enabled/Disabled** toggle per script.
+- **Error state** — scripts that failed to load or threw exceptions show the error message inline in red.
+- **Loading state** — scripts being initialized show a "Loading..." label.
+
+Select a script to view and edit its source code in the built-in editor.
+
+## Creating a Script
+
+1. Open the Script List (`Cmd+Opt+I`).
+2. Click **+** to create a new script.
+3. Choose a template or start from a blank script.
+4. Write your JavaScript using the `$rockxy` bridge API.
+5. Click **Save** to persist and **Test** to validate against sample traffic.
+6. Enable the script to activate it in the proxy pipeline.
+
+## What Scripts Can Do
+
+- Inspect request and response headers, body, URL, and method.
+- Modify headers (add, remove, replace) on requests or responses.
+- Block requests by returning a custom response.
+- Log output to the scripting console for debugging.
+- Filter or tag traffic based on custom logic.
+
+## Error Feedback
+
+Rockxy surfaces script errors inline in the Script List and the scripting console:
+
+- **Timeout** — scripts that exceed the 5-second limit are terminated with a timeout error and a hint to check for infinite loops.
+- **JavaScript exceptions** — runtime errors show the exception message and stack trace.
+- **Load failures** — scripts that fail during initial load emit an error entry to the console automatically.
+
+## Templates
+
+Rockxy includes templates for common scripting patterns to help you get started quickly. Templates are available when creating a new script.
+
+## Limitations
+
+- Scripts run in a JavaScriptCore sandbox with no direct filesystem or network access.
+- Each script execution has a 5-second timeout. Long-running computations are terminated.
+- Scripts cannot access other scripts' state or Rockxy's internal APIs beyond the `$rockxy` bridge.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Traffic Rules" icon="filter" href="/features/rules">
+    Declarative rules for blocking, mapping, and modifying traffic without code.
+  </Card>
+  <Card title="Traffic Capture" icon="satellite-dish" href="/features/traffic-capture">
+    How Rockxy captures and displays network traffic.
+  </Card>
+</CardGroup>

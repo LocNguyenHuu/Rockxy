@@ -1,0 +1,885 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		DCA9C5B32F627204005B1552 /* SQLite in Frameworks */ = {isa = PBXBuildFile; productRef = DCA9A63D2F624B36005B1552 /* SQLite */; };
+		DCA9C5B42F627204005B1552 /* X509 in Frameworks */ = {isa = PBXBuildFile; productRef = DCA9A63E2F624B50005B1552 /* X509 */; };
+		DCA9C5B52F627204005B1552 /* Crypto in Frameworks */ = {isa = PBXBuildFile; productRef = DCA9A63F2F624B50005B1552 /* Crypto */; };
+		DCA9C5B62F627204005B1552 /* SwiftASN1 in Frameworks */ = {isa = PBXBuildFile; productRef = DCA9A6402F624B50005B1552 /* SwiftASN1 */; };
+		DCA9C5B72F627204005B1552 /* NIO in Frameworks */ = {isa = PBXBuildFile; productRef = DCA9A6412F624B60005B1552 /* NIO */; };
+		DCA9C5B82F627204005B1552 /* NIOCore in Frameworks */ = {isa = PBXBuildFile; productRef = DCA9A6422F624B60005B1552 /* NIOCore */; };
+		DCA9C5B92F627204005B1552 /* NIOHTTP1 in Frameworks */ = {isa = PBXBuildFile; productRef = DCA9A6432F624B60005B1552 /* NIOHTTP1 */; };
+		DCA9C5BA2F627204005B1552 /* NIOPosix in Frameworks */ = {isa = PBXBuildFile; productRef = DCA9A6442F624B60005B1552 /* NIOPosix */; };
+		DCA9C5BB2F627204005B1552 /* NIOSSL in Frameworks */ = {isa = PBXBuildFile; productRef = DCA9A6452F624B60005B1552 /* NIOSSL */; };
+		DCA9C5BC2F627204005B1552 /* NIOWebSocket in Frameworks */ = {isa = PBXBuildFile; productRef = DCA9A6462F624B60005B1552 /* NIOWebSocket */; };
+		DCA9D00D2F700001005B1552 /* RockxyHelperTool in Embed Helper Tool */ = {isa = PBXBuildFile; fileRef = DCA9D0012F700000005B1552 /* RockxyHelperTool */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		DCA9D00F2F700001005B1552 /* com.amunx.Rockxy.HelperTool.plist in Copy LaunchDaemon Plist */ = {isa = PBXBuildFile; fileRef = DCA9D00E2F700001005B1552 /* com.amunx.Rockxy.HelperTool.plist */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		DCA99FCB2F61ADCC005B1552 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DCA99FB32F61ADC9005B1552 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DCA99FBA2F61ADC9005B1552;
+			remoteInfo = Rockxy;
+		};
+		DCA99FD52F61ADCC005B1552 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DCA99FB32F61ADC9005B1552 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DCA99FBA2F61ADC9005B1552;
+			remoteInfo = Rockxy;
+		};
+		DCA9D0072F700000005B1552 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DCA99FB32F61ADC9005B1552 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DCA9D0052F700000005B1552;
+			remoteInfo = RockxyHelperTool;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		DCA9D0092F700000005B1552 /* Embed Helper Tool */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Contents/Library/HelperTools;
+			dstSubfolderSpec = 1;
+			files = (
+				DCA9D00D2F700001005B1552 /* RockxyHelperTool in Embed Helper Tool */,
+			);
+			name = "Embed Helper Tool";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DCA9D0102F700001005B1552 /* Copy LaunchDaemon Plist */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Contents/Library/LaunchDaemons;
+			dstSubfolderSpec = 1;
+			files = (
+				DCA9D00F2F700001005B1552 /* com.amunx.Rockxy.HelperTool.plist in Copy LaunchDaemon Plist */,
+			);
+			name = "Copy LaunchDaemon Plist";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		DCA99FBB2F61ADC9005B1552 /* Rockxy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Rockxy.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		DCA99FCA2F61ADCC005B1552 /* RockxyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RockxyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		DCA99FD42F61ADCC005B1552 /* RockxyUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RockxyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		DCA9D0012F700000005B1552 /* RockxyHelperTool */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = RockxyHelperTool; sourceTree = BUILT_PRODUCTS_DIR; };
+		DCA9D00E2F700001005B1552 /* com.amunx.Rockxy.HelperTool.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = com.amunx.Rockxy.HelperTool.plist; path = RockxyHelperTool/com.amunx.Rockxy.HelperTool.plist; sourceTree = SOURCE_ROOT; };
+		DCA9D0202F700100005B1552 /* Configuration/Developer.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Configuration/Developer.xcconfig; sourceTree = SOURCE_ROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		DCA99FBD2F61ADC9005B1552 /* Rockxy */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Rockxy;
+			sourceTree = "<group>";
+		};
+		DCA99FCD2F61ADCC005B1552 /* RockxyTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = RockxyTests;
+			sourceTree = "<group>";
+		};
+		DCA99FD72F61ADCC005B1552 /* RockxyUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = RockxyUITests;
+			sourceTree = "<group>";
+		};
+		DCA9D0022F700000005B1552 /* RockxyHelperTool */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = RockxyHelperTool;
+			sourceTree = "<group>";
+		};
+		DCA9D0032F700000005B1552 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Shared;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		DCA99FB82F61ADC9005B1552 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DCA9C5BC2F627204005B1552 /* NIOWebSocket in Frameworks */,
+				DCA9C5BB2F627204005B1552 /* NIOSSL in Frameworks */,
+				DCA9C5BA2F627204005B1552 /* NIOPosix in Frameworks */,
+				DCA9C5B92F627204005B1552 /* NIOHTTP1 in Frameworks */,
+				DCA9C5B82F627204005B1552 /* NIOCore in Frameworks */,
+				DCA9C5B72F627204005B1552 /* NIO in Frameworks */,
+				DCA9C5B62F627204005B1552 /* SwiftASN1 in Frameworks */,
+				DCA9C5B52F627204005B1552 /* Crypto in Frameworks */,
+				DCA9C5B42F627204005B1552 /* X509 in Frameworks */,
+				DCA9C5B32F627204005B1552 /* SQLite in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DCA99FC72F61ADCC005B1552 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DCA99FD12F61ADCC005B1552 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DCA9D0042F700000005B1552 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		DC10A2572F67871C00006676 /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				DCA9D00E2F700001005B1552 /* com.amunx.Rockxy.HelperTool.plist */,
+			);
+			name = "Recovered References";
+			sourceTree = "<group>";
+		};
+		DCA99FB22F61ADC9005B1552 = {
+			isa = PBXGroup;
+			children = (
+				DCA9D0202F700100005B1552 /* Configuration/Developer.xcconfig */,
+				DCA99FBD2F61ADC9005B1552 /* Rockxy */,
+				DCA9D0022F700000005B1552 /* RockxyHelperTool */,
+				DCA9D0032F700000005B1552 /* Shared */,
+				DCA99FCD2F61ADCC005B1552 /* RockxyTests */,
+				DCA99FD72F61ADCC005B1552 /* RockxyUITests */,
+				DCA99FBC2F61ADC9005B1552 /* Products */,
+				DC10A2572F67871C00006676 /* Recovered References */,
+			);
+			sourceTree = "<group>";
+		};
+		DCA99FBC2F61ADC9005B1552 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				DCA99FBB2F61ADC9005B1552 /* Rockxy.app */,
+				DCA9D0012F700000005B1552 /* RockxyHelperTool */,
+				DCA99FCA2F61ADCC005B1552 /* RockxyTests.xctest */,
+				DCA99FD42F61ADCC005B1552 /* RockxyUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		DCA99FBA2F61ADC9005B1552 /* Rockxy */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DCA99FDE2F61ADCC005B1552 /* Build configuration list for PBXNativeTarget "Rockxy" */;
+			buildPhases = (
+				DCA99FB72F61ADC9005B1552 /* Sources */,
+				DCA99FB82F61ADC9005B1552 /* Frameworks */,
+				DCA99FB92F61ADC9005B1552 /* Resources */,
+				DCA9D0092F700000005B1552 /* Embed Helper Tool */,
+				DCA9D0102F700001005B1552 /* Copy LaunchDaemon Plist */,
+				DCA9D0212F700100005B1552 /* Generate Helper LaunchDaemon Plist */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DCA9D0082F700000005B1552 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				DCA99FBD2F61ADC9005B1552 /* Rockxy */,
+				DCA9D0032F700000005B1552 /* Shared */,
+			);
+			name = Rockxy;
+			packageProductDependencies = (
+				DCA9A63D2F624B36005B1552 /* SQLite */,
+				DCA9A63E2F624B50005B1552 /* X509 */,
+				DCA9A63F2F624B50005B1552 /* Crypto */,
+				DCA9A6402F624B50005B1552 /* SwiftASN1 */,
+				DCA9A6412F624B60005B1552 /* NIO */,
+				DCA9A6422F624B60005B1552 /* NIOCore */,
+				DCA9A6432F624B60005B1552 /* NIOHTTP1 */,
+				DCA9A6442F624B60005B1552 /* NIOPosix */,
+				DCA9A6452F624B60005B1552 /* NIOSSL */,
+				DCA9A6462F624B60005B1552 /* NIOWebSocket */,
+			);
+			productName = Rockxy;
+			productReference = DCA99FBB2F61ADC9005B1552 /* Rockxy.app */;
+			productType = "com.apple.product-type.application";
+		};
+		DCA99FC92F61ADCC005B1552 /* RockxyTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DCA99FE12F61ADCC005B1552 /* Build configuration list for PBXNativeTarget "RockxyTests" */;
+			buildPhases = (
+				DCA99FC62F61ADCC005B1552 /* Sources */,
+				DCA99FC72F61ADCC005B1552 /* Frameworks */,
+				DCA99FC82F61ADCC005B1552 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DCA99FCC2F61ADCC005B1552 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				DCA99FCD2F61ADCC005B1552 /* RockxyTests */,
+			);
+			name = RockxyTests;
+			packageProductDependencies = (
+			);
+			productName = RockxyTests;
+			productReference = DCA99FCA2F61ADCC005B1552 /* RockxyTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		DCA99FD32F61ADCC005B1552 /* RockxyUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DCA99FE42F61ADCC005B1552 /* Build configuration list for PBXNativeTarget "RockxyUITests" */;
+			buildPhases = (
+				DCA99FD02F61ADCC005B1552 /* Sources */,
+				DCA99FD12F61ADCC005B1552 /* Frameworks */,
+				DCA99FD22F61ADCC005B1552 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DCA99FD62F61ADCC005B1552 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				DCA99FD72F61ADCC005B1552 /* RockxyUITests */,
+			);
+			name = RockxyUITests;
+			packageProductDependencies = (
+			);
+			productName = RockxyUITests;
+			productReference = DCA99FD42F61ADCC005B1552 /* RockxyUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		DCA9D0052F700000005B1552 /* RockxyHelperTool */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DCA9D00A2F700000005B1552 /* Build configuration list for PBXNativeTarget "RockxyHelperTool" */;
+			buildPhases = (
+				DCA9D0062F700000005B1552 /* Sources */,
+				DCA9D0042F700000005B1552 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				DCA9D0022F700000005B1552 /* RockxyHelperTool */,
+				DCA9D0032F700000005B1552 /* Shared */,
+			);
+			name = RockxyHelperTool;
+			packageProductDependencies = (
+			);
+			productName = RockxyHelperTool;
+			productReference = DCA9D0012F700000005B1552 /* RockxyHelperTool */;
+			productType = "com.apple.product-type.tool";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		DCA99FB32F61ADC9005B1552 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2620;
+				LastUpgradeCheck = 2620;
+				TargetAttributes = {
+					DCA99FBA2F61ADC9005B1552 = {
+						CreatedOnToolsVersion = 26.2;
+					};
+					DCA99FC92F61ADCC005B1552 = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = DCA99FBA2F61ADC9005B1552;
+					};
+					DCA99FD32F61ADCC005B1552 = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = DCA99FBA2F61ADC9005B1552;
+					};
+					DCA9D0052F700000005B1552 = {
+						CreatedOnToolsVersion = 26.2;
+					};
+				};
+			};
+			buildConfigurationList = DCA99FB62F61ADC9005B1552 /* Build configuration list for PBXProject "Rockxy" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = DCA99FB22F61ADC9005B1552;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				DCA9A6382F624A2C005B1552 /* XCRemoteSwiftPackageReference "swift-nio" */,
+				DCA9A6392F624A6F005B1552 /* XCRemoteSwiftPackageReference "swift-nio-ssl" */,
+				DCA9A63A2F624B04005B1552 /* XCRemoteSwiftPackageReference "swift-certificates" */,
+				DCA9A63B2F624B15005B1552 /* XCRemoteSwiftPackageReference "swift-crypto" */,
+				DCA9A63C2F624B36005B1552 /* XCRemoteSwiftPackageReference "SQLite" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = DCA99FBC2F61ADC9005B1552 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				DCA99FBA2F61ADC9005B1552 /* Rockxy */,
+				DCA9D0052F700000005B1552 /* RockxyHelperTool */,
+				DCA99FC92F61ADCC005B1552 /* RockxyTests */,
+				DCA99FD32F61ADCC005B1552 /* RockxyUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		DCA99FB92F61ADC9005B1552 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DCA99FC82F61ADCC005B1552 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DCA99FD22F61ADCC005B1552 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		DCA9D0212F700100005B1552 /* Generate Helper LaunchDaemon Plist */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Generate Helper LaunchDaemon Plist";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "PLIST=\"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Library/LaunchDaemons/${ROCKXY_HELPER_PLIST_NAME}\"\nif [ -f \"$PLIST\" ]; then\nABI_ENTRIES=\"\"\nfor BUNDLE_ID in ${ROCKXY_ALLOWED_CALLER_IDENTIFIERS}; do\n  ABI_ENTRIES=\"${ABI_ENTRIES}\\t\\t<string>${BUNDLE_ID}</string>\\n\"\ndone\ncat > \"$PLIST\" <<PLISTEOF\n<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>Label</key>\n\t<string>${ROCKXY_HELPER_MACH_SERVICE_NAME}</string>\n\t<key>BundleProgram</key>\n\t<string>Contents/Library/HelperTools/RockxyHelperTool</string>\n\t<key>MachServices</key>\n\t<dict>\n\t\t<key>${ROCKXY_HELPER_MACH_SERVICE_NAME}</key>\n\t\t<true/>\n\t</dict>\n\t<key>AssociatedBundleIdentifiers</key>\n\t<array>\n$(echo -e \"${ABI_ENTRIES}\")\t</array>\n</dict>\n</plist>\nPLISTEOF\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		DCA99FB72F61ADC9005B1552 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DCA99FC62F61ADCC005B1552 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DCA99FD02F61ADCC005B1552 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DCA9D0062F700000005B1552 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		DCA99FCC2F61ADCC005B1552 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DCA99FBA2F61ADC9005B1552 /* Rockxy */;
+			targetProxy = DCA99FCB2F61ADCC005B1552 /* PBXContainerItemProxy */;
+		};
+		DCA99FD62F61ADCC005B1552 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DCA99FBA2F61ADC9005B1552 /* Rockxy */;
+			targetProxy = DCA99FD52F61ADCC005B1552 /* PBXContainerItemProxy */;
+		};
+		DCA9D0082F700000005B1552 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DCA9D0052F700000005B1552 /* RockxyHelperTool */;
+			targetProxy = DCA9D0072F700000005B1552 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		DCA99FDC2F61ADCC005B1552 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		DCA99FDD2F61ADCC005B1552 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		DCA99FDF2F61ADCC005B1552 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = DCA9D0202F700100005B1552 /* Configuration/Developer.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Rockxy/Rockxy.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = "$(ROCKXY_APP_BUILD)";
+				DEVELOPMENT_TEAM = "$(ROCKXY_TEAM_ID)";
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Rockxy/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = "$(ROCKXY_APP_VERSION)";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(ROCKXY_APP_BUNDLE_ID)";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		DCA99FE02F61ADCC005B1552 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = DCA9D0202F700100005B1552 /* Configuration/Developer.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Rockxy/Rockxy.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = "$(ROCKXY_APP_BUILD)";
+				DEVELOPMENT_TEAM = "$(ROCKXY_TEAM_ID)";
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Rockxy/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = "$(ROCKXY_APP_VERSION)";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(ROCKXY_APP_BUNDLE_ID)";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		DCA99FE22F61ADCC005B1552 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.amunx.RockxyTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Rockxy.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Rockxy";
+			};
+			name = Debug;
+		};
+		DCA99FE32F61ADCC005B1552 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.amunx.RockxyTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Rockxy.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Rockxy";
+			};
+			name = Release;
+		};
+		DCA99FE52F61ADCC005B1552 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.amunx.RockxyUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = Rockxy;
+			};
+			name = Debug;
+		};
+		DCA99FE62F61ADCC005B1552 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.amunx.RockxyUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = Rockxy;
+			};
+			name = Release;
+		};
+		DCA9D00B2F700000005B1552 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = DCA9D0202F700100005B1552 /* Configuration/Developer.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
+				CURRENT_PROJECT_VERSION = "$(ROCKXY_HELPER_BUILD)";
+				DEVELOPMENT_TEAM = "$(ROCKXY_TEAM_ID)";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = RockxyHelperTool/Info.plist;
+				INSTALL_PATH = "";
+				MARKETING_VERSION = "$(ROCKXY_HELPER_VERSION)";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(ROCKXY_HELPER_BUNDLE_ID)";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		DCA9D00C2F700000005B1552 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = DCA9D0202F700100005B1552 /* Configuration/Developer.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
+				CURRENT_PROJECT_VERSION = "$(ROCKXY_HELPER_BUILD)";
+				DEVELOPMENT_TEAM = "$(ROCKXY_TEAM_ID)";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = RockxyHelperTool/Info.plist;
+				INSTALL_PATH = "";
+				MARKETING_VERSION = "$(ROCKXY_HELPER_VERSION)";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(ROCKXY_HELPER_BUNDLE_ID)";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		DCA99FB62F61ADC9005B1552 /* Build configuration list for PBXProject "Rockxy" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DCA99FDC2F61ADCC005B1552 /* Debug */,
+				DCA99FDD2F61ADCC005B1552 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DCA99FDE2F61ADCC005B1552 /* Build configuration list for PBXNativeTarget "Rockxy" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DCA99FDF2F61ADCC005B1552 /* Debug */,
+				DCA99FE02F61ADCC005B1552 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DCA99FE12F61ADCC005B1552 /* Build configuration list for PBXNativeTarget "RockxyTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DCA99FE22F61ADCC005B1552 /* Debug */,
+				DCA99FE32F61ADCC005B1552 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DCA99FE42F61ADCC005B1552 /* Build configuration list for PBXNativeTarget "RockxyUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DCA99FE52F61ADCC005B1552 /* Debug */,
+				DCA99FE62F61ADCC005B1552 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DCA9D00A2F700000005B1552 /* Build configuration list for PBXNativeTarget "RockxyHelperTool" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DCA9D00B2F700000005B1552 /* Debug */,
+				DCA9D00C2F700000005B1552 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		DCA9A6382F624A2C005B1552 /* XCRemoteSwiftPackageReference "swift-nio" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-nio.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.95.0;
+			};
+		};
+		DCA9A6392F624A6F005B1552 /* XCRemoteSwiftPackageReference "swift-nio-ssl" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-nio-ssl";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.36.0;
+			};
+		};
+		DCA9A63A2F624B04005B1552 /* XCRemoteSwiftPackageReference "swift-certificates" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-certificates.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.18.0;
+			};
+		};
+		DCA9A63B2F624B15005B1552 /* XCRemoteSwiftPackageReference "swift-crypto" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-crypto";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.2.0;
+			};
+		};
+		DCA9A63C2F624B36005B1552 /* XCRemoteSwiftPackageReference "SQLite" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/stephencelis/SQLite.swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.16.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		DCA9A63D2F624B36005B1552 /* SQLite */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DCA9A63C2F624B36005B1552 /* XCRemoteSwiftPackageReference "SQLite" */;
+			productName = SQLite;
+		};
+		DCA9A63E2F624B50005B1552 /* X509 */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DCA9A63A2F624B04005B1552 /* XCRemoteSwiftPackageReference "swift-certificates" */;
+			productName = X509;
+		};
+		DCA9A63F2F624B50005B1552 /* Crypto */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DCA9A63B2F624B15005B1552 /* XCRemoteSwiftPackageReference "swift-crypto" */;
+			productName = Crypto;
+		};
+		DCA9A6402F624B50005B1552 /* SwiftASN1 */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DCA9A63A2F624B04005B1552 /* XCRemoteSwiftPackageReference "swift-certificates" */;
+			productName = SwiftASN1;
+		};
+		DCA9A6412F624B60005B1552 /* NIO */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DCA9A6382F624A2C005B1552 /* XCRemoteSwiftPackageReference "swift-nio" */;
+			productName = NIO;
+		};
+		DCA9A6422F624B60005B1552 /* NIOCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DCA9A6382F624A2C005B1552 /* XCRemoteSwiftPackageReference "swift-nio" */;
+			productName = NIOCore;
+		};
+		DCA9A6432F624B60005B1552 /* NIOHTTP1 */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DCA9A6382F624A2C005B1552 /* XCRemoteSwiftPackageReference "swift-nio" */;
+			productName = NIOHTTP1;
+		};
+		DCA9A6442F624B60005B1552 /* NIOPosix */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DCA9A6382F624A2C005B1552 /* XCRemoteSwiftPackageReference "swift-nio" */;
+			productName = NIOPosix;
+		};
+		DCA9A6452F624B60005B1552 /* NIOSSL */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DCA9A6392F624A6F005B1552 /* XCRemoteSwiftPackageReference "swift-nio-ssl" */;
+			productName = NIOSSL;
+		};
+		DCA9A6462F624B60005B1552 /* NIOWebSocket */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DCA9A6382F624A2C005B1552 /* XCRemoteSwiftPackageReference "swift-nio" */;
+			productName = NIOWebSocket;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = DCA99FB32F61ADC9005B1552 /* Project object */;
+}

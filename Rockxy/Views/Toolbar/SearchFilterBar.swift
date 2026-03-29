@@ -1,0 +1,44 @@
+import SwiftUI
+
+// Renders the search filter bar interface for toolbar controls and filtering.
+
+// MARK: - SearchFilterBar
+
+/// Single-field search bar with a field selector (URL, host, path, method) and enable/disable toggle.
+struct SearchFilterBar: View {
+    @Binding var searchText: String
+    @Binding var filterField: FilterField
+    @Binding var isEnabled: Bool
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Toggle("", isOn: $isEnabled)
+                .toggleStyle(.checkbox)
+                .tint(.green)
+
+            Picker("", selection: $filterField) {
+                ForEach(FilterField.allCases, id: \.self) { field in
+                    Text(field.displayName).tag(field)
+                }
+            }
+            .frame(width: 130)
+
+            TextField(String(localized: "Search..."), text: $searchText)
+                .textFieldStyle(.roundedBorder)
+
+            if !searchText.isEmpty {
+                Button {
+                    searchText = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.borderless)
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(Color(nsColor: .windowBackgroundColor))
+        .overlay(alignment: .bottom) { Divider() }
+    }
+}

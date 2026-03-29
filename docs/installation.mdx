@@ -1,0 +1,129 @@
+---
+title: Installation
+description: How to install Rockxy on macOS, set up the root CA certificate, and build from source.
+---
+
+# Installation
+
+Rockxy is a free, open-source, native macOS application. There is no account signup, license key, or cloud dependency. Download, install, and start debugging.
+
+## System Requirements
+
+| Requirement | Value |
+|-------------|-------|
+| Operating System | macOS 14.0 (Sonoma) or later |
+| Processor | Apple Silicon or Intel |
+| Disk Space | ~100 MB for the application |
+
+## Download
+
+Download the latest `.dmg` from [GitHub Releases](https://github.com/LocNguyenHuu/Rockxy/releases).
+
+| Architecture | File | Macs |
+|--------------|------|------|
+| Universal | `Rockxy-x.x.x-universal.dmg` | Apple Silicon and Intel |
+| arm64 | `Rockxy-x.x.x-arm64.dmg` | Apple Silicon (M1, M2, M3, M4) |
+| x86_64 | `Rockxy-x.x.x-x86_64.dmg` | Intel |
+
+If you are unsure which Mac you have, choose the Universal build.
+
+## Install
+
+1. Open the downloaded `.dmg` file.
+2. Drag **Rockxy.app** into the **Applications** folder.
+3. Launch Rockxy from Applications or Spotlight.
+
+<Frame caption="Drag Rockxy to Applications.">
+  <img src="/images/install-dmg.png" alt="Rockxy DMG installer" />
+</Frame>
+
+On first launch, macOS may show a Gatekeeper prompt because Rockxy is not notarized through the App Store. Right-click the app and select **Open** to bypass it, or go to **System Settings > Privacy & Security** and click **Open Anyway**.
+
+## Certificate Setup
+
+<Warning>
+HTTPS interception will not work until you install and trust the Rockxy root CA certificate. Without it, only plain HTTP traffic is captured.
+</Warning>
+
+Rockxy generates a unique root CA certificate on first launch. This certificate is used to create per-host TLS certificates so Rockxy can decrypt HTTPS traffic. The root CA private key is stored securely in your macOS Keychain.
+
+### Steps
+
+1. Launch Rockxy.
+2. Go to **Certificate > Install Root CA** in the menu bar.
+3. Enter your macOS password when prompted. This adds the root CA to your system keychain.
+4. Open **Keychain Access** (or follow the on-screen prompt). Locate the **Rockxy CA** certificate.
+5. Double-click the certificate, expand **Trust**, and set **When using this certificate** to **Always Trust**.
+6. Close the dialog and enter your password to confirm.
+
+After trusting the certificate, restart any browsers or applications that pin their own certificate stores (e.g., Firefox requires importing the CA in its own settings).
+
+## Data Storage Locations
+
+| Data | Storage Method | Location |
+|------|---------------|----------|
+| User preferences | UserDefaults | `~/Library/Preferences/com.amunx.Rockxy.plist` |
+| Root CA private key | macOS Keychain | Keychain Access > System keychain |
+| Saved sessions | SQLite | `~/Library/Application Support/Rockxy/sessions.db` |
+| Large response bodies | Disk files | `~/Library/Application Support/Rockxy/bodies/` |
+| Traffic rules | JSON file | `~/Library/Application Support/Rockxy/rules.json` |
+
+## Build from Source
+
+Requires Xcode 15+ with Swift 5.9. Dependencies are managed via Swift Package Manager through the Xcode project (no standalone `Package.swift`).
+
+```bash
+git clone https://github.com/LocNguyenHuu/Rockxy.git
+cd Rockxy
+xcodebuild -project Rockxy.xcodeproj -scheme Rockxy -configuration Debug build
+```
+
+To run tests:
+
+```bash
+xcodebuild -project Rockxy.xcodeproj -scheme Rockxy test
+```
+
+## Uninstallation
+
+<Warning>
+Uninstalling Rockxy removes the application but does not automatically delete your saved sessions, rules, or the root CA certificate. Follow the steps below to remove everything.
+</Warning>
+
+1. Quit Rockxy if it is running.
+2. Delete `Rockxy.app` from the Applications folder.
+3. Remove application data:
+   ```bash
+   rm -rf ~/Library/Application\ Support/Rockxy
+   rm -f ~/Library/Preferences/com.amunx.Rockxy.plist
+   ```
+4. Open **Keychain Access**, find the **Rockxy CA** certificate, and delete it.
+
+## Troubleshooting
+
+### "Rockxy can't be opened because Apple cannot check it for malicious software"
+
+Right-click Rockxy.app and select **Open**, or go to **System Settings > Privacy & Security** and click **Open Anyway**.
+
+### HTTPS traffic is not being captured
+
+Verify the root CA certificate is installed and trusted. Open **Keychain Access**, search for "Rockxy CA", and confirm it shows "This certificate is marked as trusted for all users." See [Certificate Setup](#certificate-setup) above.
+
+### Proxy does not capture traffic from a specific app
+
+Some applications (e.g., Firefox, Electron apps with custom proxy settings) ignore the system proxy. Check the application's proxy or network settings and configure it to use `localhost` on the port shown in Rockxy's status bar.
+
+### High memory usage with many captured requests
+
+Rockxy holds up to 50,000 transactions in memory. Older transactions are evicted to SQLite automatically. If memory usage is still high, clear the current session from **File > Clear Session**.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Capture your first request in 5 minutes.
+  </Card>
+  <Card title="Traffic Capture" icon="network-wired" href="/features/traffic-capture">
+    Learn about filtering, searching, and inspecting captured traffic.
+  </Card>
+</CardGroup>

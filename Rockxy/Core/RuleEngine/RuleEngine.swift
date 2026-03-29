@@ -1,0 +1,112 @@
+import Foundation
+import os
+
+/// Evaluates an ordered list of proxy rules against incoming HTTP requests.
+/// The first matching enabled rule wins — rules are evaluated sequentially,
+/// so ordering determines priority when multiple rules could match.
+actor RuleEngine {
+    // MARK: Internal
+
+    static let shared = RuleEngine()
+
+    var allRules: [ProxyRule] {
+        rules
+    }
+
+    func loadRules(from store: RuleStore) throws {
+        rules = try store.loadRules()
+        let count = rules.count
+        Self.logger.info("Loaded \(count) rules")
+    }
+
+    /// Evaluates rules and returns the first matching action.
+    func evaluate(method: String, url: URL, headers: [HTTPHeader]) -> RuleAction? {
+        evaluateRule(method: method, url: url, headers: headers)?.action
+    }
+
+    /// Evaluates rules and returns the full matching rule (action + match condition).
+    /// Used by Map Local Directory to extract the URL pattern for subpath resolution.
+    func evaluateRule(method: String, url: URL, headers: [HTTPHeader]) -> ProxyRule? {
+        for rule in rules where rule.isEnabled {
+            if rule.matchCondition.matches(method: method, url: url, headers: headers) {
+                Self.logger.debug("Rule matched: \(rule.name)")
+                return rule
+            }
+        }
+        return nil
+    }
+
+    func addRule(_ rule: ProxyRule) {
+        rules.append(rule)
+    }
+
+    func removeRule(id: UUID) {
+        rules.removeAll { $0.id == id }
+    }
+
+    func toggleRule(id: UUID) {
+        guard let index = rules.firstIndex(where: { $0.id == id }) else {
+            return
+        }
+        rules[index].isEnabled.toggle()
+    }
+
+    func updateRule(_ rule: ProxyRule) {
+        if let index = rules.firstIndex(where: { $0.id == rule.id }) {
+            rules[index] = rule
+        }
+    }
+
+    func replaceAll(_ newRules: [ProxyRule]) {
+        rules = newRules
+    }
+
+    func setEnabled(id: UUID, enabled: Bool) {
+        if let index = rules.firstIndex(where: { $0.id == id }) {
+            rules[index].isEnabled = enabled
+        }
+    }
+
+    func enableExclusiveNetworkCondition(id: UUID) {
+        for i in rules.indices {
+            if case .networkCondition = rules[i].action, rules[i].id != id {
+                rules[i].isEnabled = false
+            }
+        }
+        if let index = rules.firstIndex(where: { $0.id == id }) {
+            rules[index].isEnabled = true
+        }
+    }
+
+    func addNetworkConditionExclusive(_ rule: ProxyRule) {
+        precondition(
+            { if case .networkCondition = rule.action {
+                return true
+            }
+            return false }(),
+            "addNetworkConditionExclusive requires a .networkCondition rule"
+        )
+        for i in rules.indices {
+            if case .networkCondition = rules[i].action {
+                rules[i].isEnabled = false
+            }
+        }
+        var enabledRule = rule
+        enabledRule.isEnabled = true
+        rules.append(enabledRule)
+    }
+
+    func disableAllNetworkConditions() {
+        for i in rules.indices {
+            if case .networkCondition = rules[i].action {
+                rules[i].isEnabled = false
+            }
+        }
+    }
+
+    // MARK: Private
+
+    private static let logger = Logger(subsystem: "com.amunx.Rockxy", category: "RuleEngine")
+
+    private var rules: [ProxyRule] = []
+}

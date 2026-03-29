@@ -1,0 +1,99 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "aspen",
+  "name": "Rockxy",
+  "colors": {
+    "primary": "#6366F1",
+    "light": "#818CF8",
+    "dark": "#4F46E5"
+  },
+  "fonts": {
+    "family": "Inter"
+  },
+  "favicon": "/favicon.png",
+  "logo": {
+    "light": "/logo/logo.png",
+    "dark": "/logo/logo.png"
+  },
+  "navigation": {
+    "groups": [
+      {
+        "group": "Getting Started",
+        "pages": ["index", "quickstart", "installation", "changelog"]
+      },
+      {
+        "group": "Core Debugging",
+        "pages": [
+          "features/traffic-capture",
+          "features/https-interception",
+          "features/websocket",
+          "features/graphql",
+          "features/request-replay",
+          "features/rules",
+          "features/network-conditions"
+        ]
+      },
+      {
+        "group": "Analysis & Productivity",
+        "pages": [
+          "features/log-intelligence",
+          "features/error-analysis",
+          "features/performance-insights",
+          "features/diff",
+          "features/scripting",
+          "features/sessions"
+        ]
+      },
+      {
+        "group": "Customization",
+        "pages": [
+          "customization/settings",
+          "customization/keyboard-shortcuts"
+        ]
+      },
+      {
+        "group": "Development",
+        "pages": [
+          "development/architecture",
+          "development/code-style",
+          "development/building"
+        ]
+      }
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "GitHub",
+          "href": "https://github.com/LocNguyenHuu/Rockxy",
+          "icon": "github"
+        },
+        {
+          "anchor": "Releases",
+          "href": "https://github.com/LocNguyenHuu/Rockxy/releases",
+          "icon": "download"
+        }
+      ]
+    }
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Support",
+        "href": "mailto:rockxyapp@gmail.com"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Download",
+      "href": "https://github.com/LocNguyenHuu/Rockxy/releases"
+    }
+  },
+  "contextual": {
+    "options": ["copy", "view", "chatgpt", "claude", "perplexity", "cursor", "vscode"]
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/LocNguyenHuu/Rockxy"
+    }
+  }
+}

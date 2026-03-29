@@ -1,0 +1,88 @@
+---
+title: Quick Start
+description: Get Rockxy running and capturing network traffic in under 5 minutes.
+---
+
+# Quick Start
+
+This guide takes you from download to inspecting your first captured request in about 5 minutes. Rockxy is a free, native macOS app — no account, no license key, no cloud dependency.
+
+## 1. Download Rockxy
+
+Grab the latest release from [GitHub Releases](https://github.com/LocNguyenHuu/Rockxy/releases). Choose the Universal `.dmg` if you are unsure which architecture your Mac uses.
+
+## 2. Install
+
+Open the `.dmg` and drag **Rockxy.app** to the **Applications** folder. Launch it from Applications or Spotlight.
+
+If macOS blocks the app, right-click it and select **Open**, then click **Open** again in the confirmation dialog.
+
+## 3. Trust the Root CA
+
+<Warning>
+HTTPS interception will not work until you install and trust the root CA certificate. Skip this step only if you need to capture plain HTTP traffic.
+</Warning>
+
+1. In the Rockxy menu bar, go to **Certificate > Install Root CA**.
+2. Enter your macOS password to add the certificate to your system keychain.
+3. Open **Keychain Access**, find **Rockxy CA**, double-click it.
+4. Expand **Trust** and set **When using this certificate** to **Always Trust**.
+5. Close the dialog and enter your password to confirm.
+
+The root CA private key is stored in your macOS Keychain and never leaves your machine. Per-host certificates are generated on the fly during HTTPS interception.
+
+## 4. Start Capturing Traffic
+
+Click the **Start** button in the toolbar or use the keyboard shortcut. Rockxy sets itself as the system HTTP/HTTPS proxy and begins capturing traffic from all applications.
+
+<Tip>Press **Cmd+Shift+R** to toggle traffic capture on and off.</Tip>
+
+Open a browser or any app that makes network requests. You will see requests appear in the request list in real time.
+
+<Frame caption="Rockxy capturing live HTTP and HTTPS traffic.">
+  <img className="block dark:hidden" src="/images/traffic-capture.png" alt="Rockxy traffic capture view" />
+  <img className="hidden dark:block" src="/images/traffic-capture-dark.png" alt="Rockxy traffic capture view (dark mode)" />
+</Frame>
+
+## 5. Inspect a Request
+
+Click any request in the list to open the inspector panel. The inspector has several tabs:
+
+- **Headers** — request and response headers, status code, HTTP version.
+- **Body** — request and response bodies with syntax highlighting for JSON, XML, HTML, and other formats.
+- **Cookies** — parsed cookie key-value pairs from both request and response.
+- **Timing** — connection timing breakdown: DNS, TLS handshake, time to first byte, total duration.
+- **Raw** — the complete raw HTTP message for both request and response.
+
+For WebSocket connections, you will see individual frames listed with their opcode, direction, and payload.
+
+## 6. Explore Logs and Analytics
+
+Switch to the **Logs** tab in the sidebar to see captured application logs from OSLog streams and process stdout/stderr. Logs are correlated with network requests by timestamp and process, so you can trace a request from the network layer through to the application log output.
+
+Open the **Errors** tab to see automatically grouped error patterns across HTTP 4xx/5xx responses and log-level errors.
+
+Open the **Performance** tab to see latency percentiles, slow request detection, payload size tracking, and trend comparisons against previous sessions.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="HTTPS Interception" icon="lock" href="/features/https-interception">
+    How Rockxy decrypts TLS traffic and manages certificates.
+  </Card>
+  <Card title="Traffic Rules" icon="filter" href="/features/rules">
+    Set breakpoints, map requests to local files, block or throttle endpoints.
+  </Card>
+  <Card title="Log Intelligence" icon="scroll" href="/features/log-intelligence">
+    Capture and correlate OSLog streams with network requests.
+  </Card>
+  <Card title="Error Analysis" icon="triangle-exclamation" href="/features/error-analysis">
+    Automatic error detection, grouping, and pattern tracking.
+  </Card>
+  <Card title="Keyboard Shortcuts" icon="keyboard" href="/customization/keyboard-shortcuts">
+    All available keyboard shortcuts for fast navigation.
+  </Card>
+  <Card title="Sessions & HAR" icon="floppy-disk" href="/features/sessions">
+    Save, restore, import, and export captured traffic.
+  </Card>
+</CardGroup>

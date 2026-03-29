@@ -1,0 +1,96 @@
+---
+title: "Request Diff"
+description: "Compare two captured transactions in a dedicated workspace with candidate pool, structured sections, and side-by-side or unified views."
+---
+
+# Request Diff
+
+Rockxy's Diff workspace compares two captured transactions across structured sections — request line, host, query, headers, body, and timing — in a dedicated comparison window. Use it to spot regressions, compare environments, or isolate a parameter that triggers different server behavior.
+
+## Entry Points
+
+| Action | How to Access |
+|--------|---------------|
+| Open Diff View (empty) | **Diff > Open Diff View...** (`Cmd+Opt+Y`) |
+| Compare Selected | Select exactly 2 rows in the traffic list, then **Diff > Compare Selected** (`Cmd+Opt+D`) or right-click > **Compare Selected** |
+
+## Workspace Layout
+
+The Diff window is a resizable workspace (default 1240×820) with four zones:
+
+1. **Toolbar** — Swap Sides and Export actions
+2. **Candidate Pool Table** — dense table of comparison candidates with explicit Left/Right assignment
+3. **Diff Viewer** — the active comparison, showing structured sections
+4. **Control Bar** — compare target (Request / Response / Timing), display mode (Side by Side / Unified), and difference count
+
+## How It Works
+
+1. Select two transactions in the traffic list (hold `Cmd` and click each row).
+2. Choose **Compare Selected** from the context menu, Diff menu, or keyboard shortcut.
+3. The Diff workspace opens with both transactions in the candidate pool, automatically assigned as Left and Right.
+4. The diff viewer shows the comparison immediately.
+
+**Reassign inside the workspace** — click the L or R column on any candidate row to change the comparison sides without returning to the traffic list.
+
+**Grow the pool** — triggering Compare Selected again with different transactions adds them to the existing pool and makes them the active comparison. The workspace accumulates candidates across repeated comparisons.
+
+**Manual text compare** — open the Diff window empty (`Cmd+Opt+Y`) and paste text into Side A and Side B panes for freeform comparison.
+
+## Compare Targets
+
+Switch between three comparison modes using the segmented control in the footer:
+
+**Request** — compares request-specific content in structured sections:
+- Request line (method + path + HTTP version)
+- Host
+- Query parameters (one per line)
+- Request headers
+- Request body
+
+**Response** — compares response-specific content:
+- Status line (HTTP/1.1 + status code + reason)
+- Response headers
+- Response body
+
+**Timing** — compares timing breakdowns:
+- DNS Lookup
+- TCP Connection
+- TLS Handshake
+- Time to First Byte
+- Content Transfer
+- Total
+
+## Display Modes
+
+**Side by Side** — two synchronized panes with line numbers. Added lines (green) appear on the right, removed lines (red) on the left. Unchanged lines align vertically across both panes.
+
+**Unified** — one continuous diff stream with `+` and `-` prefixes, similar to standard unified diff format. Optimized for scanning the overall delta quickly.
+
+## Content Formatting
+
+- **JSON bodies** are automatically pretty-printed before diffing for readable output
+- **Binary bodies** show a placeholder: `"Binary body (N bytes, content-type)"` instead of garbled text
+- **Empty bodies** show explicit labels: `"No request body"` / `"No response body"`
+- **Headers** are compared one per line in `Name: Value` format
+
+## Interactions
+
+| Action | How |
+|--------|-----|
+| Assign Left | Click the L column on a candidate row |
+| Assign Right | Click the R column on a candidate row |
+| Swap Sides | Click **Swap Sides** in the toolbar |
+| Switch target | Click Request / Response / Timing in the footer |
+| Switch mode | Click Side by Side / Unified in the footer |
+| Export diff | Click **Export** to save as a unified diff text file |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Traffic Capture" icon="satellite-dish" href="/features/traffic-capture">
+    Capture, filter, and inspect network traffic.
+  </Card>
+  <Card title="Request Replay" icon="rotate" href="/features/request-replay">
+    Re-send requests with modifications and compare against originals.
+  </Card>
+</CardGroup>

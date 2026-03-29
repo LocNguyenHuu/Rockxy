@@ -1,0 +1,110 @@
+---
+title: Log Intelligence
+description: Capture OSLog streams, correlate application logs with network requests, and debug with unified context.
+---
+
+# Log Intelligence
+
+Rockxy captures application logs alongside network traffic and correlates them by timestamp and process. When a network request fails, you see the log output that happened at the same time from the same app — no more switching between Console.app and your proxy tool.
+
+<Frame caption="The Logs tab showing captured OSLog entries correlated with network requests.">
+  <img className="block dark:hidden" src="/images/log-intelligence.png" alt="Rockxy log intelligence view" />
+  <img className="hidden dark:block" src="/images/log-intelligence-dark.png" alt="Rockxy log intelligence view (dark mode)" />
+</Frame>
+
+## Entry Points
+
+| Action | How to Access |
+|--------|---------------|
+| Logs tab | **Logs** tab in the main sidebar |
+| Log settings | **Settings > Logs** |
+| Correlated logs for a request | Select a request > **Logs** tab in the inspector |
+| Jump to correlated request | Select a log entry > **Jump to Request** |
+
+## Log Sources
+
+<CardGroup cols={2}>
+  <Card title="OSLog" icon="apple">
+    System and application logs captured via OSLogStore (macOS 12+). Filter by subsystem, category, and process to focus on your app's output.
+  </Card>
+  <Card title="Process stdout/stderr" icon="terminal">
+    Capture standard output and standard error from child processes via Process pipe. Useful for CLI tools and scripts that log to the terminal.
+  </Card>
+  <Card title="Custom Sources" icon="plug">
+    Extend log capture via the plugin protocol. Add sources for syslog, file tailing, remote log streams, or any other log format your workflow requires.
+  </Card>
+</CardGroup>
+
+## Capturing Logs
+
+Enable log capture from the toolbar toggle or in **Settings > Logs**. Once enabled, Rockxy streams logs in real time from all configured sources.
+
+To reduce noise, filter by specific apps or subsystems:
+
+1. Click the **Filter** button in the Logs toolbar.
+2. Select the target application, subsystem, or category.
+3. Only matching log entries appear in the list.
+
+<Tip>
+Filter by your app's OSLog subsystem (e.g., `com.yourcompany.yourapp`) to eliminate system noise and focus on your own log output. You can add multiple subsystem filters.
+</Tip>
+
+## Log Levels
+
+| Level | Description | Color |
+|---|---|---|
+| Debug | Verbose debugging output, typically disabled in release builds | Gray |
+| Info | Informational messages about normal operation | Blue |
+| Notice | Notable conditions that are not errors | Cyan |
+| Warning | Potential issues that may require attention | Orange |
+| Error | Error conditions that caused a failure | Red |
+| Fault | Critical system-level failures | Purple |
+
+Click any level badge in the filter bar to show or hide entries at that level. Combine level filters with source and keyword filters for precise results.
+
+## Log-Request Correlation
+
+Rockxy automatically correlates log entries with network requests using two signals:
+
+- **Timestamp proximity** — log entries that occurred within the duration of a network request are candidates for correlation.
+- **Process matching** — the log entry's process identifier must match the app that originated the network request.
+
+When viewing a network request in the inspector, the **Logs** tab shows all correlated log entries. When viewing a log entry, click **Jump to Request** to navigate to the correlated network transaction.
+
+<Note>
+Correlation accuracy depends on timestamp precision and correct process attribution. OSLog entries have microsecond timestamps, so correlation is typically accurate to within a few milliseconds. Process stdout/stderr logs may have slightly lower precision depending on the buffering behavior of the target process.
+</Note>
+
+## Log Buffer
+
+Rockxy holds up to **100,000 log entries** in an in-memory ring buffer for fast access and filtering. When the buffer reaches capacity, the oldest entries are moved to SQLite storage.
+
+Persisted log entries remain searchable and accessible from the Logs tab — they load on demand when you scroll past the in-memory boundary or search for older entries.
+
+Buffer size is configurable in **Settings > Logs > Buffer Size**.
+
+## Log Filtering
+
+Filter the log list using any combination of:
+
+- **Level** — show only entries at or above a minimum severity level.
+- **Source** — OSLog, stdout/stderr, or custom plugin sources.
+- **Keyword** — free-text search across the log message content.
+- **Time Range** — restrict to entries within a specific time window.
+- **Process** — filter by process name or PID.
+
+Filters are combinable — for example, show only Error-level entries from a specific subsystem containing the word "timeout" in the last 5 minutes.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Error Analysis" icon="triangle-exclamation" href="/features/error-analysis">
+    Automatic error detection and pattern grouping across network and logs.
+  </Card>
+  <Card title="Performance Insights" icon="chart-line" href="/features/performance-insights">
+    Latency percentiles, slow request detection, and payload tracking.
+  </Card>
+  <Card title="Traffic Capture" icon="circle-play" href="/features/traffic-capture">
+    How Rockxy captures HTTP, HTTPS, and WebSocket traffic.
+  </Card>
+</CardGroup>

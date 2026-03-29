@@ -1,0 +1,110 @@
+---
+title: "Sessions & HAR"
+description: "Save, open, import, and export captured traffic using native .rockxysession files or the industry-standard HAR format."
+---
+
+# Sessions & HAR
+
+Rockxy supports saving and restoring captured traffic in two formats: the native `.rockxysession` format for full-fidelity session files, and the industry-standard HAR (HTTP Archive) format for cross-tool compatibility.
+
+## Native .rockxysession Format
+
+Rockxy's native format preserves the full session including metadata, user annotations, and all captured transactions.
+
+| Action | How to Access |
+|--------|---------------|
+| Open Session | **File > Open Session...** (`Cmd+O`) |
+| Save Session | **File > Save Session...** (`Cmd+Shift+S`) |
+
+### What .rockxysession Preserves
+
+| Data | Preserved |
+|------|-----------|
+| Transactions (URL, method, headers, body, status) | Yes |
+| Timing info (DNS, TCP, TLS, TTFB, transfer) | Yes |
+| WebSocket frames | Yes |
+| GraphQL operation info | Yes |
+| Log entries | Yes |
+| User comments | Yes |
+| Highlight colors | Yes |
+| Pinned/saved status | Yes |
+| TLS failure flags | Yes |
+| Client app name | Yes |
+| Session metadata (dates, version, count) | Yes |
+
+### Saving a Session
+
+1. Capture traffic as usual.
+2. Choose **File > Save Session...** (`Cmd+Shift+S`).
+3. Pick a location and filename. Rockxy writes a `.rockxysession` file.
+
+The file includes all captured transactions, log entries, user annotations (comments, highlight colors, pinned/saved status), and session metadata (capture date range, transaction count, Rockxy version).
+
+### Opening a Session
+
+1. Choose **File > Open Session...** (`Cmd+O`) and select a `.rockxysession` file.
+2. Rockxy shows an **Import Review** sheet with file metadata (name, type, request count, file size) and a warning if the current session is non-empty.
+3. Click **Replace Current** to load the session, or **Cancel** to abort.
+4. The loaded transactions appear in the traffic list with all annotations (comments, highlights, pins) restored. The status bar shows the import source.
+
+## HAR Format
+
+HAR is a JSON-based format supported by browser DevTools, Charles Proxy, Proxyman, mitmproxy, and other network tools.
+
+| Action | How to Access |
+|--------|---------------|
+| Import HAR | **File > Import HAR...** (`Cmd+Shift+I`) |
+| Export HAR | **File > Export HAR...** (`Cmd+Shift+E`) |
+
+### Importing a HAR File
+
+1. Choose **File > Import HAR...** (`Cmd+Shift+I`).
+2. Select a `.har` or `.json` file.
+3. Rockxy shows an **Import Review** sheet with file metadata and a destructive warning if you have an active session.
+4. Click **Replace Current** to import, or **Cancel** to abort.
+5. Imported transactions appear in the traffic list. The status bar shows the import source.
+
+Import errors (invalid format, oversized file, deserialization failure) are shown in a dialog with a specific error message.
+
+### Exporting to HAR
+
+1. Choose **File > Export HAR...** (`Cmd+Shift+E`).
+2. An **Export Scope** sheet lets you choose what to export:
+   - **All Transactions** — everything captured
+   - **Visible / Filtered** — only what the current filter shows
+   - **Selected** — only selected transactions
+3. Click **Export...** to open the save dialog.
+4. Pick a location and filename. Rockxy writes a standard HAR 1.2 file.
+
+You can also export individual requests via right-click > **Export > Export as HAR...** in the request list.
+
+<Callout type="info">
+  Exported HAR files may contain request bodies, cookies, and authorization headers. Review exports before sharing.
+</Callout>
+
+## Other Export Options
+
+Beyond file-level session save/export, Rockxy supports copying individual requests in several formats via the right-click context menu:
+
+- **Copy as cURL** — ready-to-run cURL command.
+- **Copy as Raw HTTP** — full HTTP/1.1 text dump.
+- **Copy as JSON** — structured JSON representation.
+- **Export as HAR...** — save a single request as a `.har` file.
+
+## Limitations
+
+- HAR export includes HTTP transactions only. WebSocket frames, GraphQL metadata, log entries, and user annotations (comments, highlights) are not included in HAR files. Use `.rockxysession` for full-fidelity saves.
+- `.rockxysession` files are not compatible with other tools — use HAR for cross-tool sharing.
+- Bodies larger than 10 MB are truncated in `.rockxysession` files.
+- Large sessions with many transactions may take a few seconds to save or load.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Traffic Capture" icon="satellite-dish" href="/features/traffic-capture">
+    How Rockxy captures HTTP, HTTPS, and WebSocket traffic.
+  </Card>
+  <Card title="Request Diff" icon="code-compare" href="/features/diff">
+    Compare two captured transactions side by side.
+  </Card>
+</CardGroup>

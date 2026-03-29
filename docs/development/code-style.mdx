@@ -1,0 +1,195 @@
+---
+title: "Code Style"
+description: "SwiftLint rules, SwiftFormat configuration, naming conventions, and coding standards"
+---
+
+## Tools
+
+Rockxy enforces code style with two tools. Configuration lives in the repository root:
+
+- **SwiftLint** — `.swiftlint.yml` — linting rules and complexity limits
+- **SwiftFormat** — `.swiftformat` — automatic formatting
+
+```bash
+# Run both before every commit
+swiftlint lint --strict
+swiftformat .
+```
+
+## Formatting
+
+| Rule | Value |
+|------|-------|
+| Indentation | 4 spaces (never tabs, except Makefile/pbxproj) |
+| Line length | 120 characters target (SwiftFormat); SwiftLint warns at 180, errors at 300 |
+| Braces | K&R style (opening brace on same line) |
+| Line endings | LF |
+| Semicolons | None |
+| Trailing commas | None |
+
+### Import Order
+
+System frameworks first (alphabetically), then third-party packages, then local modules. Separate groups with a blank line:
+
+```swift
+import Foundation
+import SwiftUI
+
+import NIO
+import SQLite
+
+import RockxyCore
+```
+
+## Access Control
+
+Always specify access control explicitly — on the extension when all members share the same level, on individual members otherwise:
+
+```swift
+// Preferred — access control on the extension
+private extension ProxyServer {
+    func handleRequest(_ request: HTTPRequest) { ... }
+    func forwardToUpstream(_ data: ByteBuffer) { ... }
+}
+
+// Also acceptable — explicit on each member
+extension ProxyServer {
+    internal func start() async throws { ... }
+    private func configureBootstrap() { ... }
+}
+```
+
+```swift
+// Bad — missing access control
+func processRequest() { ... }
+```
+
+## Optionals
+
+No force unwrapping (`!`) or force casting (`as!`) anywhere in the codebase. Use safe alternatives:
+
+```swift
+// Good
+guard let response = transaction.response else {
+    Self.logger.warning("Transaction has no response")
+    return
+}
+
+if let contentType = headers["Content-Type"] as? String {
+    detectFormat(contentType)
+}
+
+// Bad — will crash on nil
+let response = transaction.response!
+let contentType = headers["Content-Type"] as! String
+```
+
+## Logging
+
+Use OSLog through the `Logger` API. Every type that logs should declare a static logger:
+
+```swift
+import os
+
+final class CertificateManager {
+    private static let logger = Logger(
+        subsystem: "com.amunx.Rockxy",
+        category: "CertificateManager"
+    )
+
+    func generateCertificate(forHost host: String) async throws -> Certificate {
+        Self.logger.info("Generating certificate for \(host)")
+        // ...
+        Self.logger.debug("Certificate cached, \(cacheSize) entries total")
+    }
+}
+```
+
+<Warning>
+  Never use `print()` in production code. All logging must go through OSLog so it appears in Console.app and can be filtered by subsystem and category.
+</Warning>
+
+## Localization
+
+Use `String(localized:)` for all user-facing strings in non-SwiftUI code:
+
+```swift
+let message = String(localized: "proxy.started.message")
+```
+
+SwiftUI view literals auto-localize — `Text("Start Proxy")` and `Button("Clear Session")` are automatically looked up in the strings catalog. Do not wrap these in `String(localized:)`.
+
+Do **not** localize technical terms (HTTP, TLS, WebSocket, GraphQL, etc.).
+
+## Naming Conventions
+
+| Element | Convention | Example |
+|---------|-----------|---------|
+| Types, protocols, enums | UpperCamelCase | `ProxyServer`, `InspectorPlugin` |
+| Functions, variables | lowerCamelCase | `startProxy()`, `transactionCount` |
+| Booleans | `is`/`has`/`should` prefix | `isRecording`, `hasResponse`, `shouldIntercept` |
+| Constants | lowerCamelCase | `defaultPort`, `maxBufferSize` |
+| Enum cases | lowerCamelCase | `.connecting`, `.tlsHandshake` |
+
+## Comments
+
+Do not add comments that restate what the code already says. Only comment to explain non-obvious reasoning:
+
+```swift
+// Bad — restates the code
+// Check if the transaction has a response
+guard let response = transaction.response else { return }
+
+// Good — explains the "why"
+// NIO delivers chunks out of order under back-pressure;
+// reassemble by sequence number before forwarding
+chunks.sort(by: \.sequenceNumber)
+```
+
+## SwiftLint Limits
+
+| Metric | Warning | Error |
+|--------|---------|-------|
+| File length | 1,200 lines | 1,800 lines |
+| Type body | 1,100 lines | 1,500 lines |
+| Function body | 160 lines | 250 lines |
+| Cyclomatic complexity | 40 | 60 |
+
+<Tip>
+  When approaching these limits, extract logic into extension files following the `MainContentCoordinator` pattern — e.g., `TypeName+Category.swift`. Group by domain logic, not arbitrary line counts.
+</Tip>
+
+## Commits
+
+Follow [Conventional Commits](https://www.conventionalcommits.org/). Single line, no description body:
+
+```
+feat: add WebSocket frame inspector
+fix: prevent crash on empty GraphQL response
+refactor: extract certificate cache into dedicated actor
+docs: update keyboard shortcuts page
+test: add proxy pipeline integration tests
+```
+
+Common prefixes: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`.
+
+## Branch Naming
+
+Create branches from `main` with a prefix matching the work type:
+
+```
+feat/websocket-binary-frames
+fix/proxy-crash-malformed-headers
+docs/api-grouping-guide
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Architecture" icon="sitemap" href="/development/architecture">
+    Understand the actor model, coordinator pattern, and data flow
+  </Card>
+  <Card title="Building" icon="hammer" href="/development/building">
+    Build from source, run tests, and lint your changes
+  </Card>
+</CardGroup>

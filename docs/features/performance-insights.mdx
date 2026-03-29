@@ -1,0 +1,123 @@
+---
+title: Performance Insights
+description: Latency percentile analysis, slow request detection, payload tracking, and session trend comparison.
+---
+
+# Performance Insights
+
+Rockxy tracks timing and size data for every captured request and computes per-endpoint statistics in real time. Use performance insights to find slow endpoints, oversized payloads, blocking dependency chains, and regressions between sessions.
+
+<Frame caption="The Performance Insights dashboard showing latency percentiles and slow request flags.">
+  <img className="block dark:hidden" src="/images/performance-insights.png" alt="Rockxy performance insights dashboard" />
+  <img className="hidden dark:block" src="/images/performance-insights-dark.png" alt="Rockxy performance insights dashboard (dark mode)" />
+</Frame>
+
+## Entry Points
+
+| Action | How to Access |
+|--------|---------------|
+| Performance tab | **Performance** tab in the main sidebar |
+| Timeline view | **Timeline** tab in the main sidebar |
+| Per-request timing | Select a request > **Timing** tab in the inspector |
+| Threshold settings | **Settings > Performance** |
+
+## Latency Analysis
+
+Rockxy computes latency percentiles for every endpoint that has received at least 5 requests in the current session. The latency table shows:
+
+| Endpoint | Requests | p50 | p95 | p99 | Avg Size | Error Rate |
+|---|---|---|---|---|---|---|
+| `GET /api/v2/users` | 142 | 45 ms | 120 ms | 340 ms | 2.1 KB | 0.7% |
+| `POST /api/v2/orders` | 38 | 180 ms | 450 ms | 890 ms | 8.4 KB | 5.3% |
+| `GET /api/v2/products` | 271 | 32 ms | 85 ms | 210 ms | 14.2 KB | 0.0% |
+
+- **p50** — the median latency. Half of all requests to this endpoint completed faster.
+- **p95** — the 95th percentile. Only 5% of requests were slower.
+- **p99** — the 99th percentile. Captures worst-case latency excluding extreme outliers.
+
+Click any row to see the full latency distribution histogram for that endpoint.
+
+## Slow Request Detection
+
+Requests that exceed the p95 latency threshold for their endpoint are flagged as slow. Slow requests are:
+
+- Highlighted in the traffic list with a warning indicator.
+- Listed in the **Slow Requests** section of the Performance tab.
+- Included in trend tracking for regression detection.
+
+<Note>
+Thresholds are calculated per endpoint, not globally. A 200 ms request to a fast endpoint (p95: 100 ms) is flagged, while a 200 ms request to a slow endpoint (p95: 500 ms) is not. This prevents alert fatigue from endpoints with legitimately different latency profiles.
+</Note>
+
+You can also set a fixed latency threshold in **Settings > Performance** to flag any request above a specific duration regardless of percentile.
+
+## Payload Size Analysis
+
+Rockxy tracks request and response body sizes for every endpoint and surfaces size outliers:
+
+- **Average size** per endpoint, tracked over time.
+- **Oversized responses** — responses significantly larger than the endpoint's average are flagged.
+- **Size breakdown** — request size vs. response size, with compression ratio when Content-Encoding is present.
+
+<Tip>
+Large API responses are a common source of mobile performance problems. Use payload size analysis to identify endpoints returning more data than clients need, then work with your backend team to add pagination, field filtering, or compression.
+</Tip>
+
+## Request Timeline
+
+The timeline view shows a visual waterfall chart of all requests in the current session, ordered by start time. Each request bar is broken into timing phases:
+
+| Phase | Description |
+|---|---|
+| **DNS** | Domain name resolution |
+| **Connect** | TCP connection establishment |
+| **TLS** | TLS handshake (HTTPS only) |
+| **TTFB** | Time to first byte — waiting for the server to respond |
+| **Transfer** | Response body transfer |
+
+The waterfall makes it easy to spot sequential chains (requests that start only after the previous one completes) and parallel groups (requests that overlap in time).
+
+<Frame caption="Request timeline waterfall showing timing phases and dependency chains.">
+  <img className="block dark:hidden" src="/images/request-timeline.png" alt="Rockxy request timeline waterfall" />
+  <img className="hidden dark:block" src="/images/request-timeline-dark.png" alt="Rockxy request timeline waterfall (dark mode)" />
+</Frame>
+
+## Dependency Detection
+
+Rockxy automatically detects sequential request chains — cases where request B starts only after request A completes, suggesting a data dependency or waterfall pattern.
+
+Detected chains are highlighted in the timeline view with a connecting line between dependent requests. The Performance tab lists the longest chains with their total duration and individual request breakdown.
+
+Use dependency detection to find opportunities for:
+
+- Parallelizing independent requests.
+- Prefetching data that is needed later.
+- Reducing chain depth by combining API calls.
+
+## Trend Tracking
+
+Rockxy compares current session metrics against historical baselines from previous sessions. The trend view shows:
+
+- **Latency trends** — is the p95 for an endpoint increasing or decreasing compared to previous sessions?
+- **Error rate trends** — are errors becoming more or less frequent?
+- **Payload size trends** — are responses growing over time?
+
+Each metric displays a direction indicator (arrow up, arrow down, or stable) with the magnitude of change.
+
+<Note>
+Baselines are calculated from the most recent 10 completed sessions stored in SQLite. If fewer than 3 historical sessions exist for an endpoint, trend data is not shown for that endpoint.
+</Note>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Error Analysis" icon="triangle-exclamation" href="/features/error-analysis">
+    Automatic error detection and pattern grouping across network and logs.
+  </Card>
+  <Card title="Traffic Capture" icon="circle-play" href="/features/traffic-capture">
+    How Rockxy captures HTTP, HTTPS, and WebSocket traffic.
+  </Card>
+  <Card title="Log Intelligence" icon="scroll" href="/features/log-intelligence">
+    Capture and correlate OSLog streams with network requests.
+  </Card>
+</CardGroup>

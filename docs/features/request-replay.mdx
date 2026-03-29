@@ -1,0 +1,81 @@
+---
+title: Request Replay
+description: Re-send captured HTTP requests with optional editing for iterative API testing and debugging.
+---
+
+# Request Replay
+
+Rockxy can re-send any captured HTTP or HTTPS request. There are two replay paths: **Repeat** sends the request again immediately, and **Edit and Repeat** opens an editable sheet where you can change the method, URL, headers, and body before sending.
+
+Replay uses a proxy-bypass session (an ephemeral `URLSession` with proxy settings disabled), so replayed traffic does **not** re-enter Rockxy's proxy pipeline. This avoids infinite loops and means active rules (breakpoints, throttle, header modifications) do not apply to replayed requests.
+
+## Entry Points
+
+| Action | How to Access |
+|--------|---------------|
+| Repeat | Right-click a request > **Repeat**, or **Flow > Replay Request** (`Cmd+Return`) |
+| Edit and Repeat | Right-click a request > **Edit and Repeat...** |
+
+## Repeat (Fast Replay)
+
+**Repeat** re-sends the selected request with the same method, URL, headers, and body as the original. No editing step — the request goes out immediately.
+
+1. Select a request in the traffic list.
+2. Right-click and choose **Repeat**, or press `Cmd+Return`.
+3. The response appears inline with status code, headers, and body.
+
+## Edit and Repeat
+
+**Edit and Repeat** opens a sheet where you can modify the request before sending:
+
+- **Method** — switch between GET, POST, PUT, DELETE, PATCH, or any custom method.
+- **URL** — change the scheme, host, path, or query parameters.
+- **Headers** — add, remove, or edit any header. Click **+** to add a new row.
+- **Body** — edit the request body with syntax highlighting for JSON, XML, and form data.
+
+Click **Send** to dispatch the modified request, or **Cancel** to discard changes.
+
+<Tip>
+Use Edit and Repeat to test authentication flows. Copy a request, swap the Authorization header with a different token or remove it entirely, and check how the server responds.
+</Tip>
+
+## Viewing Results
+
+The response is displayed inline in the replay sheet. It includes:
+
+- **Status code** with the standard color badge (2xx green, 3xx blue, 4xx orange, 5xx red).
+- **Response headers** in a key-value list.
+- **Response body** with the same rendering as the main inspector (JSON tree, hex, text, image preview).
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Verify Deployments" icon="rocket">
+    Re-send a request after a server deploy to confirm the fix works without reproducing the original client flow.
+  </Card>
+  <Card title="Reproduce Bugs" icon="bug">
+    Replay a failing request repeatedly while adjusting parameters to isolate the trigger condition.
+  </Card>
+  <Card title="Test Auth Tokens" icon="key">
+    Swap authorization headers between replays to verify token validation, expiration, and permission boundaries.
+  </Card>
+  <Card title="Validate Error Handling" icon="triangle-exclamation">
+    Modify request bodies to send malformed data and verify the server returns correct error responses.
+  </Card>
+</CardGroup>
+
+## Limitations
+
+- Replayed requests bypass the proxy, so they are not subject to active rules and do not appear as new captured transactions in the traffic list.
+- Replay sends a single request. Sequence recording (replaying a chain of dependent requests) is not yet available.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Traffic Rules" icon="filter" href="/features/rules">
+    Set breakpoints, map requests, block or throttle endpoints.
+  </Card>
+  <Card title="Traffic Capture" icon="circle-play" href="/features/traffic-capture">
+    How Rockxy captures HTTP, HTTPS, and WebSocket traffic.
+  </Card>
+</CardGroup>

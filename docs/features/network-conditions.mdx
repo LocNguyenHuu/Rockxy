@@ -1,0 +1,90 @@
+---
+title: "Network Conditions"
+description: "Simulate slow networks with latency presets applied to proxied HTTP and HTTPS requests."
+---
+
+# Network Conditions
+
+Network Conditions adds artificial latency to matching requests using named presets modeled after Apple's Network Link Conditioner. Use it to test loading states, timeout handling, and degraded-network UX without leaving Rockxy.
+
+Phase 1 simulates added request-start latency only. Bandwidth shaping, packet loss, and jitter are planned for a future release.
+
+## Entry Points
+
+| Action | How to Access |
+|--------|---------------|
+| Network Conditions window | **Tools > Network Conditions...** (`Cmd+Opt+N`) |
+| Quick-create from request | Right-click a captured request > **Tools > Network Conditions...** |
+| Quick-create from domain | Right-click a domain in the sidebar > **Tools > Network Conditions** |
+
+## Presets
+
+Each preset maps to a fixed latency value applied before the request is forwarded upstream:
+
+| Preset | Latency | Use Case |
+|--------|---------|----------|
+| 3G | 400 ms | Mobile fallback testing |
+| EDGE | 850 ms | Extreme slow-network edge cases |
+| LTE | 50 ms | Typical mobile latency |
+| Very Bad Network | 2000 ms | Timeout and retry logic |
+| WiFi | 2 ms | Baseline with minimal overhead |
+| Custom | User-defined | Specific latency requirements |
+
+## One-Active Enforcement
+
+Only one Network Conditions rule can be active at a time. When you enable a rule, all other Network Conditions rules are automatically disabled. This applies across both the dedicated window and the general Rules list.
+
+A warning banner appears in the Network Conditions window if multiple rules are somehow enabled simultaneously.
+
+## Window Layout
+
+The Network Conditions window (880 x 480) follows the standard Rockxy tool-window layout:
+
+1. **Inline Toolbar** — Disable All button, Search field, Add Rule button
+2. **Info Bar** — help text describing the feature
+3. **Table** — columns for Enabled (toggle), Name, Scope (URL pattern), Profile (preset name), Latency (ms), and Status (Active / Inactive / Conflict)
+4. **Bottom Bar** — Add (+) and Remove (-) buttons, rule count
+
+## Creating a Network Condition
+
+### From the dedicated window
+
+1. Open **Tools > Network Conditions...** or press `Cmd+Opt+N`.
+2. Click **Add Rule** or the **+** button.
+3. Enter a rule name and URL pattern (Exact Path, Subpaths, or Regex).
+4. Select a preset or choose Custom and enter a latency value in milliseconds.
+5. Click **Add Rule**.
+
+### From a captured request (quick-create)
+
+1. Right-click any request in the traffic list.
+2. Choose **Tools > Network Conditions...** from the context menu.
+3. The edit sheet opens pre-filled with the request's host and path.
+4. Select a preset and click **Add Rule**.
+
+### From the sidebar (domain quick-create)
+
+1. Right-click any domain in the sidebar.
+2. Choose **Tools > Network Conditions** from the context menu.
+3. The edit sheet opens pre-filled with the domain as a subpath match.
+
+## How It Works
+
+Network Conditions rules use the `networkCondition` action type internally, separate from generic throttle rules. When a matching request arrives:
+
+1. The rule engine evaluates rules in order and finds the first matching enabled rule.
+2. If it is a Network Conditions rule, the proxy holds the request for the configured latency before forwarding it upstream.
+3. The delay applies to the request initiation phase — response streaming is not paced.
+
+HTTPS requests are delayed after TLS interception, so the delay applies to the decrypted HTTP traffic inside the tunnel, not to the CONNECT handshake.
+
+## Persistence
+
+Network Conditions rules are persisted alongside all other rules in `~/Library/Application Support/Rockxy/rules.json`. They survive app restarts and can be exported/imported through the standard rule system.
+
+## Limitations
+
+- **Latency only** — no bandwidth shaping, packet loss, or jitter simulation in Phase 1
+- **Request-start delay** — the delay is applied before forwarding; response body streaming is not paced
+- **WebSocket frames** — latency applies to the initial HTTP upgrade request, not to individual WebSocket frames after the connection is established
+- **One active rule** — only one Network Conditions rule can be active at a time

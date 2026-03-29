@@ -1,0 +1,80 @@
+name: Build & Validate
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: 'Build channel (e.g. dev, beta, stable)'
+        required: false
+        default: 'dev'
+        type: string
+
+jobs:
+  lint:
+    name: SwiftLint
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install SwiftLint
+        run: brew install swiftlint
+      - name: Lint
+        run: swiftlint lint --strict
+
+  build-universal:
+    name: Build (Universal)
+    needs: lint
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.app
+      - name: Build arm64
+        run: |
+          xcodebuild -project Rockxy.xcodeproj \
+            -scheme Rockxy \
+            -configuration Release \
+            -arch arm64 \
+            -derivedDataPath build/arm64 \
+            build
+      - name: Build x86_64
+        run: |
+          xcodebuild -project Rockxy.xcodeproj \
+            -scheme Rockxy \
+            -configuration Release \
+            -arch x86_64 \
+            -derivedDataPath build/x86_64 \
+            build
+      - name: Create universal binary
+        run: |
+          ARM_APP="build/arm64/Build/Products/Release/Rockxy.app"
+          X86_APP="build/x86_64/Build/Products/Release/Rockxy.app"
+
+          mkdir -p artifacts
+          cp -R "$ARM_APP" artifacts/Rockxy.app
+
+          # Combine main executable into universal binary
+          lipo -create \
+            "$ARM_APP/Contents/MacOS/Rockxy" \
+            "$X86_APP/Contents/MacOS/Rockxy" \
+            -output artifacts/Rockxy.app/Contents/MacOS/Rockxy
+
+          # Combine any helper executables
+          if [ -d "$ARM_APP/Contents/Library/LaunchServices" ]; then
+            for helper in "$ARM_APP/Contents/Library/LaunchServices/"*; do
+              name=$(basename "$helper")
+              x86_helper="$X86_APP/Contents/Library/LaunchServices/$name"
+              if [ -f "$x86_helper" ]; then
+                lipo -create "$helper" "$x86_helper" \
+                  -output "artifacts/Rockxy.app/Contents/Library/LaunchServices/$name"
+              fi
+            done
+          fi
+
+          # Verify universal binary
+          lipo -info artifacts/Rockxy.app/Contents/MacOS/Rockxy
+
+          cd artifacts && zip -r Rockxy-universal.zip Rockxy.app
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rockxy-universal
+          path: artifacts/Rockxy-universal.zip

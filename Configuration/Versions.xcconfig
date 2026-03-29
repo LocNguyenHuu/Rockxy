@@ -1,0 +1,14 @@
+// Versions.xcconfig — Single source of truth for all version and build numbers.
+//
+// This file is the ONLY place version/build values should be edited.
+// Read at build time via pbxproj variables → Info.plist → Bundle.main at runtime.
+//
+// Do NOT duplicate these values in Swift constants. All runtime code reads
+// from Bundle.main.infoDictionary.
+
+ROCKXY_APP_VERSION = 0.1.0
+ROCKXY_APP_BUILD = 1
+
+ROCKXY_HELPER_VERSION = 0.1.0
+ROCKXY_HELPER_BUILD = 1
+ROCKXY_HELPER_PROTOCOL_VERSION = 1

@@ -1,0 +1,162 @@
+---
+title: "Traffic Capture"
+description: "Capture, inspect, and filter HTTP/HTTPS network traffic from any application"
+---
+
+Rockxy captures every HTTP and HTTPS request flowing through your Mac by running a local proxy server on port 9090. Point any app at the proxy — or let Rockxy configure the system proxy automatically — and watch requests stream in real time.
+
+<Frame caption="Traffic list showing captured HTTP/HTTPS requests with method, host, status, and timing columns">
+  <img className="block dark:hidden" src="/images/traffic-capture.png" alt="Traffic capture list view" />
+  <img className="hidden dark:block" src="/images/traffic-capture-dark.png" alt="Traffic capture list view (dark mode)" />
+</Frame>
+
+## How It Works
+
+Rockxy runs a SwiftNIO-based proxy server that accepts HTTP and HTTPS CONNECT requests on `localhost:9090`. When you start capturing, Rockxy can automatically configure the macOS system proxy settings so all HTTP/HTTPS traffic from every application routes through the proxy.
+
+The proxy intercepts each request, records the full request and response (headers, body, timing), and forwards traffic to the destination server. For HTTPS, Rockxy performs a man-in-the-middle interception using a locally generated root CA — see [HTTPS Interception](/features/https-interception) for details.
+
+<Note>
+Rockxy automatically sets and restores the macOS system HTTP/HTTPS proxy when you start and stop capture. Your original proxy settings are preserved and restored on exit, even if Rockxy crashes.
+</Note>
+
+## Starting and Stopping
+
+Use the toolbar controls or keyboard shortcuts to manage capture state:
+
+| Action | Shortcut | Description |
+|--------|----------|-------------|
+| Start Capture | `Cmd + Shift + R` | Start the proxy server and begin capturing traffic |
+| Stop Capture | `Cmd + .` | Stop the proxy server and restore system proxy settings |
+| Toggle Recording | `Cmd + Shift + E` | Pause/resume recording without stopping the proxy |
+| Clear Session | `Cmd + K` | Remove all captured requests from the current session |
+
+When recording is paused, the proxy stays active (so apps don't lose connectivity) but new requests are not added to the traffic list.
+
+## Request List
+
+The main traffic list displays captured requests in a high-performance virtualized table (backed by NSTableView) that handles 100,000+ rows without slowing down. Each row shows:
+
+- **Method** — color-coded badge (GET, POST, PUT, DELETE, PATCH, etc.)
+- **Host** — the destination hostname
+- **Path** — the request path and query string
+- **Status** — HTTP status code with color coding (2xx green, 3xx blue, 4xx orange, 5xx red)
+- **Size** — combined request + response body size
+- **Duration** — total round-trip time in milliseconds
+- **Content Type** — detected response type (JSON, XML, HTML, image, etc.)
+
+Above the request list, tabbed views give you different perspectives on your captured data:
+
+- **Traffic** — the full chronological request list
+- **Logs** — application log entries correlated with network activity
+- **Timeline** — visual waterfall showing request sequences and dependencies
+- **Errors** — automatically grouped errors from both network and log sources
+- **Performance** — latency analysis, slow request detection, payload size tracking
+
+## Filtering Traffic
+
+The filter bar at the top of the request list supports multiple simultaneous filters to narrow down traffic:
+
+- **Search** — free-text search across URL, headers, and body content
+- **Method** — filter by HTTP method (GET, POST, PUT, DELETE, etc.)
+- **Status Code** — filter by status code range (2xx, 3xx, 4xx, 5xx) or specific code
+- **Content Type** — filter by response type (JSON, XML, HTML, Image, etc.)
+- **Domain** — filter to a specific hostname or domain pattern
+
+<Tip>
+Combine multiple filters to isolate exactly the traffic you need. For example, filter to `POST` requests returning `5xx` status codes on `api.example.com` to find failing API calls instantly.
+</Tip>
+
+## Request Inspector
+
+Select any request in the traffic list to open the inspector panel on the right. The inspector provides tabbed views into every aspect of the request:
+
+### Headers
+
+Displays request and response headers in a searchable key-value table. Request headers appear at the top, response headers below, each with their own section.
+
+### Body
+
+Auto-detects the content type and renders the body accordingly:
+- **JSON** — collapsible tree view with syntax highlighting
+- **XML/HTML** — formatted tree view with tag folding
+- **Images** — inline preview (PNG, JPEG, GIF, WebP, SVG)
+- **Binary** — hex dump with ASCII sidebar
+- **Text** — raw text with line numbers
+
+### Cookies
+
+Shows request cookies (sent via `Cookie` header) and response cookies (from `Set-Cookie` headers) with parsed attributes: domain, path, expiry, secure, httpOnly, sameSite.
+
+### Timing
+
+Visual waterfall bar breaking down the request lifecycle:
+- **DNS Lookup** — domain resolution time
+- **Connect** — TCP connection establishment
+- **TLS Handshake** — SSL/TLS negotiation (HTTPS only)
+- **Time to First Byte (TTFB)** — server processing time
+- **Transfer** — response body download time
+
+### Raw
+
+Full HTTP/1.1 text dump of the request and response, exactly as sent/received on the wire. Useful for debugging protocol-level issues.
+
+### Certificates
+
+For HTTPS requests, displays the full certificate chain from the remote server. See [HTTPS Interception](/features/https-interception) for more on certificate handling.
+
+### WebSocket
+
+For WebSocket connections, shows the frame list after the HTTP upgrade. See [WebSocket Inspection](/features/websocket) for details.
+
+### GraphQL
+
+For detected GraphQL requests, shows the parsed operation with query text and variables. See [GraphQL Support](/features/graphql) for details.
+
+## Session Management
+
+Rockxy stores active traffic in a high-performance in-memory ring buffer with a capacity of 50,000 transactions. When the buffer fills up, the oldest 10% of entries are either moved to SQLite storage or discarded.
+
+Completed sessions are persisted to a local SQLite database, so you can quit and relaunch Rockxy without losing your captured data. Response bodies larger than 1 MB are stored as separate files on disk to keep the database lean.
+
+<Note>
+When the ring buffer reaches capacity, the oldest entries are evicted automatically. If you need to preserve specific requests, export them before the buffer fills. Use `Cmd + K` to manually clear the session and free memory.
+</Note>
+
+## Supported Protocols
+
+| Protocol | Support | Notes |
+|----------|---------|-------|
+| HTTP/1.1 | Full | Plain HTTP capture and inspection |
+| HTTPS | Full | Via CONNECT tunnel with MITM certificate generation |
+| WebSocket | Full | Frame-level capture after HTTP upgrade |
+| GraphQL-over-HTTP | Auto-detected | POST requests to `/graphql` endpoints with `query` field |
+
+## Sessions and Export
+
+Save your captured traffic for later analysis or sharing.
+
+- **Save Session** — **File > Save Session...** (`Cmd+Shift+S`) saves a native `.rockxysession` file with full metadata.
+- **Export HAR** — **File > Export HAR...** (`Cmd+Shift+E`) writes the industry-standard HAR format for cross-tool compatibility.
+- **Import HAR** — **File > Import HAR...** (`Cmd+Shift+I`) loads a HAR file into the traffic list.
+- **Open Session** — **File > Open Session...** (`Cmd+O`) restores a previously saved `.rockxysession` file.
+- **Copy as cURL** — right-click any request > **Copy as cURL** for a ready-to-run command.
+
+See [Sessions & HAR](/features/sessions) for full details on save/export workflows.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="HTTPS Interception" icon="lock" href="/features/https-interception">
+    Set up certificate trust to inspect encrypted HTTPS traffic
+  </Card>
+  <Card title="WebSocket Inspection" icon="plug" href="/features/websocket">
+    Capture and inspect WebSocket frames in real time
+  </Card>
+  <Card title="GraphQL Detection" icon="diagram-project" href="/features/graphql">
+    Automatic GraphQL-over-HTTP operation detection and inspection
+  </Card>
+  <Card title="Traffic Rules" icon="filter" href="/features/rules">
+    Block, redirect, throttle, or modify requests with rules
+  </Card>
+</CardGroup>

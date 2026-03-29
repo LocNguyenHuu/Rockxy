@@ -1,0 +1,48 @@
+# EditorConfig helps maintain consistent coding styles
+# https://editorconfig.org
+
+root = true
+
+# Default settings for all files
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+# Swift files
+[*.swift]
+indent_size = 4
+max_line_length = 120
+
+# Markdown files
+[*.md]
+trim_trailing_whitespace = false
+max_line_length = off
+
+# JSON files
+[*.json]
+indent_size = 2
+
+# YAML files
+[*.{yml,yaml}]
+indent_size = 2
+
+# Property lists
+[*.plist]
+indent_size = 4
+
+# Shell scripts
+[*.sh]
+indent_size = 2
+
+# Makefile
+[Makefile]
+indent_style = tab
+
+# Xcode project files
+[*.pbxproj]
+indent_style = tab
+indent_size = 4

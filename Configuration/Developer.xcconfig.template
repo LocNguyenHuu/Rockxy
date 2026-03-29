@@ -1,0 +1,17 @@
+// Developer.xcconfig — Local development configuration
+//
+// Copy this file to Developer.xcconfig and fill in your values.
+// Developer.xcconfig is .gitignore'd to keep secrets out of version control.
+
+#include "Base.xcconfig"
+
+// Your Apple Developer Team ID (10-character alphanumeric string)
+// Find it at: https://developer.apple.com/account → Membership Details
+ROCKXY_TEAM_ID = YOUR_TEAM_ID_HERE
+
+// Code signing identity for development builds
+// Run `security find-identity -v -p codesigning` to list available identities
+CODE_SIGN_IDENTITY = Apple Development
+
+// Development team derived from ROCKXY_TEAM_ID above
+DEVELOPMENT_TEAM = $(ROCKXY_TEAM_ID)

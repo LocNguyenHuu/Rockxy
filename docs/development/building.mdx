@@ -1,0 +1,163 @@
+---
+title: "Building"
+description: "Build from source, run tests, lint, and set up your development environment"
+---
+
+## Prerequisites
+
+| Requirement | Minimum |
+|-------------|---------|
+| macOS | 14.0 (Sonoma) |
+| Xcode | 15.0+ |
+| Swift | 5.9+ |
+| SwiftLint | Latest (via Homebrew) |
+| SwiftFormat | Latest (via Homebrew) |
+
+```bash
+# Install linting tools
+brew install swiftlint swiftformat
+```
+
+## Clone the Repository
+
+```bash
+git clone https://github.com/LocNguyenHuu/Rockxy.git
+cd Rockxy
+```
+
+Xcode resolves SPM dependencies automatically on first open. If packages fail to resolve, go to **File > Packages > Resolve Package Versions**.
+
+## Building
+
+### Debug Build (Command Line)
+
+```bash
+xcodebuild -project Rockxy.xcodeproj -scheme Rockxy -configuration Debug build
+```
+
+### Release Build
+
+```bash
+xcodebuild -project Rockxy.xcodeproj -scheme Rockxy -configuration Release build
+```
+
+### Clean Build
+
+```bash
+xcodebuild -project Rockxy.xcodeproj -scheme Rockxy clean
+```
+
+### Building in Xcode
+
+Open `Rockxy.xcodeproj` and press `Cmd+B` to build, or `Cmd+R` to build and run.
+
+<Tip>
+  The first build takes longer as Xcode compiles SwiftNIO and other SPM dependencies. Subsequent builds are incremental.
+</Tip>
+
+## Running Tests
+
+### All Tests
+
+```bash
+xcodebuild -project Rockxy.xcodeproj -scheme Rockxy test
+```
+
+### Specific Test Class
+
+```bash
+xcodebuild -project Rockxy.xcodeproj -scheme Rockxy test \
+  -only-testing:RockxyTests/TestClassName
+```
+
+### Specific Test Method
+
+```bash
+xcodebuild -project Rockxy.xcodeproj -scheme Rockxy test \
+  -only-testing:RockxyTests/TestClassName/testMethodName
+```
+
+### In Xcode
+
+Press `Cmd+U` to run all tests, or click the diamond icon next to a test method to run it individually.
+
+## Linting and Formatting
+
+Run both before every commit:
+
+```bash
+# Lint — reports violations, fails on warnings in strict mode
+swiftlint lint --strict
+
+# Format — auto-fixes formatting issues
+swiftformat .
+```
+
+<Warning>
+  Always run `swiftlint lint --strict` before committing. CI will reject PRs with lint violations.
+</Warning>
+
+See the [Code Style](/development/code-style) page for the full rule set and configuration details.
+
+## Project Structure
+
+Rockxy uses Xcode 16+'s file system synchronized groups — files added to directories are automatically discovered by Xcode. There is no need to manually add file references to `project.pbxproj`.
+
+SPM dependencies are declared in the Xcode project (not a top-level `Package.swift`). The dependency graph:
+
+| Package | Purpose |
+|---------|---------|
+| swift-nio | Non-blocking proxy server event loop |
+| swift-nio-ssl | TLS handling for HTTPS interception |
+| swift-certificates | X.509 cert generation (root CA + per-host) |
+| swift-crypto | Cryptographic primitives |
+| SQLite.swift | Session and log persistence |
+
+## Entitlements
+
+Rockxy requires specific entitlements to function as a network proxy:
+
+- **Network Server** — listens on a local port for proxy connections
+- **Network Client** — forwards requests to upstream servers
+- **Keychain Access** — stores the root CA private key
+
+App Sandbox is disabled because macOS sandbox restrictions prevent binding to arbitrary ports and modifying system proxy settings.
+
+## Sample Data (Debug Only)
+
+Rockxy includes a sample data generator for development. It creates realistic HTTP transactions, log entries, error groups, performance metrics, and session trends so you can work on the UI without running a live proxy.
+
+Three ways to load sample data:
+
+1. **Launch argument** — pass `-RockxySampleData` to auto-load on startup (set in Xcode scheme under Arguments Passed On Launch)
+2. **Menu** — Debug builds add a **Help > Load Sample Data** menu item (`Cmd+Shift+D`)
+3. **Toolbar** — a flask icon button in the toolbar toggles sample data on/off
+
+All sample data code is compiled only in Debug builds (`#if DEBUG`) and is stripped from release archives.
+
+## Troubleshooting
+
+### SPM Dependencies Won't Resolve
+
+1. Close Xcode
+2. Delete the `DerivedData` folder: `rm -rf ~/Library/Developer/Xcode/DerivedData/Rockxy-*`
+3. Reopen the project and let Xcode re-resolve
+
+### Build Fails with Missing Module
+
+Ensure SPM packages are resolved: **File > Packages > Resolve Package Versions**. If the issue persists, reset the package cache: **File > Packages > Reset Package Caches**.
+
+### Certificate Trust Issues at Runtime
+
+If HTTPS interception doesn't work after building, the root CA certificate needs to be trusted in Keychain Access. See the [Installation](/installation) guide for certificate setup steps.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Architecture" icon="sitemap" href="/development/architecture">
+    Understand the actor model, coordinator pattern, and data flow
+  </Card>
+  <Card title="Code Style" icon="paintbrush" href="/development/code-style">
+    SwiftLint rules, formatting standards, and naming conventions
+  </Card>
+</CardGroup>

@@ -1,0 +1,77 @@
+import SwiftUI
+
+/// Displays `Set-Cookie` headers from the HTTP response, showing each cookie's name, value,
+/// domain, path, and security flags (Secure, HttpOnly).
+struct SetCookieInspectorView: View {
+    // MARK: Internal
+
+    let transaction: HTTPTransaction
+
+    var body: some View {
+        if let response = transaction.response {
+            let cookies = response.setCookies
+            if cookies.isEmpty {
+                ContentUnavailableView(
+                    String(localized: "No Set-Cookie Headers"),
+                    systemImage: "cup.and.saucer"
+                )
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        ForEach(Array(cookies.enumerated()), id: \.offset) { _, cookie in
+                            cookieRow(cookie)
+                            Divider()
+                        }
+                    }
+                    .padding()
+                }
+            }
+        } else {
+            ContentUnavailableView(
+                String(localized: "No Response"),
+                systemImage: "arrow.down.circle"
+            )
+        }
+    }
+
+    // MARK: Private
+
+    private func cookieRow(_ cookie: HTTPCookie) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(cookie.name)
+                .font(.system(.caption, design: .monospaced))
+                .fontWeight(.bold)
+            Text(cookie.value)
+                .font(.system(.caption, design: .monospaced))
+                .textSelection(.enabled)
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 12) {
+                if let domain = Optional(cookie.domain), !domain.isEmpty {
+                    labelValue(String(localized: "Domain"), domain)
+                }
+                labelValue(String(localized: "Path"), cookie.path)
+                if cookie.isSecure {
+                    Text(String(localized: "Secure"))
+                        .font(.caption2)
+                        .foregroundStyle(.green)
+                }
+                if cookie.isHTTPOnly {
+                    Text("HttpOnly")
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                }
+            }
+        }
+    }
+
+    private func labelValue(_ label: String, _ value: String) -> some View {
+        HStack(spacing: 2) {
+            Text(label + ":")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.system(.caption2, design: .monospaced))
+        }
+    }
+}

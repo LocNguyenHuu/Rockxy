@@ -1,0 +1,92 @@
+---
+title: "GraphQL-over-HTTP Detection"
+description: "Automatic detection and inspection of GraphQL operations sent as HTTP POST requests"
+---
+
+Rockxy detects GraphQL-over-HTTP requests and provides a dedicated inspector tab that parses operations into their query text, variables, and response data — so you do not need to dig through raw JSON bodies manually.
+
+<Frame caption="GraphQL inspector showing a detected query with operation name, query text, and variables">
+  <img className="block dark:hidden" src="/images/graphql.png" alt="GraphQL inspector view" />
+  <img className="hidden dark:block" src="/images/graphql-dark.png" alt="GraphQL inspector view (dark mode)" />
+</Frame>
+
+## Automatic Detection
+
+Rockxy's `GraphQLDetector` identifies GraphQL requests by checking two conditions:
+
+1. The request is a **POST** to an endpoint whose path contains `graphql` (e.g., `/graphql`, `/api/graphql`, `/v1/graphql`)
+2. The JSON request body contains a **`query`** field with a string value
+
+When both conditions are met, Rockxy marks the request as a GraphQL operation and activates the dedicated GraphQL tab in the inspector.
+
+<Note>
+Detection only covers HTTP POST requests. GraphQL over WebSocket (subscriptions via `graphql-ws` or `subscriptions-transport-ws`) and GET-based persisted queries are not detected. You can still inspect those payloads manually in the Body or WebSocket tabs.
+</Note>
+
+## What Gets Detected
+
+Rockxy's detection scope is **GraphQL-over-HTTP**: standard POST requests carrying a GraphQL payload. It does not detect GraphQL sent over WebSocket transports (e.g., `graphql-ws` subscriptions), custom binary encodings, or GET-based persisted queries.
+
+If your API uses a non-standard endpoint path and does not include `graphql` in the URL, the request will not be detected automatically. You can still inspect the raw JSON body in the Body tab.
+
+## Operation Types
+
+| Type | Description | Example |
+|------|-------------|---------|
+| **Query** | Read-only data fetch. The most common GraphQL operation. | `query GetUser { user(id: 1) { name } }` |
+| **Mutation** | Write operation that modifies server-side data. | `mutation CreatePost { createPost(title: "...") { id } }` |
+
+Rockxy parses the operation keyword from the query text to classify each request. If no keyword is present, the operation defaults to `query` per the GraphQL specification.
+
+## Entry Points
+
+The GraphQL tab activates automatically in the request inspector when a matching request is selected. No manual configuration is needed — detection is passive and always on.
+
+## GraphQL Inspector
+
+The **GraphQL** tab in the request inspector breaks down each operation into structured sections:
+
+<Frame caption="GraphQL tab showing operation details with syntax-highlighted query and variable tree">
+  <img className="block dark:hidden" src="/images/graphql-inspector.png" alt="GraphQL inspector detail" />
+  <img className="hidden dark:block" src="/images/graphql-inspector-dark.png" alt="GraphQL inspector detail (dark mode)" />
+</Frame>
+
+### Operation Name
+
+The named identifier extracted from the query (e.g., `GetUser`, `CreatePost`). Anonymous operations show as "Anonymous". The operation name also appears in the traffic list for quick identification.
+
+### Operation Type
+
+Displays whether the operation is a **Query**, **Mutation**, or **Subscription**, with a color-coded badge.
+
+### Query Text
+
+The full GraphQL query string with syntax highlighting. Field names, types, arguments, directives, and fragments are color-coded for readability.
+
+### Variables
+
+The `variables` object from the request body, displayed as a collapsible JSON tree. Nested objects and arrays are expandable, and values are type-colored (strings, numbers, booleans, null).
+
+### Response Data
+
+The `data` field from the GraphQL response body, displayed as a collapsible JSON tree. Errors returned in the `errors` array are highlighted separately with their message, path, and location information.
+
+## Operation Grouping
+
+In the traffic list sidebar, GraphQL requests are grouped by their operation name. This makes it easy to find all instances of a specific query or mutation across your session.
+
+For example, if your app sends `GetUser` 15 times and `CreatePost` 3 times, the sidebar groups them under their respective operation names with request counts — so you can quickly spot which operations are called most frequently and drill into individual executions.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Traffic Capture" icon="satellite-dish" href="/features/traffic-capture">
+    Full guide to the traffic list, filters, and inspector tabs
+  </Card>
+  <Card title="Traffic Rules" icon="filter" href="/features/rules">
+    Mock GraphQL responses or block specific operations with rules
+  </Card>
+  <Card title="Request Replay" icon="rotate" href="/features/request-replay">
+    Re-send GraphQL operations with modified variables
+  </Card>
+</CardGroup>

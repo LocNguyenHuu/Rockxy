@@ -1,0 +1,8 @@
+// CommunityStaging.xcconfig — Staging/beta channel for release candidates.
+// Same release identity as production — promotes the same build without rebuilding.
+
+#include "Base.xcconfig"
+
+ROCKXY_RELEASE_CHANNEL = community-stag
+ROCKXY_UPDATES_ENABLED = YES
+ROCKXY_SPARKLE_FEED_URL = __PENDING__

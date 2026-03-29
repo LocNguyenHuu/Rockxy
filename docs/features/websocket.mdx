@@ -1,0 +1,95 @@
+---
+title: "WebSocket Inspection"
+description: "Capture and inspect WebSocket frames including text, binary, ping/pong, and close messages"
+---
+
+Rockxy captures WebSocket traffic at the frame level, letting you see every message exchanged between client and server after the initial HTTP upgrade handshake.
+
+<Frame caption="WebSocket frame list showing text and binary messages with direction, timestamps, and payload preview">
+  <img className="block dark:hidden" src="/images/websocket.png" alt="WebSocket frame inspector" />
+  <img className="hidden dark:block" src="/images/websocket-dark.png" alt="WebSocket frame inspector (dark mode)" />
+</Frame>
+
+## Entry Points
+
+| Action | How to Access |
+|--------|---------------|
+| WebSocket tab | Response inspector > **WebSocket** tab (auto-selected for WebSocket transactions) |
+| Frame count in traffic list | Visible in the query name column for WebSocket transactions |
+| Protocol filter | Click **WebSocket** in the toolbar filter bar |
+
+WebSocket inspection activates automatically when Rockxy detects an HTTP upgrade. The **WebSocket** tab appears in the response inspector alongside standard HTTP tabs (Headers, Body, Set-Cookie, Auth, Timeline). You can switch back to any HTTP tab to inspect the upgrade handshake headers. No manual configuration is needed.
+
+## How It Works
+
+Rockxy detects WebSocket connections by monitoring HTTP upgrade requests. When a client sends an `Upgrade: websocket` header and the server responds with `101 Switching Protocols`, the NIO pipeline inserts a `WebSocketFrameHandler` that captures every subsequent frame.
+
+The upgrade request itself appears as a normal HTTP transaction in the traffic list. Once upgraded, the connection switches to the **WebSocket** tab in the inspector, where all frames are displayed in chronological order.
+
+For HTTPS WebSocket connections (`wss://`), Rockxy decrypts frames using the same MITM approach as regular HTTPS traffic — the [HTTPS Interception](/features/https-interception) setup is required.
+
+## Frame Inspector
+
+Select a WebSocket connection in the traffic list. The **WebSocket** tab auto-selects in the response inspector. Each frame displays:
+
+| Column | Description |
+|--------|-------------|
+| Direction | Arrow icon indicating sent (client → server) or received (server → client) |
+| Opcode | Frame type: Text, Binary, Ping, Pong, or Close |
+| Payload | Preview of the frame content (truncated for long messages) |
+| Timestamp | When the frame was captured, with millisecond precision |
+| Size | Payload size in bytes |
+
+<Frame caption="Frame detail view showing a JSON text frame with formatted payload">
+  <img className="block dark:hidden" src="/images/websocket-frame-detail.png" alt="WebSocket frame detail" />
+  <img className="hidden dark:block" src="/images/websocket-frame-detail-dark.png" alt="WebSocket frame detail (dark mode)" />
+</Frame>
+
+Click any frame to expand its full payload in the detail pane below the frame list.
+
+**Direction filter** — use the segmented filter above the frame list to show All frames, only Sent (client → server), or only Received (server → client). Frame counts update in real time.
+
+**Discoverability** — WebSocket transactions show their frame count in the request list's query name column (e.g., "42 frames"), making them easy to spot alongside regular HTTP traffic.
+
+## Message Decoding
+
+Rockxy automatically decodes frame payloads based on the opcode and detected content:
+
+- **Text frames** — displayed as text. If the payload is valid JSON, it is automatically pretty-printed with syntax highlighting and a collapsible tree view.
+- **Binary frames** — displayed as a hex dump with an ASCII sidebar. The byte count and offset are shown for each row.
+
+<Tip>
+Many real-time APIs (Socket.IO, GraphQL subscriptions, Firebase) send JSON over text frames. Rockxy's auto-detection formats these payloads for easy reading without any configuration.
+</Tip>
+
+## Connection Lifecycle
+
+A WebSocket connection in Rockxy follows this lifecycle:
+
+1. **Upgrade Request** — the initial HTTP request with `Upgrade: websocket` appears in the traffic list as a standard HTTP transaction with status `101`.
+2. **Open** — the connection is established. The WebSocket tab becomes active in the inspector.
+3. **Frames** — text, binary, ping, and pong frames are captured and displayed in real time as they flow through the proxy.
+4. **Close** — a close frame (from either side) terminates the connection. The close code and reason are displayed.
+
+The inspector header shows connection statistics: total frame count, frames sent vs. received, total bytes transferred, and connection duration.
+
+## Supported Opcodes
+
+| Opcode | Value | Description |
+|--------|-------|-------------|
+| Text | `0x1` | UTF-8 encoded text data. Most common for JSON-based protocols. |
+| Binary | `0x2` | Arbitrary binary data. Used by protobuf, MessagePack, and custom protocols. |
+| Close | `0x8` | Connection close request. Includes a status code and optional reason string. |
+| Ping | `0x9` | Keep-alive ping sent by either side. Rockxy shows both ping and matching pong. |
+| Pong | `0xA` | Response to a ping frame. Automatically sent by the WebSocket protocol. |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="GraphQL Detection" icon="diagram-project" href="/features/graphql">
+    Automatic GraphQL-over-HTTP operation detection and inspection
+  </Card>
+  <Card title="Traffic Capture" icon="satellite-dish" href="/features/traffic-capture">
+    Full guide to capturing, filtering, and inspecting network traffic
+  </Card>
+</CardGroup>

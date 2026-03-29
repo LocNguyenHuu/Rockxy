@@ -1,0 +1,80 @@
+# Xcode
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+build/
+DerivedData/
+*.moved-aside
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+timeline.xctimeline
+playground.xcworkspace
+
+# Swift Package Manager
+.swiftpm/xcode
+.build/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+
+# Claude Code
+.claude/
+CLAUDE.md
+
+# Codex / agent-local files
+AGENTS.md
+.codex/
+.agents/
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# Archives
+*.zip
+*.tar.gz
+*.rar
+
+# Sensitive data
+*.pem
+*.p12
+*.mobileprovision
+Secrets.xcconfig
+Configuration/Developer.xcconfig
+RELEASE.md
+
+# Debug
+*.log
+
+# SwiftFormat
+.swiftformat.lock
+
+# Build artifacts
+build/
+*.xcarchive
+
+
+# Automation scripts (internal use only)
+scripts/
+
+# Design
+.design-mockups/

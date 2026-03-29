@@ -1,0 +1,25 @@
+// Base.xcconfig — Shared build defaults, identity, and service names.
+//
+// Included by all channel-specific xcconfig files and Developer.xcconfig.
+// Contains values that are the same across all release channels.
+//
+// Version/build numbers live in Versions.xcconfig (included below).
+
+#include "Versions.xcconfig"
+
+// Deployment target
+MACOSX_DEPLOYMENT_TARGET = 14.0
+SWIFT_VERSION = 5.0
+
+// App identity
+ROCKXY_APP_BUNDLE_ID = com.amunx.Rockxy
+
+// Helper identity and service names (explicit, not derived from bundle ID)
+ROCKXY_HELPER_BUNDLE_ID = com.amunx.Rockxy.HelperTool
+ROCKXY_HELPER_MACH_SERVICE_NAME = com.amunx.Rockxy.HelperTool
+ROCKXY_HELPER_PLIST_NAME = com.amunx.Rockxy.HelperTool.plist
+
+// Helper trust allowlist — space-separated bundle identifiers of trusted callers.
+// Drives both AssociatedBundleIdentifiers in the generated launchd plist
+// and SecRequirement in ConnectionValidator.swift.
+ROCKXY_ALLOWED_CALLER_IDENTIFIERS = com.amunx.Rockxy
