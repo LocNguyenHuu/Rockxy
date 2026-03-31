@@ -3,6 +3,7 @@ import os
 
 /// Validates and loads file content for Map Local rules.
 /// Prevents path traversal, symlink abuse, and oversized file reads.
+/// Uses fd-based approach to eliminate TOCTOU race between stat and read.
 enum MapLocalFileValidator {
     // MARK: Internal
 
@@ -10,39 +11,35 @@ enum MapLocalFileValidator {
     /// Returns nil if the path is invalid, unreadable, or too large.
     static func loadFileData(at filePath: String) -> Data? {
         let expanded = (filePath as NSString).expandingTildeInPath
-        let fileURL = URL(fileURLWithPath: expanded).standardizedFileURL
+        let resolved = URL(fileURLWithPath: expanded).standardizedFileURL.resolvingSymlinksInPath()
 
-        let resolved = fileURL.resolvingSymlinksInPath()
+        guard let fileHandle = try? FileHandle(forReadingFrom: resolved) else {
+            logger.warning("SECURITY: Cannot open map local file: \(resolved.path)")
+            return nil
+        }
+        defer { try? fileHandle.close() }
 
-        let fm = FileManager.default
-        guard fm.fileExists(atPath: resolved.path) else {
-            logger.warning("SECURITY: Map local file does not exist: \(resolved.path)")
+        // fstat on the open fd — guaranteed same file we opened
+        var fileStat = stat()
+        guard fstat(fileHandle.fileDescriptor, &fileStat) == 0 else {
+            logger.warning("SECURITY: fstat failed on map local file: \(resolved.path)")
             return nil
         }
 
-        guard fm.isReadableFile(atPath: resolved.path) else {
-            logger.warning("SECURITY: Map local file is not readable: \(resolved.path)")
+        guard (fileStat.st_mode & S_IFMT) == S_IFREG else {
+            logger.warning("SECURITY: Map local path is not a regular file: \(resolved.path)")
             return nil
         }
 
-        guard let attrs = try? fm.attributesOfItem(atPath: resolved.path),
-              let fileSize = attrs[.size] as? UInt64 else
-        {
-            logger.warning("SECURITY: Cannot read attributes of map local file: \(resolved.path)")
+        guard UInt64(fileStat.st_size) <= maxFileSize else {
+            logger
+                .warning(
+                    "SECURITY: Map local file exceeds \(maxFileSize) bytes (\(fileStat.st_size)): \(resolved.path)"
+                )
             return nil
         }
 
-        guard fileSize <= maxFileSize else {
-            logger.warning("SECURITY: Map local file exceeds \(maxFileSize) bytes (\(fileSize)): \(resolved.path)")
-            return nil
-        }
-
-        do {
-            return try Data(contentsOf: resolved)
-        } catch {
-            logger.error("Failed to read map local file: \(error.localizedDescription)")
-            return nil
-        }
+        return fileHandle.readDataToEndOfFile()
     }
 
     // MARK: Private

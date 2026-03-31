@@ -1,6 +1,7 @@
 // Versions.xcconfig — Single source of truth for all version and build numbers.
 //
 // This file is the ONLY place version/build values should be edited.
+// Updated by: scripts/release-set-version.sh
 // Read at build time via pbxproj variables → Info.plist → Bundle.main at runtime.
 //
 // Do NOT duplicate these values in Swift constants. All runtime code reads

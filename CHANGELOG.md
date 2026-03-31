@@ -6,84 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix unbounded memory accumulation in HTTP request body handlers (100 MB cap, returns 413)
+- Fix unbounded WebSocket frame payload accumulation (10 MB per-frame, 100 MB per-connection cap)
+- Fix CONNECT tunnel URI parsing for IPv6 bracket notation and invalid port ranges
+- Fix ReDoS vulnerability in rule regex matching — patterns now compiled and cached at load time
+- Fix regex validation on rule import — files with invalid patterns are rejected
+- Fix SQL string interpolation in PRAGMA table_info with table name whitelist
+- Fix path traversal in stored body file loading and deletion
+- Fix TOCTOU race condition in MapLocal file validator using fd-based approach
+- Fix CRLF injection in MapRemote host header values
+- Fix world-readable permissions on stored body files (now 0o600)
+- Fix world-readable permissions on temporary certificate DER files (now 0o600)
+- Harden helper tool input validation: bypass domain character validation, service name sanitization, proxy type whitelist
+- Harden XPC caller validation with hardcoded bundle identifier
+- Add sensitive data redaction in process log capture (Bearer tokens, passwords)
+- Add plugin storage key validation to prevent UserDefaults key injection
+- Add explicit TLS certificate verification on upstream connections
+- Add URI length cap (8 KB) in proxy request parsing
+- Add bypass domain count limit (500) in helper tool
+
+## [0.1.0] - 2026-03-30
+
 ### Added
 
-- Helper protocol versioning with structured `getHelperInfo` XPC method and compatibility logic
-- xcconfig-based version management (`Versions.xcconfig` as single source of truth)
-- Channel-specific build configurations (LocalDev, CommunityStaging, CommunityProduction)
-- Config-driven helper launchd plist generation (Run Script build phase)
-- Release automation scripts (`release-all.sh`, `release-promote.sh`, and 8 supporting scripts)
-- Import Review Sheet: pre-import confirmation showing file metadata (name, type, request count, file size) and destructive warning before replacing the current session
-- Export HAR Scope Sheet: scope picker (All Transactions / Visible/Filtered / Selected) with privacy warning before HAR export
-- Session provenance display: status bar shows import source after opening a session or importing HAR
-- Toast notifications for export success and failure feedback
-- Cert-key consistency validation in `loadExistingRootCA()` with disk PEM fallback on mismatch
-- `CertificateStore.loadRootCAPrivateKeyFromDisk()` for direct disk-only key loading (skips Keychain)
-- `KeychainHelper.trustDomainDiagnostic(certData:)` for admin vs user trust domain inspection
-- Hardened trust-domain checks: `isRootCATrusted` now uses shared `hasTrustRootInDomain` helper and logs which domain holds trust
-
-### Changed
-
-- Helper status enum expanded from 5 to 6 states (`.installed`/`.needsUpdate` replaced by `.installedCompatible`/`.installedOutdated`/`.installedIncompatible`)
-- Helper version comparison now uses protocol version + build number instead of exact string equality
-- GitHub Actions CI changed from tag-push auto-release to `workflow_dispatch` validation-only
-- All version/build values now flow from xcconfig through Info.plist to runtime `Bundle.main` reads
-- Helper trust allowlist driven by config instead of hardcoded Swift strings
-
-### Fixed
-
-- Helper binary embed path in `sign-helper.sh` (was `LaunchDaemons`, now `HelperTools`)
-- Session save now preserves comment, highlight color, pinned, saved, and TLS failure annotations (previously dropped on serialize/deserialize)
-- Custom backward-compatible Codable decoder for session files handles missing annotation keys gracefully
-- "Export as HAR…" context menu now saves to file instead of copying to clipboard
-- HAR export uses proper `.har` file type instead of generic `.json`
-- Export and save operations show error dialogs on failure instead of failing silently
-- HAR import handles base64-encoded request bodies
-- Resolved keyboard shortcut conflict: Toggle Recording changed from Cmd+Shift+E to Cmd+Shift+D
-
-### Changed
-
-- Network Conditions tool: simulate slow networks with latency presets (3G, EDGE, LTE, Very Bad Network, WiFi) and custom millisecond values. Dedicated window (Tools > Network Conditions), quick-create from request and sidebar context menus, one-active-condition enforcement with atomic enable/disable
-- Modify Header rule action: multiple operations per rule, request/response phase support, shared editor component, dedicated window (Tools > Modify Headers), and 3 header presets (Add CORS, Remove Authorization, Strip Server)
-- WebSocket inspector tab: conditional "WebSocket" tab in response inspector for WebSocket transactions with connection summary, chronological frame list with direction filtering, selected-frame detail with JSON/hex display, and live frame updates
-- GraphQL inspector tab: conditional "GraphQL" tab in response inspector for GraphQL transactions (additive, HTTP tabs remain accessible)
-- WebSocket discoverability: frame count shown in request list queryName column for WebSocket transactions
-- Map Local quick-create: right-click a captured request to open Map Local window with prefilled editor, supporting Exact Path, Include Subpaths, and Regex match modes
-- Map Local response snapshot: save the current response body as a local file directly from the editor
-- Map Local MIME correctness: file-mode responses now include Content-Type header inferred from file extension, matching directory-mode behavior
-- Shared MimeTypeResolver utility for consistent MIME detection across file and directory Map Local flows
-- Map Remote structured destination editor: independent protocol, host, port, path, and query editing with blank fields preserving original request values
-- Map Remote quick-create: right-click a captured request to open Map Remote window with prefilled editor
-- Map Remote preserve-host: real toggle stored in MapRemoteConfiguration, honored by both HTTP and HTTPS proxy handlers
-- Map Remote and Map Local windows widened (880pt and 800pt respectively) for denser rule management
-- Diff workspace redesign: candidate pool table with L/R assignment, Request/Response/Timing compare targets, Side by Side and Unified presentation modes, structured section formatting, JSON prettification, binary body fallback, freeform text paste mode, and unified diff export
-- Documentation pages for Request Diff, JavaScript Scripting, and Sessions & HAR features
-- Entry points tables (menu paths, keyboard shortcuts) added to all feature documentation pages
-- Simplified single-group navigation structure in docs replacing the two-tab layout
-- Emergency proxy cleanup on termination signals, XPC invalidation, and applicationWillTerminate
-- Structured proxy warnings, direct-mode UX, helper retry, and quit dialog improvements
-- SOCKS proxy backup, owner PID watchdog, and stale helper recovery
-- Rockxy2026 app icon assets
-
-### Changed
-
-- Edit and Repeat redesigned as standalone Compose window with side-by-side request/response panels, Query and Raw tabs, latest-run-wins repeat logic, and injectable executor for testability
-- GraphQL documentation narrowed to "GraphQL-over-HTTP detection" to match actual implementation scope
-- Request replay documentation rewritten to reflect proxy-bypass session behavior and Repeat / Edit and Repeat entry points
-- README roadmap split into Shipped and Planned sections; HAR, replay, sessions, scripting, GraphQL, and diff moved to Shipped
-- Root CA key type corrected from RSA 2048-bit to P-256 (ECDSA) in HTTPS interception docs
-- Community edition positioning strengthened across index, quickstart, and installation pages
-- Removed sample data generator, toolbar button, and menu commands
-
-### Fixed
-
-- CONNECT requests now bypass all rule actions except block, preventing broken TLS tunnel establishment when rules match tunnel handshake requests
-- Replay requests now bypass the local proxy via a shared `proxyBypassSession` (ephemeral URLSession with proxy disabled) in both `RequestReplay` and `ReplayViewModel`, preventing infinite request loops
-- Multi-selection in request list no longer collapses to single selection when `selectedTransaction` changes; guard ensures sync only when not actively multi-selecting
-- Diff window now refreshes when a new comparison is triggered via `.openDiffWindow` notification while the window is already open
-- Response headers now displayed in the replay sheet between status code and response body
-- Disable Compose window auto-restoration on app relaunch
-
+- Initial open-source release of Rockxy
 ## 2026-03-22
 
 ### Added

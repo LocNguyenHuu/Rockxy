@@ -235,6 +235,11 @@ enum CrashRecovery {
     }
 
     private static func readProxySettings(type: String, service: String) throws -> String {
+        let allowedTypes: Set = ["webproxy", "securewebproxy", "socksfirewallproxy", "proxybypassdomains"]
+        guard allowedTypes.contains(type) else {
+            throw ProxyConfiguratorError.executionFailed(command: "-get\(type)", reason: "Invalid proxy type: \(type)")
+        }
+
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/sbin/networksetup")
         process.arguments = ["-get\(type)", service]

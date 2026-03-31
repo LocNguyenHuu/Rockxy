@@ -134,6 +134,20 @@ enum ProxyConfigurator {
             throw ProxyConfiguratorError.noActiveService
         }
 
+        let asciiAllowed =
+            CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.-_*")
+        let indomains = domains.filter { domain in
+            domain.isEmpty || domain.count > 253
+                || !domain.unicodeScalars.allSatisfy { $0.isASCII && asciiAllowed.contains($0) }
+        }
+        if !indomains.isEmpty {
+            logger.warning("SECURITY: Rejected \(indomains.count) invalid bypass domain(s): \(indomains)")
+            throw ProxyConfiguratorError.executionFailed(
+                command: "-setproxybypassdomains",
+                reason: "Invalid bypass domains: \(indomains.joined(separator: ", "))"
+            )
+        }
+
         for service in services {
             do {
                 if domains.isEmpty {
@@ -294,6 +308,8 @@ enum ProxyConfigurator {
                 services.append(trimmed)
             }
         }
+        services = services
+            .filter { !$0.isEmpty && !$0.contains("\0") && !$0.contains("\n") && !$0.contains("\r") && $0.count <= 128 }
         logger.info("Enabled network services: \(services)")
         return services
     }

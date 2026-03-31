@@ -42,12 +42,15 @@ CLAUDE.md
 AGENTS.md
 .codex/
 .agents/
+.cursor/
 
 # IDE
 .idea/
 *.swp
 *.swo
 *~
+.vscode/
+
 
 # Archives
 *.zip
