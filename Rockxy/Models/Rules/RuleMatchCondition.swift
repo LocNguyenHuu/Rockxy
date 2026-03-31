@@ -8,9 +8,23 @@ struct RuleMatchCondition: Codable {
     var headerName: String?
     var headerValue: String?
 
-    func matches(method requestMethod: String, url: URL, headers: [HTTPHeader]) -> Bool {
-        if let pattern = urlPattern {
-            guard url.absoluteString.range(of: pattern, options: .regularExpression) != nil else {
+    func matches(
+        method requestMethod: String,
+        url: URL,
+        headers: [HTTPHeader],
+        compiledPattern: NSRegularExpression? = nil
+    )
+        -> Bool
+    {
+        if let regex = compiledPattern {
+            let urlString = String(url.absoluteString.prefix(ProxyLimits.maxURILength))
+            let range = NSRange(urlString.startIndex..., in: urlString)
+            guard regex.firstMatch(in: urlString, range: range) != nil else {
+                return false
+            }
+        } else if let pattern = urlPattern {
+            let urlString = String(url.absoluteString.prefix(ProxyLimits.maxURILength))
+            guard urlString.range(of: pattern, options: .regularExpression) != nil else {
                 return false
             }
         }

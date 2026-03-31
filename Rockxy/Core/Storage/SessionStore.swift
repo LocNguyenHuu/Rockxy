@@ -358,6 +358,11 @@ actor SessionStore {
     }
 
     private func existingColumnNames(table: String) throws -> Set<String> {
+        let allowedTables: Set = ["transactions", "log_entries", "websocket_frames"]
+        guard allowedTables.contains(table) else {
+            Self.logger.error("SECURITY: Unexpected table name in schema check: \(table)")
+            return []
+        }
         var names = Set<String>()
         let statement = try db.prepare("PRAGMA table_info(\(table))")
         for row in statement {
@@ -468,6 +473,7 @@ actor SessionStore {
             let filePath = bodiesDirectory.appendingPathComponent(filename)
             do {
                 try body.write(to: filePath)
+                try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: filePath.path)
                 return (nil, filePath.path)
             } catch {
                 Self.logger.error("Failed to write body to disk: \(error.localizedDescription)")
@@ -484,8 +490,14 @@ actor SessionStore {
         guard let diskPath else {
             return nil
         }
+        let resolvedPath = URL(fileURLWithPath: diskPath).standardizedFileURL.path
+        let bodiesPath = bodiesDirectory.standardizedFileURL.path
+        guard resolvedPath.hasPrefix(bodiesPath + "/") else {
+            Self.logger.error("SECURITY: Path traversal blocked in body load: \(diskPath)")
+            return nil
+        }
         do {
-            return try Data(contentsOf: URL(fileURLWithPath: diskPath))
+            return try Data(contentsOf: URL(fileURLWithPath: resolvedPath))
         } catch {
             Self.logger.error("Failed to read body from disk at \(diskPath): \(error.localizedDescription)")
             return nil
@@ -496,8 +508,14 @@ actor SessionStore {
         guard let path else {
             return
         }
+        let resolvedPath = URL(fileURLWithPath: path).standardizedFileURL.path
+        let bodiesPath = bodiesDirectory.standardizedFileURL.path
+        guard resolvedPath.hasPrefix(bodiesPath + "/") else {
+            Self.logger.error("SECURITY: Path traversal blocked in body delete: \(path)")
+            return
+        }
         do {
-            try FileManager.default.removeItem(atPath: path)
+            try FileManager.default.removeItem(atPath: resolvedPath)
         } catch {
             Self.logger.warning("Failed to delete body file at \(path): \(error.localizedDescription)")
         }

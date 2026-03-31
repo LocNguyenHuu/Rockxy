@@ -6,11 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix unbounded memory accumulation in HTTP request body handlers (100 MB cap, returns 413)
+- Fix unbounded WebSocket frame payload accumulation (10 MB per-frame, 100 MB per-connection cap)
+- Fix CONNECT tunnel URI parsing for IPv6 bracket notation and invalid port ranges
+- Fix ReDoS vulnerability in rule regex matching — patterns now compiled and cached at load time
+- Fix regex validation on rule import — files with invalid patterns are rejected
+- Fix SQL string interpolation in PRAGMA table_info with table name whitelist
+- Fix path traversal in stored body file loading and deletion
+- Fix TOCTOU race condition in MapLocal file validator using fd-based approach
+- Fix CRLF injection in MapRemote host header values
+- Fix world-readable permissions on stored body files (now 0o600)
+- Fix world-readable permissions on temporary certificate DER files (now 0o600)
+- Harden helper tool input validation: bypass domain character validation, service name sanitization, proxy type whitelist
+- Harden XPC caller validation with hardcoded bundle identifier
+- Add sensitive data redaction in process log capture (Bearer tokens, passwords)
+- Add plugin storage key validation to prevent UserDefaults key injection
+- Add explicit TLS certificate verification on upstream connections
+- Add URI length cap (8 KB) in proxy request parsing
+- Add bypass domain count limit (500) in helper tool
+
 ## [0.1.0] - 2026-03-30
 
 ### Added
 
-- Uinitial open-source release of Rockxy
+- Initial open-source release of Rockxy
 ## 2026-03-22
 
 ### Added

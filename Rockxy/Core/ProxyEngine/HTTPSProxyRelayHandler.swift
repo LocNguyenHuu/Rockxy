@@ -53,8 +53,18 @@ final class HTTPSProxyRelayHandler: ChannelInboundHandler, @unchecked Sendable {
             requestHead = head
             requestBody = context.channel.allocator.buffer(capacity: 0)
             requestStartTime = .now()
+            accumulatedBodySize = 0
 
         case let .body(buffer):
+            accumulatedBodySize += buffer.readableBytes
+            guard accumulatedBodySize <= ProxyLimits.maxRequestBodySize else {
+                httpsRelayLogger
+                    .warning("SECURITY: HTTPS request body exceeds \(ProxyLimits.maxRequestBodySize) bytes, rejecting")
+                sendErrorResponse(context: context, status: 413)
+                requestHead = nil
+                requestBody = nil
+                return
+            }
             requestBody?.writeImmutableBuffer(buffer)
 
         case .end:
@@ -95,6 +105,7 @@ final class HTTPSProxyRelayHandler: ChannelInboundHandler, @unchecked Sendable {
     private var requestHead: HTTPRequestHead?
     private var requestBody: ByteBuffer?
     private var requestStartTime: DispatchTime?
+    private var accumulatedBodySize: Int = 0
 
     private nonisolated func forwardHTTPSRequest(
         context: ChannelHandlerContext,
@@ -215,7 +226,8 @@ final class HTTPSProxyRelayHandler: ChannelInboundHandler, @unchecked Sendable {
         let limiter = connectionLimiter
 
         do {
-            let clientTLSConfig = TLSConfiguration.makeClientConfiguration()
+            var clientTLSConfig = TLSConfiguration.makeClientConfiguration()
+            clientTLSConfig.certificateVerification = .fullVerification
             let sslContext = try NIOSSLContext(configuration: clientTLSConfig)
 
             ClientBootstrap(group: context.eventLoop)
@@ -563,7 +575,7 @@ final class HTTPSProxyRelayHandler: ChannelInboundHandler, @unchecked Sendable {
         } else {
             remoteHost
         }
-        modifiedHead.headers.replaceOrAdd(name: "Host", value: hostHeaderValue)
+        modifiedHead.headers.replaceOrAdd(name: "Host", value: NetworkValidator.sanitizeHeaderValue(hostHeaderValue))
 
         var urlString = "\(scheme)://\(remoteHost)"
         if remotePort != 80, remotePort != 443 {
@@ -592,7 +604,8 @@ final class HTTPSProxyRelayHandler: ChannelInboundHandler, @unchecked Sendable {
         if scheme == "https" {
             let connectTime = DispatchTime.now()
             do {
-                let clientTLSConfig = TLSConfiguration.makeClientConfiguration()
+                var clientTLSConfig = TLSConfiguration.makeClientConfiguration()
+                clientTLSConfig.certificateVerification = .fullVerification
                 let sslContext = try NIOSSLContext(configuration: clientTLSConfig)
 
                 ClientBootstrap(group: context.eventLoop)

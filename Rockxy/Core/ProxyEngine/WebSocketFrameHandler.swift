@@ -89,6 +89,17 @@ final class WebSocketFrameHandler: ChannelInboundHandler, @unchecked Sendable {
         let payloadBytes = dataBuffer.readBytes(length: dataBuffer.readableBytes) ?? []
         let payload = Data(payloadBytes)
 
+        guard payload.count <= ProxyLimits.maxWebSocketFrameSize else {
+            wsLogger.warning("SECURITY: WebSocket frame exceeds \(ProxyLimits.maxWebSocketFrameSize) bytes, closing")
+            context.close(promise: nil)
+            return
+        }
+        guard webSocketConnection.totalPayloadSize + payload.count <= ProxyLimits.maxWebSocketConnectionSize else {
+            wsLogger.warning("SECURITY: WebSocket connection exceeds total payload limit, closing")
+            context.close(promise: nil)
+            return
+        }
+
         let frameData = WebSocketFrameData(
             direction: direction,
             opcode: opcode,

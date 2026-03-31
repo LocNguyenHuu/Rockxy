@@ -72,10 +72,36 @@ struct MainContentCommandActions {
         coordinator.replaySelectedRequest()
     }
 
+    func editAndRepeat() {
+        guard let transaction = coordinator.selectedTransaction else { return }
+        coordinator.editAndReplayTransaction(transaction)
+    }
+
+    func addComment() {
+        guard let transaction = coordinator.selectedTransaction else { return }
+        coordinator.promptComment(for: transaction)
+    }
+
+    func setHighlight(_ color: HighlightColor?) {
+        guard let transaction = coordinator.selectedTransaction else { return }
+        coordinator.setHighlight(color, for: transaction)
+    }
+
+    func deleteAll() {
+        coordinator.clearSession()
+    }
+
     // MARK: - View
 
     func toggleAutoSelect() {
         coordinator.isAutoSelectEnabled.toggle()
+    }
+
+    func toggleSourceList() {
+        NSApp.keyWindow?.firstResponder?.tryToPerform(
+            #selector(NSSplitViewController.toggleSidebar(_:)),
+            with: nil
+        )
     }
 
     func toggleFilterBar() {

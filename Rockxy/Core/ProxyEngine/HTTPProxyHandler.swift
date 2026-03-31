@@ -55,11 +55,22 @@ final class HTTPProxyHandler: ChannelInboundHandler, RemovableChannelHandler, @u
             requestHead = head
             requestBody = context.channel.allocator.buffer(capacity: 0)
             requestStartTime = .now()
+            accumulatedBodySize = 0
             if clientSourcePort == nil, let port = context.channel.remoteAddress?.port {
                 clientSourcePort = UInt16(port)
             }
 
         case let .body(buffer):
+            accumulatedBodySize += buffer.readableBytes
+            guard accumulatedBodySize <= ProxyLimits.maxRequestBodySize else {
+                proxyHandlerLogger
+                    .warning("SECURITY: Request body exceeds \(ProxyLimits.maxRequestBodySize) bytes, rejecting")
+                let head = requestHead ?? HTTPRequestHead(version: .http1_1, method: .POST, uri: "/")
+                sendErrorResponse(context: context, status: 413, requestData: buildRequestData(from: head))
+                requestHead = nil
+                requestBody = nil
+                return
+            }
             requestBody?.writeImmutableBuffer(buffer)
 
         case .end:
@@ -100,12 +111,20 @@ final class HTTPProxyHandler: ChannelInboundHandler, RemovableChannelHandler, @u
     private var requestBody: ByteBuffer?
     private var requestStartTime: DispatchTime?
     private var clientSourcePort: UInt16?
+    private var accumulatedBodySize: Int = 0
 
     private nonisolated func processRequest(
         context: ChannelHandlerContext,
         head: HTTPRequestHead
     ) {
         pendingBreakpointPhase = nil
+
+        if head.uri.count > ProxyLimits.maxURILength {
+            proxyHandlerLogger.warning("SECURITY: URI exceeds \(ProxyLimits.maxURILength) chars, rejecting with 414")
+            sendErrorResponse(context: context, status: 414, requestData: buildRequestData(from: head))
+            return
+        }
+
         proxyHandlerLogger.info("Processing \(head.method.rawValue) \(head.uri)")
 
         let requestData = buildRequestData(from: head)
@@ -323,7 +342,7 @@ final class HTTPProxyHandler: ChannelInboundHandler, RemovableChannelHandler, @u
         } else {
             upstreamHost
         }
-        modifiedHead.headers.replaceOrAdd(name: "Host", value: hostHeaderValue)
+        modifiedHead.headers.replaceOrAdd(name: "Host", value: NetworkValidator.sanitizeHeaderValue(hostHeaderValue))
 
         var urlString = "\(scheme)://\(upstreamHost)"
         if port != 80, port != 443 {
@@ -484,9 +503,13 @@ extension HTTPProxyHandler {
         context: ChannelHandlerContext,
         head: HTTPRequestHead
     ) {
-        let components = head.uri.split(separator: ":")
-        let host = String(components.first ?? "")
-        let port = components.count > 1 ? Int(components[1]) ?? 443 : 443
+        guard let parsed = try? HostPortParser.parse(head.uri) else {
+            proxyHandlerLogger.warning("SECURITY: Malformed CONNECT URI")
+            sendErrorResponse(context: context, status: 400, requestData: buildRequestData(from: head))
+            return
+        }
+        let host = parsed.host
+        let port = parsed.port
 
         var responseHead = HTTPResponseHead(version: head.version, status: .ok)
         responseHead.headers.add(name: "content-length", value: "0")
@@ -560,7 +583,8 @@ extension HTTPProxyHandler {
             .channelInitializer { channel in
                 if useTLS {
                     do {
-                        let tlsConfig = TLSConfiguration.makeClientConfiguration()
+                        var tlsConfig = TLSConfiguration.makeClientConfiguration()
+                        tlsConfig.certificateVerification = .fullVerification
                         let sslContext = try NIOSSLContext(configuration: tlsConfig)
                         let sslHandler = try NIOSSLClientHandler(
                             context: sslContext,

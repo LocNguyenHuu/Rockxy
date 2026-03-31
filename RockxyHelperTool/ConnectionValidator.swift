@@ -67,21 +67,10 @@ enum ConnectionValidator {
     /// - `anchor apple generic`: must be signed with a valid Apple-issued certificate chain
     ///   (Developer ID, Mac App Distribution, or development cert — not ad-hoc/self-signed)
     ///
-    /// Reads `RockxyAllowedCallerIdentifiers` from the helper's Info.plist as a
-    /// space-separated string of bundle identifiers and constructs the appropriate
-    /// `SecRequirement` dynamically.
+    /// Hardcoded to prevent Info.plist tampering from widening the allowed caller set.
     private static let callerRequirement: String = {
-        let identifiers = (Bundle.main
-            .infoDictionary?["RockxyAllowedCallerIdentifiers"] as? String ?? "com.amunx.Rockxy")
-            .split(separator: " ")
-            .map(String.init)
-
-        if identifiers.count == 1 {
-            return "identifier \"\(identifiers[0])\" and anchor apple generic"
-        }
-
-        let idClauses = identifiers.map { "identifier \"\($0)\"" }.joined(separator: " or ")
-        return "(\(idClauses)) and anchor apple generic"
+        let identifier = "com.amunx.Rockxy"
+        return "identifier \"\(identifier)\" and anchor apple generic"
     }()
 
     // MARK: - Bundle Identity Validation

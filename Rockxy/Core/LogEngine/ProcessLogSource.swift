@@ -60,7 +60,7 @@ enum ProcessLogSource {
                     id: UUID(),
                     timestamp: Date(),
                     level: .info,
-                    message: line,
+                    message: Self.redactCredentials(line),
                     source: .processStdout(pid: pid),
                     processName: processName,
                     subsystem: nil,
@@ -84,7 +84,7 @@ enum ProcessLogSource {
                     id: UUID(),
                     timestamp: Date(),
                     level: .warning,
-                    message: line,
+                    message: Self.redactCredentials(line),
                     source: .processStderr(pid: pid),
                     processName: processName,
                     subsystem: nil,
@@ -112,4 +112,24 @@ enum ProcessLogSource {
     // MARK: Private
 
     private static let logger = Logger(subsystem: "com.amunx.Rockxy", category: "ProcessLogSource")
+
+    private static let bearerRegex = try? NSRegularExpression(pattern: #"(?i)Bearer\s+\S+"#)
+    private static let passwordRegex = try? NSRegularExpression(pattern: #"(?i)password\s*(?:=|:)\s*\S+"#)
+
+    private static func redactCredentials(_ line: String) -> String {
+        var result = line
+        let fullRange = NSRange(result.startIndex..., in: result)
+        if let regex = bearerRegex {
+            result = regex.stringByReplacingMatches(in: result, range: fullRange, withTemplate: "Bearer [REDACTED]")
+        }
+        let updatedRange = NSRange(result.startIndex..., in: result)
+        if let regex = passwordRegex {
+            result = regex.stringByReplacingMatches(
+                in: result,
+                range: updatedRange,
+                withTemplate: "password=[REDACTED]"
+            )
+        }
+        return result
+    }
 }

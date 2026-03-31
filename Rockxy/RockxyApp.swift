@@ -32,17 +32,20 @@ struct RockxyApp: App {
         Window(String(localized: "Advanced Proxy Settings"), id: "advancedProxySettings") {
             AdvancedProxySettingsView()
         }
+        .commandsRemoved()
         .windowResizability(.contentSize)
 
         Window(String(localized: "Map Local"), id: "mapLocal") {
             MapLocalWindowView()
         }
+        .commandsRemoved()
         .windowResizability(.contentSize)
         .defaultPosition(.center)
 
         Window(String(localized: "Map Remote"), id: "mapRemote") {
             MapRemoteWindowView()
         }
+        .commandsRemoved()
         .windowResizability(.contentSize)
         .defaultPosition(.center)
         .windowToolbarStyle(.unifiedCompact)
@@ -50,6 +53,7 @@ struct RockxyApp: App {
         Window(String(localized: "Block List"), id: "blockList") {
             BlockListWindowView()
         }
+        .commandsRemoved()
         .windowResizability(.contentSize)
         .defaultPosition(.center)
         .windowToolbarStyle(.unifiedCompact)
@@ -57,12 +61,14 @@ struct RockxyApp: App {
         Window(String(localized: "Modify Headers"), id: "modifyHeaders") {
             ModifyHeaderWindowView()
         }
+        .commandsRemoved()
         .windowResizability(.contentSize)
         .defaultPosition(.center)
 
         Window(String(localized: "Network Conditions"), id: "networkConditions") {
             NetworkConditionsWindowView()
         }
+        .commandsRemoved()
         .windowResizability(.contentSize)
         .defaultPosition(.center)
         .windowToolbarStyle(.unifiedCompact)
@@ -70,48 +76,56 @@ struct RockxyApp: App {
         Window(String(localized: "SSL Proxying List"), id: "sslProxyingList") {
             SSLProxyingListView()
         }
+        .commandsRemoved()
         .windowResizability(.contentSize)
         .defaultPosition(.center)
 
         Window(String(localized: "Bypass Proxy List"), id: "bypassProxyList") {
             BypassProxyListView()
         }
+        .commandsRemoved()
         .windowResizability(.contentSize)
         .defaultPosition(.center)
 
         Window(String(localized: "Allow List"), id: "allowList") {
             AllowListView()
         }
+        .commandsRemoved()
         .windowResizability(.contentSize)
         .defaultPosition(.center)
 
         Window(String(localized: "Diff"), id: "diff") {
             DiffWindowView()
         }
+        .commandsRemoved()
         .defaultSize(width: 1240, height: 820)
         .defaultPosition(.center)
 
         Window(String(localized: "Scripting"), id: "scripting") {
             ScriptingWindowView()
         }
+        .commandsRemoved()
         .windowResizability(.contentSize)
         .defaultPosition(.center)
 
         Window(String(localized: "Custom Previewer Tabs"), id: "customPreviewerTabs") {
             CustomPreviewerTabView()
         }
+        .commandsRemoved()
         .windowResizability(.contentSize)
         .defaultPosition(.center)
 
         Window(String(localized: "Custom Columns"), id: "customColumns") {
             CustomHeaderColumnsView()
         }
+        .commandsRemoved()
         .windowResizability(.contentSize)
         .defaultPosition(.center)
 
         Window(String(localized: "Breakpoints"), id: "breakpoints") {
             BreakpointWindowView()
         }
+        .commandsRemoved()
         .defaultSize(width: 800, height: 500)
         .defaultPosition(.center)
 
@@ -148,6 +162,7 @@ private struct ComposeWindowScene: Scene {
         let base = Window(String(localized: "Compose"), id: "compose") {
             ComposeWindowView()
         }
+        .commandsRemoved()
         .defaultSize(width: 900, height: 600)
         .defaultPosition(.center)
 
@@ -249,14 +264,16 @@ struct RockxyMenuCommands: Commands {
     @State private var showCertificateAlert = false
 
     private var appMenu: some Commands {
-        CommandGroup(after: .appSettings) {
+        CommandGroup(before: .appSettings) {
             Button(String(localized: "Check for Updates…")) {}
                 .disabled(true)
                 .help(String(localized: "Planned for future release"))
 
             Button(String(localized: "Change Logs…")) {
-                openURL("https://github.com/nicklama/rockxy/releases")
+                openURL("https://github.com/LocNguyenHuu/Rockxy/blob/main/CHANGELOG.md")
             }
+
+            Divider()
         }
     }
 
@@ -328,77 +345,97 @@ struct RockxyMenuCommands: Commands {
 
     private var viewMenu: some Commands {
         CommandGroup(after: .toolbar) {
-            Button(String(localized: "Auto Select Latest Request")) {
+            Button(String(localized: "Filter Domain or App")) {
+                actions?.toggleFilterBar()
+            }
+            .keyboardShortcut("f", modifiers: [.command, .shift])
+
+            Divider()
+
+            Button(String(localized: "Auto Select the Latest Request")) {
                 actions?.toggleAutoSelect()
             }
             .keyboardShortcut("l", modifiers: [.command, .shift])
 
-            Button(String(localized: "Toggle Filter Bar")) {
-                actions?.toggleFilterBar()
-            }
-            .keyboardShortcut("f", modifiers: [.command])
-
             Divider()
 
-            Button(String(localized: "Inspector Right")) {
-                actions?.toggleInspectorRight()
-            }
-            .keyboardShortcut("]", modifiers: [.command, .control])
-
-            Button(String(localized: "Inspector Bottom")) {
-                actions?.toggleInspectorBottom()
-            }
-            .keyboardShortcut("\\", modifiers: [.command, .control])
-
-            Button(String(localized: "Hide Inspector")) {
-                actions?.hideInspector()
+            Button(String(localized: "Toggle Source List Panel")) {
+                actions?.toggleSourceList()
             }
             .keyboardShortcut("[", modifiers: [.command, .control])
 
             Divider()
 
-            Button(String(localized: "Traffic")) {
-                actions?.switchTab(.traffic)
+            Button(String(localized: "Toggle Dock to Bottom Window")) {
+                actions?.toggleInspectorBottom()
             }
-            .keyboardShortcut("1", modifiers: [.control])
+            .keyboardShortcut("]", modifiers: [.command, .control])
 
-            Button(String(localized: "Logs")) {
-                actions?.switchTab(.logs)
+            Button(String(localized: "Toggle Dock to Right Window")) {
+                actions?.toggleInspectorRight()
             }
-            .keyboardShortcut("2", modifiers: [.control])
-
-            Button(String(localized: "Timeline")) {
-                actions?.switchTab(.timeline)
-            }
-            .keyboardShortcut("3", modifiers: [.control])
+            .keyboardShortcut("\\", modifiers: [.command, .control])
 
             Divider()
 
-            ForEach(0 ..< 9, id: \.self) { index in
-                Button(String(localized: "Workspace Tab \(index + 1)")) {
-                    actions?.selectWorkspaceTab(at: index)
-                }
-                .keyboardShortcut(KeyEquivalent(Character("\(index + 1)")), modifiers: [.command])
-            }
-
-            Button(String(localized: "Previous Tab")) {
-                actions?.previousWorkspaceTab()
-            }
-            .keyboardShortcut("[", modifiers: [.command, .shift])
-
-            Button(String(localized: "Next Tab")) {
+            Button(String(localized: "Select Next Tab")) {
                 actions?.nextWorkspaceTab()
             }
             .keyboardShortcut("]", modifiers: [.command, .shift])
+
+            Button(String(localized: "Select Previous Tab")) {
+                actions?.previousWorkspaceTab()
+            }
+            .keyboardShortcut("[", modifiers: [.command, .shift])
         }
     }
 
     private var flowMenu: some Commands {
         CommandMenu(String(localized: "Flow")) {
-            Button(String(localized: "Replay Request")) {
+            Button(String(localized: "Repeat")) {
                 actions?.replayRequest()
             }
             .keyboardShortcut(.return, modifiers: [.command])
+            .disabled(actions?.hasSelectedTransaction != true)
+
+            Button(String(localized: "Edit and Repeat…")) {
+                actions?.editAndRepeat()
+            }
+            .keyboardShortcut(.return, modifiers: [.command, .option])
+            .disabled(actions?.hasSelectedTransaction != true)
+
+            Divider()
+
+            Button(String(localized: "Save Requests")) {
+                actions?.saveSession()
+            }
+            .keyboardShortcut("s", modifiers: [.command, .shift])
+
+            Menu(String(localized: "Export")) {
+                Button(String(localized: "Export as HAR…")) {
+                    actions?.exportHAR()
+                }
+            }
+
+            Divider()
+
+            Button(String(localized: "Add Comment…")) {
+                actions?.addComment()
+            }
+            .keyboardShortcut("l", modifiers: [.command])
+            .disabled(actions?.hasSelectedTransaction != true)
+
+            Menu(String(localized: "Highlight")) {
+                ForEach(HighlightColor.allCases, id: \.self) { color in
+                    Button(color.rawValue.capitalized) {
+                        actions?.setHighlight(color)
+                    }
+                }
+                Divider()
+                Button(String(localized: "Remove Highlight")) {
+                    actions?.setHighlight(nil)
+                }
+            }
             .disabled(actions?.hasSelectedTransaction != true)
 
             Divider()
@@ -408,11 +445,18 @@ struct RockxyMenuCommands: Commands {
             }
             .keyboardShortcut(.delete, modifiers: [.command, .option, .shift])
 
-            Button(String(localized: "Delete Selected")) {
+            Divider()
+
+            Button(String(localized: "Delete")) {
                 actions?.deleteSelected()
             }
             .keyboardShortcut(.delete, modifiers: [])
             .disabled(actions?.hasSelectedTransaction != true)
+
+            Button(String(localized: "Delete All")) {
+                actions?.deleteAll()
+            }
+            .keyboardShortcut(.delete, modifiers: [.command, .shift])
         }
     }
 
@@ -572,21 +616,21 @@ struct RockxyMenuCommands: Commands {
             Divider()
 
             Button(String(localized: "Homepage…")) {
-                openURL("https://github.com/nicklama/rockxy")
+                openURL("https://rockxy.io")
             }
 
             Button(String(localized: "Github…")) {
-                openURL("https://github.com/nicklama/rockxy")
+                openURL("https://github.com/LocNguyenHuu/Rockxy")
             }
 
             Button(String(localized: "Technical Documents…")) {
-                openURL("https://github.com/nicklama/rockxy/wiki")
+                openURL("https://github.com/LocNguyenHuu/Rockxy/wiki")
             }
 
             Divider()
 
             Button(String(localized: "Report Bug…")) {
-                openURL("https://github.com/nicklama/rockxy/issues/new")
+                openURL("https://github.com/LocNguyenHuu/Rockxy/issues")
             }
 
             Button(String(localized: "Copy Debug Info…")) {

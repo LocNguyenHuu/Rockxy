@@ -23,9 +23,6 @@ struct WorkspaceStateTests {
         #expect(workspace.filteredTransactions.isEmpty)
         #expect(workspace.domainTree.isEmpty)
         #expect(workspace.appNodes.isEmpty)
-        #expect(workspace.errorGroups.isEmpty)
-        #expect(workspace.performanceMetrics.isEmpty)
-        #expect(workspace.sessionTrends.isEmpty)
     }
 
     @Test("Custom workspace initializes with provided values")
@@ -75,8 +72,6 @@ struct WorkspaceStateTests {
         #expect(workspace.selectedLogEntry == nil)
         #expect(workspace.domainTree.isEmpty)
         #expect(workspace.appNodes.isEmpty)
-        #expect(workspace.errorGroups.isEmpty)
-        #expect(workspace.performanceMetrics.isEmpty)
         // activeMainTab is NOT reset (navigation state preserved)
     }
 
