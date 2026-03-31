@@ -104,8 +104,10 @@ struct ModifyHeaderWindowView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            infoBar
-            Divider()
+            if !viewModel.modifyHeaderRules.isEmpty {
+                infoBar
+                Divider()
+            }
             tableContent
             Divider()
             bottomBar
@@ -148,11 +150,19 @@ struct ModifyHeaderWindowView: View {
 
     @ViewBuilder private var tableContent: some View {
         if viewModel.modifyHeaderRules.isEmpty {
-            ContentUnavailableView(
-                String(localized: "No Modify Header Rules"),
-                systemImage: "list.bullet.header",
-                description: Text(String(localized: "Add rules to modify HTTP request and response headers."))
-            )
+            VStack(alignment: .center, spacing: 8) {
+                Image(systemName: "list.bullet.header")
+                    .font(.system(size: 20))
+                    .foregroundStyle(.tertiary)
+                Text(String(localized: "No Modify Header Rules"))
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.secondary)
+                Text(String(localized: "Add rules to modify HTTP request and response headers."))
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             Table(viewModel.modifyHeaderRules, selection: $selectedRuleID) {
                 TableColumn("") { rule in

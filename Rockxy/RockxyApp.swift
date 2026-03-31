@@ -264,14 +264,16 @@ struct RockxyMenuCommands: Commands {
     @State private var showCertificateAlert = false
 
     private var appMenu: some Commands {
-        CommandGroup(after: .appSettings) {
+        CommandGroup(before: .appSettings) {
             Button(String(localized: "Check for Updates…")) {}
                 .disabled(true)
                 .help(String(localized: "Planned for future release"))
 
             Button(String(localized: "Change Logs…")) {
-                openURL("https://github.com/nicklama/rockxy/releases")
+                openURL("https://github.com/LocNguyenHuu/Rockxy/blob/main/CHANGELOG.md")
             }
+
+            Divider()
         }
     }
 
@@ -614,21 +616,21 @@ struct RockxyMenuCommands: Commands {
             Divider()
 
             Button(String(localized: "Homepage…")) {
-                openURL("https://github.com/nicklama/rockxy")
+                openURL("https://rockxy.io")
             }
 
             Button(String(localized: "Github…")) {
-                openURL("https://github.com/nicklama/rockxy")
+                openURL("https://github.com/LocNguyenHuu/Rockxy")
             }
 
             Button(String(localized: "Technical Documents…")) {
-                openURL("https://github.com/nicklama/rockxy/wiki")
+                openURL("https://github.com/LocNguyenHuu/Rockxy/wiki")
             }
 
             Divider()
 
             Button(String(localized: "Report Bug…")) {
-                openURL("https://github.com/nicklama/rockxy/issues/new")
+                openURL("https://github.com/LocNguyenHuu/Rockxy/issues")
             }
 
             Button(String(localized: "Copy Debug Info…")) {
