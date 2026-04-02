@@ -69,7 +69,11 @@ enum ProxyPortResolver {
     static func isPortAvailable(port: Int, address: String) -> Bool {
         let fd = socket(AF_INET, SOCK_STREAM, 0)
         guard fd >= 0 else {
-            return true
+            logger
+                .warning(
+                    "isPortAvailable: socket() failed (fd=\(fd), errno=\(errno)) — treating port \(port) as unavailable"
+                )
+            return false
         }
         defer { close(fd) }
 
