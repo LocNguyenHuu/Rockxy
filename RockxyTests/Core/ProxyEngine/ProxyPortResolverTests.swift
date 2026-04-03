@@ -8,6 +8,8 @@ import Testing
 
 @Suite(.serialized)
 struct ProxyPortResolverTests {
+    // MARK: Internal
+
     // MARK: - Port Availability
 
     @Test("isPortAvailable returns true for unoccupied port")
@@ -55,7 +57,7 @@ struct ProxyPortResolverTests {
         #expect(resolution.port != listener.boundPort)
         #expect(resolution.isFallback == true)
         #expect(resolution.port > 0)
-        #expect(resolution.port <= 65535)
+        #expect(resolution.port <= Self.maxPort)
     }
 
     @Test("resolve throws portInUse when preferred is occupied and autoSelect is disabled")
@@ -74,33 +76,31 @@ struct ProxyPortResolverTests {
 
     // MARK: - Edge Cases
 
-    @Test("resolve does not crash when preferred port is 65535 and occupied")
+    @Test("resolve does not crash when preferred port is Self.maxPort and occupied")
     func resolveAtMaxPort() throws {
-        // Port 65535 may already be reserved or restricted on some machines
-        guard let listener = try? TCPListener(port: 65535, address: "127.0.0.1") else {
-            // Environment already occupies port 65535; skip rather than flake
+        // Port Self.maxPort may already be reserved or restricted on some machines
+        guard let listener = try? TCPListener(port: Self.maxPort, address: "127.0.0.1") else {
+            // Environment already occupies port Self.maxPort; skip rather than flake
             return
         }
         defer { listener.close() }
 
         let resolution = try ProxyPortResolver.resolve(
-            preferred: 65535,
+            preferred: Self.maxPort,
             address: "127.0.0.1",
             autoSelect: true
         )
 
         #expect(resolution.isFallback == true)
-        #expect(resolution.port != 65535)
+        #expect(resolution.port != Self.maxPort)
     }
 
     // MARK: - Persistence Model
 
     @Test("preferred port in settings is unchanged after fallback resolution")
     func persistenceUnchangedAfterFallback() throws {
-        let originalSettings = AppSettingsStorage.load()
-        defer {
-            AppSettingsStorage.save(originalSettings)
-        }
+        let cleanup = installSettingsTestGuard()
+        defer { cleanup() }
 
         let listener = try TCPListener(port: 0, address: "127.0.0.1")
         defer { listener.close() }
@@ -121,6 +121,10 @@ struct ProxyPortResolverTests {
         let reloaded = AppSettingsStorage.load()
         #expect(reloaded.proxyPort == occupiedPort)
     }
+
+    // MARK: Private
+
+    private static let maxPort = Int(UInt16.max)
 }
 
 // MARK: - TCPListener

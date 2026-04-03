@@ -45,7 +45,8 @@ final class MainContentCoordinator {
     var isRecording = true
     var proxyError: String?
     var isSystemProxyConfigured = false
-    var systemProxyWarning: SystemProxyWarning?
+
+    let readiness = ReadinessCoordinator.shared
 
     // MARK: - UI State — Logs
 
@@ -63,8 +64,6 @@ final class MainContentCoordinator {
     var isProxyOverridden = false
     var isAutoSelectEnabled = true
     var evictionObserver: NSObjectProtocol?
-    var tlsRejectionObserver: NSObjectProtocol?
-    var tlsRejectionHosts: Set<String> = []
 
     // MARK: - UI State — Engine Status
 
@@ -93,6 +92,19 @@ final class MainContentCoordinator {
     var exportScopeContext: ExportScopeContext?
     var sessionProvenance: SessionProvenance?
     var activeToast: ToastMessage?
+
+    var systemProxyWarning: SystemProxyWarning? {
+        guard let warning = readiness.activeWarning else {
+            return nil
+        }
+        let action: SystemProxyWarning.Action? = switch warning.action {
+        case .retry: .retry
+        case .openGeneralSettings: .openGeneralSettings
+        case .openAdvancedProxySettings: .openAdvancedProxySettings
+        case nil: nil
+        }
+        return SystemProxyWarning(message: warning.message, action: action, isDismissible: warning.isDismissible)
+    }
 
     var activeWorkspace: WorkspaceState {
         workspaceStore.activeWorkspace
@@ -246,6 +258,7 @@ final class MainContentCoordinator {
 struct SystemProxyWarning {
     enum Action {
         case retry
+        case openGeneralSettings
         case openAdvancedProxySettings
 
         // MARK: Internal
@@ -254,6 +267,8 @@ struct SystemProxyWarning {
             switch self {
             case .retry:
                 String(localized: "Retry")
+            case .openGeneralSettings:
+                String(localized: "Open Certificate Settings")
             case .openAdvancedProxySettings:
                 String(localized: "Open Advanced Proxy Settings")
             }

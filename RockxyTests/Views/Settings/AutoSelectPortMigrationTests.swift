@@ -10,14 +10,8 @@ struct AutoSelectPortMigrationTests {
 
     @Test("unset key loads as true (new default)")
     func unsetKeyDefaultsToTrue() {
-        let original = UserDefaults.standard.object(forKey: Self.key)
-        defer {
-            if let original {
-                UserDefaults.standard.set(original, forKey: Self.key)
-            } else {
-                UserDefaults.standard.removeObject(forKey: Self.key)
-            }
-        }
+        let cleanup = installSettingsTestGuard()
+        defer { cleanup() }
 
         UserDefaults.standard.removeObject(forKey: Self.key)
         let settings = AppSettingsStorage.load()
@@ -26,14 +20,8 @@ struct AutoSelectPortMigrationTests {
 
     @Test("explicitly set to false loads as false")
     func explicitFalseRespected() {
-        let original = UserDefaults.standard.object(forKey: Self.key)
-        defer {
-            if let original {
-                UserDefaults.standard.set(original, forKey: Self.key)
-            } else {
-                UserDefaults.standard.removeObject(forKey: Self.key)
-            }
-        }
+        let cleanup = installSettingsTestGuard()
+        defer { cleanup() }
 
         UserDefaults.standard.set(false, forKey: Self.key)
         let settings = AppSettingsStorage.load()
@@ -42,14 +30,8 @@ struct AutoSelectPortMigrationTests {
 
     @Test("explicitly set to true loads as true")
     func explicitTrueRespected() {
-        let original = UserDefaults.standard.object(forKey: Self.key)
-        defer {
-            if let original {
-                UserDefaults.standard.set(original, forKey: Self.key)
-            } else {
-                UserDefaults.standard.removeObject(forKey: Self.key)
-            }
-        }
+        let cleanup = installSettingsTestGuard()
+        defer { cleanup() }
 
         UserDefaults.standard.set(true, forKey: Self.key)
         let settings = AppSettingsStorage.load()

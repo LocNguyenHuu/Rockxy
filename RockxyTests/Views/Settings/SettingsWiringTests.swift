@@ -63,17 +63,10 @@ struct SettingsWiringTests {
 
     @Test("recordOnLaunch wiring: UserDefaults key flows through AppSettingsStorage")
     func recordOnLaunchWiring() {
-        let key = "com.amunx.Rockxy.recordOnLaunch"
-        let original = UserDefaults.standard.object(forKey: key)
-        defer {
-            if let original {
-                UserDefaults.standard.set(original, forKey: key)
-            } else {
-                UserDefaults.standard.removeObject(forKey: key)
-            }
-            UserDefaults.standard.synchronize()
-        }
+        let cleanup = installSettingsTestGuard()
+        defer { cleanup() }
 
+        let key = "com.amunx.Rockxy.recordOnLaunch"
         UserDefaults.standard.set(true, forKey: key)
         UserDefaults.standard.synchronize()
         let settingsTrue = AppSettingsStorage.load()

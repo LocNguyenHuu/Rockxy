@@ -116,37 +116,10 @@ struct HostCertGeneratorTests {
 
 // MARK: - Test Isolation Helpers
 
-/// Sets CertificateStore overrides for test isolation: test-specific Keychain label
-/// and a unique temp directory for filesystem operations. Returns a cleanup closure
-/// that MUST be called (typically via `defer`) to restore production state.
-/// Global lock ensuring CertificateStore override-based tests do not race.
-private let certificateTestLock = NSLock()
-
+/// Uses installSharedTestOverrides() from CertificateTestHelpers.swift
+/// for cross-suite lock coordination of CertificateStore overrides.
 private func installTestOverrides() -> (label: String, storageDir: URL, cleanup: () -> Void) {
-    certificateTestLock.lock()
-
-    let testLabel = "com.amunx.Rockxy.test.rootCA.key.\(UUID().uuidString)"
-    let testDir = FileManager.default.temporaryDirectory
-        .appendingPathComponent("RockxyTests-\(UUID().uuidString)", isDirectory: true)
-
-    CertificateStore.keychainKeyLabelOverride = testLabel
-    CertificateStore.storageDirectoryOverride = testDir
-
-    let cleanup = {
-        // Restore production defaults
-        CertificateStore.keychainKeyLabelOverride = nil
-        CertificateStore.storageDirectoryOverride = nil
-
-        // Clean up test Keychain entry (best-effort)
-        try? KeychainHelper.deletePrivateKey(label: testLabel)
-
-        // Clean up temp directory (best-effort)
-        try? FileManager.default.removeItem(at: testDir)
-
-        certificateTestLock.unlock()
-    }
-
-    return (testLabel, testDir, cleanup)
+    installSharedTestOverrides()
 }
 
 // MARK: - CertificateStoreTests

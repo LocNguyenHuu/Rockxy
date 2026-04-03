@@ -8,6 +8,7 @@ extension Notification.Name {
     static let proxyDidStop = Notification.Name("com.amunx.Rockxy.proxyDidStop")
     static let systemProxyDidChange = Notification.Name("com.amunx.Rockxy.systemProxyDidChange")
     static let certificateStatusChanged = Notification.Name("com.amunx.Rockxy.certificateStatusChanged")
+    static let helperStatusChanged = Notification.Name("com.amunx.Rockxy.helperStatusChanged")
     static let sessionCleared = Notification.Name("com.amunx.Rockxy.sessionCleared")
     static let bufferEvictionRequested = Notification.Name("com.amunx.Rockxy.bufferEvictionRequested")
     static let showCertificateWizard = Notification.Name("com.amunx.Rockxy.showCertificateWizard")

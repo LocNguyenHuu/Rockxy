@@ -43,15 +43,13 @@ final class WelcomeViewModel {
     }
 
     func refreshStatus() async {
-        let installed = await CertificateManager.shared.isRootCAInstalled()
-        let trusted = await CertificateManager.shared.isRootCATrusted()
-        await HelperManager.shared.checkStatus()
-        let proxyEnabled = SystemProxyManager.shared.isSystemProxyEnabled()
+        let readiness = ReadinessCoordinator.shared
+        await readiness.deepRefresh()
 
-        certInstalled = installed
-        certTrusted = trusted
-        helperStatus = HelperManager.shared.status
-        systemProxyEnabled = proxyEnabled
+        certInstalled = readiness.certReadiness != .notGenerated
+        certTrusted = readiness.canInterceptHTTPS
+        helperStatus = readiness.helperReadiness
+        systemProxyEnabled = SystemProxyManager.shared.isSystemProxyEnabled()
     }
 
     func installCert() async {

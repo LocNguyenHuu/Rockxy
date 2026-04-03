@@ -156,11 +156,6 @@ struct AdvancedSettingsTab: View {
                 .task {
                     await helperManager.checkStatus()
                 }
-                .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-                    Task {
-                        await helperManager.checkStatus()
-                    }
-                }
                 .alert(
                     String(localized: "Uninstall Helper Tool?"),
                     isPresented: $showUninstallConfirmation

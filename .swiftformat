@@ -66,5 +66,6 @@
 
 # Disabled rules
 --disable acronyms
+--disable modifierOrder
 --disable redundantSelf
 --disable trailingCommas

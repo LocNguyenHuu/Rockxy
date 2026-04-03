@@ -184,9 +184,7 @@ struct GeneralSettingsTab: View {
         .task {
             await checkCAStatus()
         }
-        .onReceive(
-            NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)
-        ) { _ in
+        .onChange(of: ReadinessCoordinator.shared.certReadiness) {
             Task { await checkCAStatus() }
         }
     }
@@ -206,7 +204,7 @@ struct GeneralSettingsTab: View {
     @AppStorage("com.amunx.Rockxy.contentLayout") private var contentLayout = "vertical"
     @AppStorage("com.amunx.Rockxy.showMenuBarIcon") private var showMenuBarIcon = true
     @AppStorage("com.amunx.Rockxy.truncationStyle") private var truncationStyle = "tail"
-    @AppStorage("com.amunx.Rockxy.proxyPort") private var proxyPort = 9090
+    @AppStorage("com.amunx.Rockxy.proxyPort") private var proxyPort = Int(9.09e3)
     @AppStorage("com.amunx.Rockxy.autoOverrideProxy") private var autoOverrideProxy = true
     @AppStorage("com.amunx.Rockxy.recordOnLaunch") private var recordOnLaunch = true
     @State private var certSnapshot: RootCAStatusSnapshot?

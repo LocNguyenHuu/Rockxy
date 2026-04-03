@@ -424,7 +424,7 @@ struct CertificateStatusStateTests {
             hasTrustSettings: false,
             isSystemTrustValidated: false,
             notValidBefore: Date(),
-            notValidAfter: Date().addingTimeInterval(86400 * 365),
+            notValidAfter: Date().addingTimeInterval(24 * 60 * 60 * 365),
             fingerprintSHA256: "AABB",
             commonName: "Rockxy Test",
             lastValidationErrorMessage: nil
@@ -532,34 +532,8 @@ struct ProxyGatingTests {
 
 // MARK: - Test Isolation Helpers (shared with CertificateTests)
 
-/// Sets CertificateStore overrides for test isolation: test-specific Keychain label
-/// and a unique temp directory for filesystem operations. Returns a cleanup closure
-/// that MUST be called (typically via `defer`) to restore production state.
-private let certificateTestLock = NSLock()
-
+/// Uses installSharedTestOverrides() from CertificateTestHelpers.swift
+/// for cross-suite lock coordination of CertificateStore overrides.
 private func installTestOverrides() -> (label: String, storageDir: URL, cleanup: () -> Void) {
-    certificateTestLock.lock()
-
-    let testLabel = "com.amunx.Rockxy.test.rootCA.key.\(UUID().uuidString)"
-    let testDir = FileManager.default.temporaryDirectory
-        .appendingPathComponent("RockxyTests-\(UUID().uuidString)", isDirectory: true)
-
-    CertificateStore.keychainKeyLabelOverride = testLabel
-    CertificateStore.storageDirectoryOverride = testDir
-
-    let cleanup = {
-        // Restore production defaults
-        CertificateStore.keychainKeyLabelOverride = nil
-        CertificateStore.storageDirectoryOverride = nil
-
-        // Clean up test Keychain entry (best-effort)
-        try? KeychainHelper.deletePrivateKey(label: testLabel)
-
-        // Clean up temp directory (best-effort)
-        try? FileManager.default.removeItem(at: testDir)
-
-        certificateTestLock.unlock()
-    }
-
-    return (testLabel, testDir, cleanup)
+    installSharedTestOverrides()
 }
