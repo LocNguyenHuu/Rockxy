@@ -31,19 +31,16 @@ struct WelcomeView: View {
         }
         .frame(width: 520, height: 480)
         .task {
-            _ = CertificateManager.shared.isRootCATrustValidated()
             await viewModel.refreshStatus()
         }
-        .task(id: "polling") {
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(5))
-                await viewModel.refreshStatus()
-            }
+        .onChange(of: ReadinessCoordinator.shared.certReadiness) {
+            Task { await viewModel.refreshStatus() }
         }
-        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-            Task {
-                await viewModel.refreshStatus()
-            }
+        .onChange(of: ReadinessCoordinator.shared.helperReadiness) {
+            Task { await viewModel.refreshStatus() }
+        }
+        .onChange(of: ReadinessCoordinator.shared.proxyMode) {
+            Task { await viewModel.refreshStatus() }
         }
     }
 

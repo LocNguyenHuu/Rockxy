@@ -61,9 +61,7 @@ struct CertificateSetupView: View {
         .task {
             await checkCAStatus()
         }
-        .onReceive(
-            NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)
-        ) { _ in
+        .onChange(of: ReadinessCoordinator.shared.certReadiness) {
             Task { await checkCAStatus() }
         }
     }

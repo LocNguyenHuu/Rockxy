@@ -50,26 +50,56 @@ final class HelperManager {
     /// On macOS 13+, this uses `SMAppService.daemon(plistName:).register()` which
     /// requires user approval in System Settings > Login Items.
     func install() async throws {
+        let previousStatus = status
+        let previousReachable = isReachable
+        let previousInfo = installedInfo
         lastErrorMessage = nil
         isBusy = true
-        defer { isBusy = false }
+        defer {
+            isBusy = false
+            postStatusChangeIfNeeded(
+                previousStatus: previousStatus,
+                previousReachable: previousReachable,
+                previousInfo: previousInfo
+            )
+        }
         try performInstall()
         await performCheckStatus()
     }
 
     /// Uninstall the helper by preparing it via XPC, then unregistering from launchd.
     func uninstall() async throws {
+        let previousStatus = status
+        let previousReachable = isReachable
+        let previousInfo = installedInfo
         lastErrorMessage = nil
         isBusy = true
-        defer { isBusy = false }
+        defer {
+            isBusy = false
+            postStatusChangeIfNeeded(
+                previousStatus: previousStatus,
+                previousReachable: previousReachable,
+                previousInfo: previousInfo
+            )
+        }
         try await performUninstall()
     }
 
     /// Check whether the helper is installed, responding, and at the correct version.
     func checkStatus() async {
+        let previousStatus = status
+        let previousReachable = isReachable
+        let previousInfo = installedInfo
         lastErrorMessage = nil
         isBusy = true
-        defer { isBusy = false }
+        defer {
+            isBusy = false
+            postStatusChangeIfNeeded(
+                previousStatus: previousStatus,
+                previousReachable: previousReachable,
+                previousInfo: previousInfo
+            )
+        }
         await performCheckStatus()
     }
 
@@ -77,9 +107,19 @@ final class HelperManager {
     /// After unregistering, BTM trust is cleared so re-registration may require
     /// user approval in System Settings > Login Items.
     func update() async throws {
+        let previousStatus = status
+        let previousReachable = isReachable
+        let previousInfo = installedInfo
         lastErrorMessage = nil
         isBusy = true
-        defer { isBusy = false }
+        defer {
+            isBusy = false
+            postStatusChangeIfNeeded(
+                previousStatus: previousStatus,
+                previousReachable: previousReachable,
+                previousInfo: previousInfo
+            )
+        }
 
         Self.logger.info("Updating helper tool")
         do {
@@ -102,18 +142,38 @@ final class HelperManager {
 
     /// Retry establishing connection with the helper.
     func retryConnection() async {
+        let previousStatus = status
+        let previousReachable = isReachable
+        let previousInfo = installedInfo
         lastErrorMessage = nil
         isBusy = true
-        defer { isBusy = false }
+        defer {
+            isBusy = false
+            postStatusChangeIfNeeded(
+                previousStatus: previousStatus,
+                previousReachable: previousReachable,
+                previousInfo: previousInfo
+            )
+        }
         HelperConnection.shared.resetConnection()
         await performCheckStatus()
     }
 
     /// Reinstall the helper by uninstalling, then installing fresh.
     func reinstall() async throws {
+        let previousStatus = status
+        let previousReachable = isReachable
+        let previousInfo = installedInfo
         lastErrorMessage = nil
         isBusy = true
-        defer { isBusy = false }
+        defer {
+            isBusy = false
+            postStatusChangeIfNeeded(
+                previousStatus: previousStatus,
+                previousReachable: previousReachable,
+                previousInfo: previousInfo
+            )
+        }
         do {
             try await performUninstall()
             try performInstall()
@@ -130,6 +190,19 @@ final class HelperManager {
     private static let plistName: String = Bundle.main.infoDictionary?["RockxyHelperPlistName"] as? String ?? "com.amunx.Rockxy.HelperTool.plist"
     private static let helperProbeAttempts = 3
     private static let helperProbeRetryDelay = Duration.milliseconds(750)
+
+    private func postStatusChangeIfNeeded(
+        previousStatus: HelperStatus,
+        previousReachable: Bool,
+        previousInfo: HelperInfo?
+    ) {
+        let changed = status != previousStatus
+            || isReachable != previousReachable
+            || installedInfo != previousInfo
+        if changed {
+            NotificationCenter.default.post(name: .helperStatusChanged, object: nil)
+        }
+    }
 
     /// Core install logic without busy/error wrapper.
     /// Always unregisters first to clear stale BTM cache entries that may
