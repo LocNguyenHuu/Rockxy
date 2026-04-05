@@ -196,6 +196,29 @@ struct RequestListRowTests {
         #expect(value == "")
     }
 
+    // MARK: - WebSocket Numeric Sort
+
+    @Test("WebSocket frame count sorts numerically not lexicographically")
+    func webSocketNumericSort() {
+        let ws2 = makeWebSocketRow(frameCount: 2)
+        let ws10 = makeWebSocketRow(frameCount: 10)
+        let descriptors = [NSSortDescriptor(key: "queryName", ascending: true)]
+
+        // Numeric: 2 < 10 (lexicographic would put "10" before "2")
+        #expect(RequestListRow.compare(ws2, ws10, using: descriptors) == true)
+        #expect(RequestListRow.compare(ws10, ws2, using: descriptors) == false)
+    }
+
+    // MARK: - Sequence Number Display
+
+    @Test("sequenceNumber is correctly set from transaction")
+    func sequenceNumberFromTransaction() {
+        let transaction = TestFixtures.makeTransaction()
+        transaction.sequenceNumber = 42
+        let row = RequestListRow(from: transaction)
+        #expect(row.sequenceNumber == 42)
+    }
+
     // MARK: Private
 
     // MARK: - Helpers
@@ -234,6 +257,21 @@ struct RequestListRowTests {
                 body: response.body,
                 contentType: response.contentType
             )
+        }
+        return RequestListRow(from: transaction)
+    }
+
+    private func makeWebSocketRow(frameCount: Int) -> RequestListRow {
+        let transaction = TestFixtures.makeWebSocketTransaction()
+        // Adjust frame count by adding/removing frames to match desired count
+        if let ws = transaction.webSocketConnection {
+            while ws.frameCount < frameCount {
+                ws.addFrame(WebSocketFrameData(
+                    direction: .sent,
+                    opcode: .text,
+                    payload: "test".data(using: .utf8)!
+                ))
+            }
         }
         return RequestListRow(from: transaction)
     }

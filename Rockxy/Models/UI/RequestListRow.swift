@@ -144,6 +144,9 @@ extension RequestListRow {
     }
 
     private static func compareQueryName(_ lhs: RequestListRow, _ rhs: RequestListRow) -> ComparisonResult {
+        if lhs.isWebSocket, rhs.isWebSocket {
+            return compareInt(lhs.webSocketFrameCount, rhs.webSocketFrameCount)
+        }
         let lhsDisplay = lhs.isWebSocket ? "\(lhs.webSocketFrameCount)" : (lhs.graphQLOpName ?? "")
         let rhsDisplay = rhs.isWebSocket ? "\(rhs.webSocketFrameCount)" : (rhs.graphQLOpName ?? "")
         return lhsDisplay.localizedCompare(rhsDisplay)

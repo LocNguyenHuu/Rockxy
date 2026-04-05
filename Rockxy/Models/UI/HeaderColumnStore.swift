@@ -132,8 +132,7 @@ final class HeaderColumnStore {
         var requestHeaders: Set<String> = []
         var responseHeaders: Set<String> = []
 
-        let sampleSize = min(transactions.count, 500)
-        for transaction in transactions.prefix(sampleSize) {
+        for transaction in transactions {
             for header in transaction.request.headers {
                 requestHeaders.insert(header.name)
             }
@@ -144,6 +143,8 @@ final class HeaderColumnStore {
             }
         }
 
+        discoveredRequestHeaderSet = requestHeaders
+        discoveredResponseHeaderSet = responseHeaders
         discoveredRequestHeaders = requestHeaders.sorted()
         discoveredResponseHeaders = responseHeaders.sorted()
         UserDefaults.standard.set(discoveredRequestHeaders, forKey: Self.discoveredReqKey)

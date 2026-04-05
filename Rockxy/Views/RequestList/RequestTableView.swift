@@ -1510,7 +1510,7 @@ extension RequestTableView {
 
             switch column {
             case "row":
-                cell.stringValue = "\(row + 1)"
+                cell.stringValue = "\(rowData.sequenceNumber)"
                 cell.alignment = .right
                 cell.font = .monospacedDigitSystemFont(ofSize: 11, weight: .regular)
                 cell.textColor = .secondaryLabelColor

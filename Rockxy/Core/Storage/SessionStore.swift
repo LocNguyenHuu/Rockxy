@@ -216,8 +216,8 @@ actor SessionStore {
             deleteBodyFile(at: row[Self.txResponseBodyPath])
         }
 
-        try db.run(matching.delete())
-        Self.logger.info("Deleted \(ids.count) transactions by ID")
+        let deletedCount = try db.run(matching.delete())
+        Self.logger.info("Deleted \(deletedCount) of \(ids.count) requested transactions by ID")
     }
 
     // MARK: - Transaction Count

@@ -255,6 +255,32 @@ struct HeaderColumnStoreTests {
         #expect(store.discoveredRequestHeaders.count == firstCount)
     }
 
+    @Test("Full-scan discovery followed by incremental preserves all headers")
+    func fullScanThenIncrementalPreserves() throws {
+        let store = makeCleanStore()
+        let transactions = [TestFixtures.makeTransaction()]
+        store.updateDiscoveredHeaders(from: transactions)
+        let afterFullScan = store.discoveredRequestHeaders
+
+        let customTransaction = TestFixtures.makeTransaction()
+        customTransaction.request = try HTTPRequestData(
+            method: "GET",
+            url: #require(URL(string: "https://example.com/test")),
+            httpVersion: "HTTP/1.1",
+            headers: [HTTPHeader(name: "X-New-Header", value: "value")],
+            body: nil,
+            contentType: nil
+        )
+        store.updateDiscoveredHeaders(fromBatch: [customTransaction])
+
+        // Full-scan headers must still be present after incremental batch
+        for header in afterFullScan {
+            #expect(store.discoveredRequestHeaders.contains(header))
+        }
+        // New header from batch must also be present
+        #expect(store.discoveredRequestHeaders.contains("X-New-Header"))
+    }
+
     // MARK: Private
 
     // MARK: - Helpers

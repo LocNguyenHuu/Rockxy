@@ -267,13 +267,13 @@ final class MainContentCoordinator {
                 do {
                     let persisted = try await store.loadPinnedAndSavedTransactions()
                     self.persistedFavorites = persisted
-                    // Assign deterministic sequence numbers from loaded order
+                    // Assign deterministic sequence numbers starting from current counter
+                    // to avoid collisions with live rows assigned while the load suspended
+                    let base = self.nextSequenceNumber
                     for (index, transaction) in persisted.enumerated() {
-                        transaction.sequenceNumber = index
+                        transaction.sequenceNumber = base + index
                     }
-                    // Advance past highest assigned so live capture gets higher numbers
-                    let maxSeq = persisted.map(\.sequenceNumber).max() ?? -1
-                    self.nextSequenceNumber = max(self.nextSequenceNumber, maxSeq + 1)
+                    self.nextSequenceNumber = base + persisted.count
                 } catch {
                     Self.logger.error("Failed to load persisted favorites: \(error.localizedDescription)")
                 }

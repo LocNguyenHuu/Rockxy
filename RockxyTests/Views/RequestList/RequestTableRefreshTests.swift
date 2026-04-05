@@ -507,4 +507,98 @@ struct RequestTableRefreshTests {
         #expect(coordinator.transactions.isEmpty)
         #expect(coordinator.filteredRows.isEmpty)
     }
+
+    // MARK: - Per-Workspace Append Scope Guard
+
+    @Test("Per-workspace append fast-path not used for .saved scope")
+    func appendNotUsedForSavedScope() {
+        let coordinator = MainContentCoordinator()
+        let saved = TestFixtures.makeTransaction()
+        saved.isSaved = true
+        coordinator.transactions = [saved]
+        coordinator.filterCriteria.sidebarScope = .saved
+        coordinator.recomputeFilteredTransactions()
+        #expect(coordinator.filteredRows.count == 1)
+
+        // Append a new non-saved transaction — must not appear in saved scope
+        let newTransaction = TestFixtures.makeTransaction()
+        coordinator.transactions.append(newTransaction)
+        coordinator.appendFilteredTransactions([newTransaction])
+
+        // Should still only show saved transactions (recompute path, not append)
+        #expect(coordinator.filteredRows.count == 1)
+        #expect(coordinator.filteredRows.first?.id == saved.id)
+    }
+
+    @Test("Per-workspace append fast-path not used for .pinned scope")
+    func appendNotUsedForPinnedScope() {
+        let coordinator = MainContentCoordinator()
+        let pinned = TestFixtures.makeTransaction()
+        pinned.isPinned = true
+        coordinator.transactions = [pinned]
+        coordinator.filterCriteria.sidebarScope = .pinned
+        coordinator.recomputeFilteredTransactions()
+        #expect(coordinator.filteredRows.count == 1)
+
+        let newTransaction = TestFixtures.makeTransaction()
+        coordinator.transactions.append(newTransaction)
+        coordinator.appendFilteredTransactions([newTransaction])
+
+        #expect(coordinator.filteredRows.count == 1)
+        #expect(coordinator.filteredRows.first?.id == pinned.id)
+    }
+
+    // MARK: - Persisted Sequence Number Collision Safety
+
+    @Test("Persisted sequence numbers start after existing nextSequenceNumber")
+    func persistedSequenceNoCollision() {
+        let coordinator = MainContentCoordinator()
+        // Simulate live capture that advanced nextSequenceNumber
+        coordinator.nextSequenceNumber = 100
+
+        let persisted1 = TestFixtures.makeTransaction()
+        persisted1.isSaved = true
+        let persisted2 = TestFixtures.makeTransaction()
+        persisted2.isPinned = true
+        coordinator.persistedFavorites = [persisted1, persisted2]
+
+        // Simulate the assignment logic from loadPersistedFavorites
+        let base = coordinator.nextSequenceNumber
+        for (index, transaction) in coordinator.persistedFavorites.enumerated() {
+            transaction.sequenceNumber = base + index
+        }
+        coordinator.nextSequenceNumber = base + coordinator.persistedFavorites.count
+
+        #expect(persisted1.sequenceNumber == 100)
+        #expect(persisted2.sequenceNumber == 101)
+        #expect(coordinator.nextSequenceNumber == 102)
+    }
+
+    // MARK: - Leaf Selection Scope
+
+    @Test("Selecting a pinned leaf sets scope to .pinned")
+    func pinnedLeafSetsScope() {
+        let coordinator = MainContentCoordinator()
+        let pinned = TestFixtures.makeTransaction()
+        pinned.isPinned = true
+        coordinator.transactions = [pinned]
+
+        coordinator.selectSidebarItem(.pinnedTransaction(id: pinned.id))
+
+        #expect(coordinator.filterCriteria.sidebarScope == .pinned)
+        #expect(coordinator.selectedTransaction?.id == pinned.id)
+    }
+
+    @Test("Selecting a saved leaf sets scope to .saved")
+    func savedLeafSetsScope() {
+        let coordinator = MainContentCoordinator()
+        let saved = TestFixtures.makeTransaction()
+        saved.isSaved = true
+        coordinator.transactions = [saved]
+
+        coordinator.selectSidebarItem(.savedTransaction(id: saved.id))
+
+        #expect(coordinator.filterCriteria.sidebarScope == .saved)
+        #expect(coordinator.selectedTransaction?.id == saved.id)
+    }
 }

@@ -145,7 +145,9 @@ extension MainContentCoordinator {
     func appendFilteredTransactions(_ batch: [HTTPTransaction], to workspace: WorkspaceState) {
         let hasActiveRules = workspace.isFilterBarVisible
             && workspace.filterRules.contains { $0.isEnabled && !$0.value.isEmpty }
-        if workspace.filterCriteria.isEmpty, !hasActiveRules, workspace.activeSortDescriptors.isEmpty {
+        if workspace.filterCriteria.sidebarScope == .allTraffic,
+           workspace.filterCriteria.isEmpty, !hasActiveRules, workspace.activeSortDescriptors.isEmpty
+        {
             workspace.filteredTransactions.append(contentsOf: batch.filter { !$0.isTLSFailure })
             workspace.lastDeriveWasAppendOnly = true
         } else {
