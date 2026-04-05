@@ -71,6 +71,8 @@ extension MainContentCoordinator {
                 } else {
                     filteredTransactions = persistedFavorites.filter(\.isSaved)
                 }
+                activeWorkspace.lastDeriveWasAppendOnly = false
+                deriveFilteredRows()
                 selectedTransaction = transaction
             }
         default:
@@ -85,7 +87,6 @@ extension MainContentCoordinator {
         guard let selected = selectedTransaction else {
             return
         }
-        transactions.removeAll { $0.id == selected.id }
-        selectedTransaction = nil
+        deleteTransactions([selected])
     }
 }

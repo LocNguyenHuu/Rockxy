@@ -206,6 +206,55 @@ struct HeaderColumnStoreTests {
         #expect(store2.isBuiltInColumnVisible("url"))
     }
 
+    // MARK: - Incremental Discovery
+
+    @Test("Incremental discovery from batch discovers new headers")
+    func incrementalDiscovery() {
+        let store = makeCleanStore()
+        let batch = [TestFixtures.makeTransaction()]
+        store.updateDiscoveredHeaders(fromBatch: batch)
+        #expect(!store.discoveredRequestHeaders.isEmpty)
+        #expect(!store.discoveredResponseHeaders.isEmpty)
+        #expect(store.discoveredRequestHeaders.contains("Content-Type"))
+    }
+
+    @Test("Late-arriving headers in second batch are discovered")
+    func lateArrivingHeaders() throws {
+        let store = makeCleanStore()
+        let firstBatch = [TestFixtures.makeTransaction()]
+        store.updateDiscoveredHeaders(fromBatch: firstBatch)
+
+        let customTransaction = TestFixtures.makeTransaction()
+        customTransaction.request = try HTTPRequestData(
+            method: "GET",
+            url: #require(URL(string: "https://example.com/test")),
+            httpVersion: "HTTP/1.1",
+            headers: [
+                HTTPHeader(name: "Content-Type", value: "application/json"),
+                HTTPHeader(name: "X-Custom-Late", value: "value"),
+            ],
+            body: nil,
+            contentType: .json
+        )
+        let secondBatch = [customTransaction]
+        store.updateDiscoveredHeaders(fromBatch: secondBatch)
+
+        #expect(store.discoveredRequestHeaders.contains("X-Custom-Late"))
+    }
+
+    @Test("Incremental discovery does not lose previously discovered headers")
+    func incrementalPreserves() {
+        let store = makeCleanStore()
+        let firstBatch = [TestFixtures.makeTransaction()]
+        store.updateDiscoveredHeaders(fromBatch: firstBatch)
+        let firstCount = store.discoveredRequestHeaders.count
+
+        let emptyBatch: [HTTPTransaction] = []
+        store.updateDiscoveredHeaders(fromBatch: emptyBatch)
+
+        #expect(store.discoveredRequestHeaders.count == firstCount)
+    }
+
     // MARK: Private
 
     // MARK: - Helpers
