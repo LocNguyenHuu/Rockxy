@@ -262,17 +262,22 @@ struct RequestListRowTests {
     }
 
     private func makeWebSocketRow(frameCount: Int) -> RequestListRow {
-        let transaction = TestFixtures.makeWebSocketTransaction()
-        // Adjust frame count by adding/removing frames to match desired count
-        if let ws = transaction.webSocketConnection {
-            while ws.frameCount < frameCount {
-                ws.addFrame(WebSocketFrameData(
-                    direction: .sent,
-                    opcode: .text,
-                    payload: "test".data(using: .utf8)!
-                ))
-            }
+        let request = TestFixtures.makeRequest(url: "wss://ws.example.com/stream")
+        let frames = (0 ..< frameCount).map { i in
+            WebSocketFrameData(
+                direction: i % 2 == 0 ? .sent : .received,
+                opcode: .text,
+                payload: "Frame \(i)".data(using: .utf8)!
+            )
         }
+        let connection = WebSocketConnection(upgradeRequest: request, frames: frames)
+        let transaction = HTTPTransaction(
+            request: request, state: .completed, webSocketConnection: connection
+        )
+        transaction.response = HTTPResponseData(
+            statusCode: 101, statusMessage: "Switching Protocols",
+            headers: [], body: nil, contentType: nil
+        )
         return RequestListRow(from: transaction)
     }
 }

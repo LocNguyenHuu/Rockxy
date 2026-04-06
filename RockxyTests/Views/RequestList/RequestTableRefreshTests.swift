@@ -601,4 +601,33 @@ struct RequestTableRefreshTests {
         #expect(coordinator.filterCriteria.sidebarScope == .saved)
         #expect(coordinator.selectedTransaction?.id == saved.id)
     }
+
+    // MARK: - Stale Selection Clearance
+
+    @Test("Selecting a missing pinned leaf clears selection")
+    func missingPinnedLeafClearsSelection() {
+        let coordinator = MainContentCoordinator()
+        let existing = TestFixtures.makeTransaction()
+        coordinator.transactions = [existing]
+        coordinator.selectTransaction(existing)
+        #expect(coordinator.selectedTransaction != nil)
+
+        // Select a pinned leaf with an ID that does not exist
+        coordinator.selectSidebarItem(.pinnedTransaction(id: UUID()))
+
+        #expect(coordinator.selectedTransaction == nil)
+    }
+
+    @Test("Selecting a missing saved leaf clears selection")
+    func missingSavedLeafClearsSelection() {
+        let coordinator = MainContentCoordinator()
+        let existing = TestFixtures.makeTransaction()
+        coordinator.transactions = [existing]
+        coordinator.selectTransaction(existing)
+        #expect(coordinator.selectedTransaction != nil)
+
+        coordinator.selectSidebarItem(.savedTransaction(id: UUID()))
+
+        #expect(coordinator.selectedTransaction == nil)
+    }
 }

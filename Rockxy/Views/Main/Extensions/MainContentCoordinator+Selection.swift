@@ -62,17 +62,13 @@ extension MainContentCoordinator {
             filterCriteria.sidebarApp = nil
             filterCriteria.sidebarScope = .pinned
             recomputeFilteredTransactions()
-            if let transaction = transaction(for: id) {
-                selectedTransaction = transaction
-            }
+            selectedTransaction = transaction(for: id)
         case let .savedTransaction(id):
             filterCriteria.sidebarDomain = nil
             filterCriteria.sidebarApp = nil
             filterCriteria.sidebarScope = .saved
             recomputeFilteredTransactions()
-            if let transaction = transaction(for: id) {
-                selectedTransaction = transaction
-            }
+            selectedTransaction = transaction(for: id)
         default:
             filterCriteria.sidebarDomain = nil
             filterCriteria.sidebarApp = nil
