@@ -11,7 +11,7 @@ import X509
 
 // Defines `TLSInterceptHandler`, which handles tls intercept flow in the proxy engine.
 
-private nonisolated(unsafe) let tlsLogger = Logger(
+nonisolated(unsafe) private let tlsLogger = Logger(
     subsystem: RockxyIdentity.current.logSubsystem,
     category: "TLSInterceptHandler"
 )
@@ -149,7 +149,7 @@ final class TLSInterceptHandler: ChannelInboundHandler, RemovableChannelHandler,
 
     /// Asynchronously fetches a per-host cert then rewires the pipeline on the event loop.
     /// The async cert generation (actor-isolated) is bridged to NIO via `makeFutureWithTask`.
-    private nonisolated func setupTLSPipeline(context: ChannelHandlerContext) {
+    nonisolated private func setupTLSPipeline(context: ChannelHandlerContext) {
         let host = self.host
         let port = self.port
 
@@ -210,7 +210,7 @@ final class TLSInterceptHandler: ChannelInboundHandler, RemovableChannelHandler,
         }
     }
 
-    private nonisolated func installTLSHandlers(
+    nonisolated private func installTLSHandlers(
         context: ChannelHandlerContext,
         leafPEM: String,
         keyPEM: String,
@@ -293,7 +293,7 @@ final class TLSInterceptHandler: ChannelInboundHandler, RemovableChannelHandler,
         }
     }
 
-    private nonisolated func createServerSSLContext(
+    nonisolated private func createServerSSLContext(
         leafPEM: String,
         keyPEM: String
     )
@@ -314,7 +314,7 @@ final class TLSInterceptHandler: ChannelInboundHandler, RemovableChannelHandler,
         return try NIOSSLContext(configuration: config)
     }
 
-    private nonisolated func setupRawTunnel(
+    nonisolated private func setupRawTunnel(
         context: ChannelHandlerContext,
         host: String,
         port: Int
@@ -538,7 +538,7 @@ final class PostHandshakeHandler: ChannelInboundHandler, RemovableChannelHandler
     /// After a client rejects the MITM certificate, the TLS session is dead but the
     /// underlying TCP socket may still be open. Setting up a raw tunnel allows Chrome
     /// to retry on the same or new connection without showing a privacy interstitial.
-    private nonisolated func tearDownAndPassthrough(context: ChannelHandlerContext) {
+    nonisolated private func tearDownAndPassthrough(context: ChannelHandlerContext) {
         let host = self.host
         let port = self.port
         let channel = context.channel
@@ -681,7 +681,7 @@ final class ProtocolDetectorHandler: ChannelInboundHandler, RemovableChannelHand
     private var detected = false
 
     /// Remove NIOSSLServerHandler and PostHandshakeHandler, then set up a raw TCP relay.
-    private nonisolated func tearDownForRawTunnel(
+    nonisolated private func tearDownForRawTunnel(
         context: ChannelHandlerContext,
         firstData: NIOAny
     ) {
@@ -796,7 +796,7 @@ final class RawTunnelHandler: ChannelInboundHandler, @unchecked Sendable {
     private let peerChannel: Channel
     private var idleTimeout: Scheduled<Void>?
 
-    private nonisolated func resetIdleTimeout(context: ChannelHandlerContext) {
+    nonisolated private func resetIdleTimeout(context: ChannelHandlerContext) {
         idleTimeout?.cancel()
         idleTimeout = context.eventLoop.scheduleTask(in: Self.idleTimeoutDuration) {
             tlsLogger.debug("Raw tunnel idle timeout, closing")

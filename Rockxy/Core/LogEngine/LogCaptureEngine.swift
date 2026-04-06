@@ -148,7 +148,7 @@ actor LogCaptureEngine {
     }
 
     /// nonisolated so the closure can be passed to non-actor log sources
-    private nonisolated func makeEntryHandler() -> @Sendable (LogEntry) -> Void {
+    nonisolated private func makeEntryHandler() -> @Sendable (LogEntry) -> Void {
         { [weak self] entry in
             guard let self else {
                 return
@@ -163,7 +163,7 @@ actor LogCaptureEngine {
         onLogEntry?(entry)
     }
 
-    private nonisolated func terminateProcess(_ captured: ProcessLogSource.CapturedProcess) {
+    nonisolated private func terminateProcess(_ captured: ProcessLogSource.CapturedProcess) {
         Task { @MainActor in
             if captured.process.isRunning {
                 captured.process.terminate()

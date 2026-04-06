@@ -182,6 +182,6 @@ enum DiffFormatter {
     }
 
     private static func formatMs(_ seconds: TimeInterval) -> String {
-        String(format: "%.1fms", seconds * 1000)
+        String(format: "%.1fms", seconds * 1_000)
     }
 }

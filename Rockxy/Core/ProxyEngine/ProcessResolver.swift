@@ -193,7 +193,7 @@ final class ProcessResolver: @unchecked Sendable {
 
     /// Uses `proc_pidpath` to get the executable path, then derives a readable name.
     private func appNameForPID(_ pid: pid_t) -> String {
-        var pathBuffer = [CChar](repeating: 0, count: 4096)
+        var pathBuffer = [CChar](repeating: 0, count: 4_096)
         let pathLength = proc_pidpath(pid, &pathBuffer, UInt32(pathBuffer.count))
         guard pathLength > 0 else {
             return ""

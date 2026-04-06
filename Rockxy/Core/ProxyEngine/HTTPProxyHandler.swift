@@ -7,7 +7,7 @@ import os
 
 /// Logger must be nonisolated(unsafe) because NIO channel handlers are called
 /// from event loop threads outside Swift's structured concurrency.
-private nonisolated(unsafe) let proxyHandlerLogger = Logger(
+nonisolated(unsafe) private let proxyHandlerLogger = Logger(
     subsystem: RockxyIdentity.current.logSubsystem,
     category: "HTTPProxyHandler"
 )
@@ -113,7 +113,7 @@ final class HTTPProxyHandler: ChannelInboundHandler, RemovableChannelHandler, @u
     private var clientSourcePort: UInt16?
     private var accumulatedBodySize: Int = 0
 
-    private nonisolated func processRequest(
+    nonisolated private func processRequest(
         context: ChannelHandlerContext,
         head: HTTPRequestHead
     ) {
@@ -200,7 +200,7 @@ final class HTTPProxyHandler: ChannelInboundHandler, RemovableChannelHandler, @u
         }
     }
 
-    private nonisolated func buildRequestData(from head: HTTPRequestHead) -> HTTPRequestData {
+    nonisolated private func buildRequestData(from head: HTTPRequestHead) -> HTTPRequestData {
         let headers = head.headers.map { HTTPHeader(name: $0.name, value: $0.value) }
         let host = head.headers["Host"].first ?? ""
         let uri = head.uri
@@ -233,14 +233,14 @@ final class HTTPProxyHandler: ChannelInboundHandler, RemovableChannelHandler, @u
         )
     }
 
-    private nonisolated func extractPath(from uri: String) -> String {
+    nonisolated private func extractPath(from uri: String) -> String {
         if let urlComponents = URLComponents(string: uri) {
             return urlComponents.path.isEmpty ? "/" : urlComponents.path
         }
         return uri
     }
 
-    private nonisolated func handleRuleAction(
+    nonisolated private func handleRuleAction(
         _ action: RuleAction,
         context: ChannelHandlerContext,
         head: HTTPRequestHead,
@@ -313,7 +313,7 @@ final class HTTPProxyHandler: ChannelInboundHandler, RemovableChannelHandler, @u
         }
     }
 
-    private nonisolated func handleMapRemote(
+    nonisolated private func handleMapRemote(
         context: ChannelHandlerContext,
         head: HTTPRequestHead,
         requestData: HTTPRequestData,
@@ -364,7 +364,7 @@ final class HTTPProxyHandler: ChannelInboundHandler, RemovableChannelHandler, @u
         forwardRequest(context: context, head: modifiedHead, requestData: modifiedData)
     }
 
-    private nonisolated func handleMapLocal(
+    nonisolated private func handleMapLocal(
         context: ChannelHandlerContext,
         filePath: String,
         statusCode: Int,
@@ -389,7 +389,7 @@ final class HTTPProxyHandler: ChannelInboundHandler, RemovableChannelHandler, @u
         sendResponse(context: context, responseData: responseData, requestData: requestData)
     }
 
-    private nonisolated func handleMapLocalDirectory(
+    nonisolated private func handleMapLocalDirectory(
         context: ChannelHandlerContext,
         directoryPath: String,
         statusCode: Int,
@@ -423,7 +423,7 @@ final class HTTPProxyHandler: ChannelInboundHandler, RemovableChannelHandler, @u
     /// Pauses the request and presents the breakpoint UI for user decision. The NIO
     /// event loop is freed via an EventLoopPromise that completes when the @MainActor
     /// breakpoint view model returns the user's choice.
-    private nonisolated func handleBreakpoint(
+    nonisolated private func handleBreakpoint(
         context: ChannelHandlerContext,
         head: HTTPRequestHead,
         requestData: HTTPRequestData
@@ -470,7 +470,7 @@ final class HTTPProxyHandler: ChannelInboundHandler, RemovableChannelHandler, @u
         }
     }
 
-    private nonisolated func executeBreakpointDecision(
+    nonisolated private func executeBreakpointDecision(
         _ decision: BreakpointDecision,
         modifiedData: BreakpointRequestData,
         context: ChannelHandlerContext,
@@ -632,7 +632,7 @@ extension HTTPProxyHandler {
             }
     }
 
-    private nonisolated func relayRequest(
+    nonisolated private func relayRequest(
         context: ChannelHandlerContext,
         clientChannel: Channel,
         head: HTTPRequestHead,
@@ -732,7 +732,7 @@ extension HTTPProxyHandler {
         onTransactionComplete(transaction)
     }
 
-    private nonisolated func sendResponse(
+    nonisolated private func sendResponse(
         context: ChannelHandlerContext,
         responseData: HTTPResponseData,
         requestData: HTTPRequestData
@@ -759,7 +759,7 @@ extension HTTPProxyHandler {
         onTransactionComplete(transaction)
     }
 
-    private nonisolated func completeTransaction(
+    nonisolated private func completeTransaction(
         context: ChannelHandlerContext,
         requestData: HTTPRequestData,
         state: TransactionState

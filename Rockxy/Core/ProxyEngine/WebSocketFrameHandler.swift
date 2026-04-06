@@ -8,7 +8,7 @@ import os
 // Defines `WebSocketFrameHandler`, which handles web socket frame flow in the proxy
 // engine.
 
-private nonisolated(unsafe) let wsLogger = Logger(
+nonisolated(unsafe) private let wsLogger = Logger(
     subsystem: RockxyIdentity.current.logSubsystem,
     category: "WebSocketFrameHandler"
 )
@@ -80,7 +80,7 @@ final class WebSocketFrameHandler: ChannelInboundHandler, @unchecked Sendable {
 
     /// Unmasks the frame payload (WebSocket client frames are always masked per RFC 6455)
     /// and records it in the shared connection model before forwarding.
-    private nonisolated func captureFrame(
+    nonisolated private func captureFrame(
         _ frame: WebSocketFrame,
         context: ChannelHandlerContext
     ) {
@@ -115,7 +115,7 @@ final class WebSocketFrameHandler: ChannelInboundHandler, @unchecked Sendable {
         }
     }
 
-    private nonisolated func forwardFrame(
+    nonisolated private func forwardFrame(
         _ frame: WebSocketFrame,
         context: ChannelHandlerContext
     ) {
@@ -125,7 +125,7 @@ final class WebSocketFrameHandler: ChannelInboundHandler, @unchecked Sendable {
         peer.writeAndFlush(NIOAny(frame), promise: nil)
     }
 
-    private nonisolated func mapOpcode(_ opcode: WebSocketOpcode) -> FrameOpcode {
+    nonisolated private func mapOpcode(_ opcode: WebSocketOpcode) -> FrameOpcode {
         switch opcode {
         case .continuation: .continuation
         case .text: .text

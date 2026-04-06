@@ -164,9 +164,11 @@ struct AdvancedProxySettingsView: View {
         case .notInstalled:
             "\u{2014}"
         default:
-            helperManager.isReachable
-                ? String(localized: "Reachable")
-                : String(localized: "Unreachable")
+            if helperManager.isReachable {
+                String(localized: "Reachable")
+            } else {
+                String(localized: "Unreachable")
+            }
         }
     }
 
@@ -241,7 +243,7 @@ struct AdvancedProxySettingsView: View {
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 100)
                     .onChange(of: portText) {
-                        if let newPort = Int(portText), newPort > 0, newPort <= 65535 {
+                        if let newPort = Int(portText), newPort > 0, newPort <= 65_535 {
                             settings.proxyPort = newPort
                             saveSettings()
                         }
@@ -545,7 +547,7 @@ struct AdvancedProxySettingsView: View {
     }
 
     private func restoreDefaults() {
-        settings.proxyPort = 9090
+        settings.proxyPort = 9_090
         settings.onlyListenOnLocalhost = true
         settings.listenIPv6 = false
         settings.autoSelectPort = true

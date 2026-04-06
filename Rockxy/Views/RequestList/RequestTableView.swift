@@ -1,6 +1,7 @@
 import AppKit
 import os
 import SwiftUI
+// swiftlint:disable file_length
 
 // Renders the request table interface for traffic list presentation.
 
@@ -224,6 +225,7 @@ private struct ColumnSpec {
 // MARK: - RequestTableView.Coordinator
 
 extension RequestTableView {
+    // swiftlint:disable:next type_body_length
     final class Coordinator: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSMenuDelegate {
         // MARK: Lifecycle
 

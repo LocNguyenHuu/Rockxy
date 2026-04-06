@@ -98,7 +98,7 @@ struct RequestTimelineView: View {
                 ForEach(0 ... tickCount, id: \.self) { tick in
                     let fraction = Double(tick) / Double(tickCount)
                     let xOffset = fraction * barWidth
-                    let timeMs = fraction * maxDuration * 1000
+                    let timeMs = fraction * maxDuration * 1_000
 
                     Text(formatMs(timeMs))
                         .font(.system(size: 9, design: .monospaced))
@@ -196,8 +196,8 @@ struct RequestTimelineView: View {
     // MARK: - Formatting
 
     private func formatMs(_ ms: Double) -> String {
-        if ms >= 1000 {
-            return String(format: "%.1fs", ms / 1000)
+        if ms >= 1_000 {
+            return String(format: "%.1fs", ms / 1_000)
         }
         return String(format: "%.0fms", ms)
     }

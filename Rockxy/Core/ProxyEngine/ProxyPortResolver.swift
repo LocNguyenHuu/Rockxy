@@ -47,14 +47,14 @@ enum ProxyPortResolver {
         logger.info("Preferred port \(preferred) is occupied, scanning for available port")
 
         let nearbyStart = preferred + 1
-        let nearbyEnd = min(preferred + 100, 65535)
+        let nearbyEnd = min(preferred + 100, 65_535)
         if nearbyStart <= nearbyEnd {
             for candidate in nearbyStart ... nearbyEnd where isPortAvailable(port: candidate, address: address) {
                 return Resolution(port: candidate, isFallback: true)
             }
         }
 
-        for candidate in 49152 ... 65535 where isPortAvailable(port: candidate, address: address) {
+        for candidate in 49_152 ... 65_535 where isPortAvailable(port: candidate, address: address) {
             return Resolution(port: candidate, isFallback: true)
         }
 

@@ -24,13 +24,13 @@ final class PreviewTabStore {
         let tab = PreviewTab(renderMode: renderMode, panel: panel)
         switch panel {
         case .request:
-            guard !requestTabs.contains(where: { $0.renderMode == renderMode }) else {
-                return requestTabs.first { $0.renderMode == renderMode }!
+            if let existingTab = requestTabs.first(where: { $0.renderMode == renderMode }) {
+                return existingTab
             }
             requestTabs.append(tab)
         case .response:
-            guard !responseTabs.contains(where: { $0.renderMode == renderMode }) else {
-                return responseTabs.first { $0.renderMode == renderMode }!
+            if let existingTab = responseTabs.first(where: { $0.renderMode == renderMode }) {
+                return existingTab
             }
             responseTabs.append(tab)
         }

@@ -281,10 +281,10 @@ struct WebSocketInspectorView: View {
         let interval = end.timeIntervalSince(first.timestamp)
         if interval < 60 {
             return String(format: "%.0fs", interval)
-        } else if interval < 3600 {
+        } else if interval < 3_600 {
             return String(format: "%.0fm %.0fs", interval / 60, interval.truncatingRemainder(dividingBy: 60))
         } else {
-            return String(format: "%.0fh %.0fm", interval / 3600, (interval / 60).truncatingRemainder(dividingBy: 60))
+            return String(format: "%.0fh %.0fm", interval / 3_600, (interval / 60).truncatingRemainder(dividingBy: 60))
         }
     }
 

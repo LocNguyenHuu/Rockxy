@@ -36,7 +36,7 @@ struct RuleStore {
         var errorDescription: String? {
             switch self {
             case let .importFileTooLarge(size):
-                "Import file is too large (\(size / 1024 / 1024) MB). Maximum allowed is 5 MB."
+                "Import file is too large (\(size / 1_024 / 1_024) MB). Maximum allowed is 5 MB."
             case let .invalidRegexInImport(pattern, reason):
                 "Invalid regex pattern '\(pattern)': \(reason)"
             }
@@ -86,7 +86,7 @@ struct RuleStore {
     private static let logger = Logger(subsystem: RockxyIdentity.current.logSubsystem, category: "RuleStore")
 
     /// Maximum import file size: 5 MB.
-    private static let maxImportSize: UInt64 = 5 * 1024 * 1024
+    private static let maxImportSize: UInt64 = 5 * 1_024 * 1_024
 
     private let fileURL: URL
 }

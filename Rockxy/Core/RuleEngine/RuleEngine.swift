@@ -98,7 +98,8 @@ actor RuleEngine {
             { if case .networkCondition = rule.action {
                 return true
             }
-            return false }(),
+            return false
+            }(),
             "addNetworkConditionExclusive requires a .networkCondition rule"
         )
         for i in rules.indices {

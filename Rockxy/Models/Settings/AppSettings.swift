@@ -3,10 +3,10 @@ import Foundation
 /// In-memory representation of user preferences, backed by `AppSettingsStorage` (UserDefaults).
 /// Default values match the settings UI's initial state.
 struct AppSettings {
-    var proxyPort: Int = 9090
+    var proxyPort: Int = 9_090
     var autoStartProxy: Bool = false
     var recordOnLaunch: Bool = true
-    var maxBufferSize: Int = 50000
+    var maxBufferSize: Int = 50_000
     var maxLogBufferSize: Int = 100_000
     var enableLogCapture: Bool = true
     var onlyListenOnLocalhost: Bool = true

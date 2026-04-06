@@ -175,8 +175,8 @@ final class AllowListManager {
     private let storageURLOverride: URL?
 
     private let lock = NSLock()
-    private nonisolated(unsafe) var cachedEnabledEntries: [AllowListEntry]
-    private nonisolated(unsafe) var cachedIsActive: Bool
+    nonisolated(unsafe) private var cachedEnabledEntries: [AllowListEntry]
+    nonisolated(unsafe) private var cachedIsActive: Bool
 
     private var resolvedStorageURL: URL {
         storageURLOverride ?? Self.defaultStorageURL

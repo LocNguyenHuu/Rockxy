@@ -194,7 +194,8 @@ struct MapLocalWindowView: View {
                 get: { viewModel.errorMessage != nil },
                 set: { if !$0 {
                     viewModel.errorMessage = nil
-                } }
+                }
+                }
             )
         ) {
             Button(String(localized: "OK")) {

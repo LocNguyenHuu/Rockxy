@@ -60,7 +60,7 @@ struct StatusBarView: View {
     let totalCount: Int
     let selectedCount: Int
     var isProxyRunning: Bool = false
-    var proxyPort: Int = 9090
+    var proxyPort: Int = 9_090
     var totalDataSize: Int64 = 0
     var uploadSpeed: Int64 = 0
     var downloadSpeed: Int64 = 0
@@ -228,10 +228,10 @@ struct StatusBarView: View {
     }
 
     private func formattedSpeed(_ bytesPerSecond: Int64) -> String {
-        if bytesPerSecond < 1024 {
+        if bytesPerSecond < 1_024 {
             return "\(bytesPerSecond) B/s"
         } else if bytesPerSecond < 1_048_576 {
-            return "\(bytesPerSecond / 1024) KB/s"
+            return "\(bytesPerSecond / 1_024) KB/s"
         } else {
             let mb = Double(bytesPerSecond) / 1_048_576
             return String(format: "%.1f MB/s", mb)
@@ -268,8 +268,8 @@ private struct SessionDurationView: View {
 
     private var formattedDuration: String {
         let interval = Int(now.timeIntervalSince(startedAt))
-        let hours = interval / 3600
-        let minutes = (interval % 3600) / 60
+        let hours = interval / 3_600
+        let minutes = (interval % 3_600) / 60
         let seconds = interval % 60
 
         if hours > 0 {

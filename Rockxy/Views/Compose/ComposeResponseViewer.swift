@@ -190,10 +190,10 @@ struct ComposeResponseViewer: View {
     }
 
     private static func formatBodySize(_ bytes: Int) -> String {
-        if bytes < 1024 {
+        if bytes < 1_024 {
             "\(bytes) B"
         } else if bytes < 1_048_576 {
-            String(format: "%.1f KB", Double(bytes) / 1024)
+            String(format: "%.1f KB", Double(bytes) / 1_024)
         } else {
             String(format: "%.1f MB", Double(bytes) / 1_048_576)
         }

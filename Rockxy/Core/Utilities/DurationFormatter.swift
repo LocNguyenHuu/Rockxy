@@ -6,7 +6,7 @@ enum DurationFormatter {
         if seconds < 0.001 {
             return String(format: "%.0f µs", seconds * 1_000_000)
         } else if seconds < 1 {
-            return String(format: "%.0f ms", seconds * 1000)
+            return String(format: "%.0f ms", seconds * 1_000)
         } else if seconds < 60 {
             return String(format: "%.2f s", seconds)
         } else {

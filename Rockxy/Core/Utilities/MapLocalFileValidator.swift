@@ -47,5 +47,5 @@ enum MapLocalFileValidator {
     private static let logger = Logger(subsystem: RockxyIdentity.current.logSubsystem, category: "MapLocalFileValidator")
 
     /// Maximum file size allowed for Map Local responses (10 MB).
-    private static let maxFileSize: UInt64 = 10 * 1024 * 1024
+    private static let maxFileSize: UInt64 = 10 * 1_024 * 1_024
 }

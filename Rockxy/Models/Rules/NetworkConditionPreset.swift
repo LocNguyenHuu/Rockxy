@@ -27,7 +27,7 @@ enum NetworkConditionPreset: String, CaseIterable, Codable {
         case .threeG: 400
         case .edge: 850
         case .lte: 50
-        case .veryBadNetwork: 2000
+        case .veryBadNetwork: 2_000
         case .wifi: 2
         case .custom: 0
         }

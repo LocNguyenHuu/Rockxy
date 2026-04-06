@@ -168,7 +168,7 @@ final class BypassProxyManager {
     private let storageURLOverride: URL?
 
     private let lock = NSLock()
-    private nonisolated(unsafe) var cachedEnabledDomains: [BypassDomain]
+    nonisolated(unsafe) private var cachedEnabledDomains: [BypassDomain]
 
     private var resolvedStorageURL: URL {
         storageURLOverride ?? Self.defaultStorageURL

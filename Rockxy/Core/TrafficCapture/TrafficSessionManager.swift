@@ -53,7 +53,7 @@ actor TrafficSessionManager {
         let interval = batchInterval
         batchTimerTask = Task { [weak self] in
             while !Task.isCancelled {
-                try? await Task.sleep(for: .milliseconds(Int(interval * 1000)))
+                try? await Task.sleep(for: .milliseconds(Int(interval * 1_000)))
                 guard !Task.isCancelled else {
                     break
                 }
@@ -74,9 +74,9 @@ actor TrafficSessionManager {
     private var pendingUpdates: [HTTPTransaction] = []
     private let batchSize = 50
     private let batchInterval: TimeInterval = 0.1
-    private var maxBufferSize: Int = 50000
+    private var maxBufferSize: Int = 50_000
     private var totalBuffered: Int = 0
-    private var proxyPort: Int = 9090
+    private var proxyPort: Int = 9_090
     private var batchTimerTask: Task<Void, Never>?
 
     // MARK: - Flush and Deliver

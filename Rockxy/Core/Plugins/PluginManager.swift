@@ -71,13 +71,13 @@ final class PluginManager: Sendable {
     )
 
     private let _inspectorPlugins: NSLock = .init()
-    private nonisolated(unsafe) var _inspectors: [any InspectorPlugin] = []
+    nonisolated(unsafe) private var _inspectors: [any InspectorPlugin] = []
 
     private let _exporterLock: NSLock = .init()
-    private nonisolated(unsafe) var _exporters: [any ExporterPlugin] = []
+    nonisolated(unsafe) private var _exporters: [any ExporterPlugin] = []
 
     private let _handlerLock: NSLock = .init()
-    private nonisolated(unsafe) var _handlers: [any ProtocolHandler] = []
+    nonisolated(unsafe) private var _handlers: [any ProtocolHandler] = []
 
     // MARK: - Built-in Registration
 

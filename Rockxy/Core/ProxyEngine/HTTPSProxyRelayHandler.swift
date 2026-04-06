@@ -8,7 +8,7 @@ import os
 // Defines `HTTPSProxyRelayHandler`, which handles https proxy relay flow in the proxy
 // engine.
 
-private nonisolated(unsafe) let httpsRelayLogger = Logger(
+nonisolated(unsafe) private let httpsRelayLogger = Logger(
     subsystem: RockxyIdentity.current.logSubsystem,
     category: "HTTPSProxyRelayHandler"
 )
@@ -107,7 +107,7 @@ final class HTTPSProxyRelayHandler: ChannelInboundHandler, @unchecked Sendable {
     private var requestStartTime: DispatchTime?
     private var accumulatedBodySize: Int = 0
 
-    private nonisolated func forwardHTTPSRequest(
+    nonisolated private func forwardHTTPSRequest(
         context: ChannelHandlerContext,
         head: HTTPRequestHead
     ) {
@@ -204,7 +204,7 @@ final class HTTPSProxyRelayHandler: ChannelInboundHandler, @unchecked Sendable {
         }
     }
 
-    private nonisolated func connectToUpstream(
+    nonisolated private func connectToUpstream(
         context: ChannelHandlerContext,
         head: HTTPRequestHead,
         requestData: HTTPRequestData,
@@ -268,7 +268,7 @@ final class HTTPSProxyRelayHandler: ChannelInboundHandler, @unchecked Sendable {
         }
     }
 
-    private nonisolated func handleUpstreamConnection(
+    nonisolated private func handleUpstreamConnection(
         result: Result<Channel, Error>,
         context: ChannelHandlerContext,
         head: HTTPRequestHead,
@@ -338,7 +338,7 @@ final class HTTPSProxyRelayHandler: ChannelInboundHandler, @unchecked Sendable {
         }
     }
 
-    private nonisolated func handleRuleAction(
+    nonisolated private func handleRuleAction(
         _ action: RuleAction,
         context: ChannelHandlerContext,
         head: HTTPRequestHead,
@@ -454,7 +454,7 @@ final class HTTPSProxyRelayHandler: ChannelInboundHandler, @unchecked Sendable {
         }
     }
 
-    private nonisolated func sendBlockResponse(
+    nonisolated private func sendBlockResponse(
         context: ChannelHandlerContext,
         status: Int,
         requestData: HTTPRequestData,
@@ -484,7 +484,7 @@ final class HTTPSProxyRelayHandler: ChannelInboundHandler, @unchecked Sendable {
         callback(transaction)
     }
 
-    private nonisolated func handleMapLocal(
+    nonisolated private func handleMapLocal(
         context: ChannelHandlerContext,
         filePath: String,
         statusCode: Int,
@@ -511,7 +511,7 @@ final class HTTPSProxyRelayHandler: ChannelInboundHandler, @unchecked Sendable {
         sendMappedResponse(context: context, responseData: responseData, requestData: requestData, callback: callback)
     }
 
-    private nonisolated func handleMapLocalDirectory(
+    nonisolated private func handleMapLocalDirectory(
         context: ChannelHandlerContext,
         directoryPath: String,
         statusCode: Int,
@@ -548,7 +548,7 @@ final class HTTPSProxyRelayHandler: ChannelInboundHandler, @unchecked Sendable {
         }
     }
 
-    private nonisolated func handleMapRemote(
+    nonisolated private func handleMapRemote(
         context: ChannelHandlerContext,
         configuration: MapRemoteConfiguration,
         head: HTTPRequestHead,
@@ -682,7 +682,7 @@ final class HTTPSProxyRelayHandler: ChannelInboundHandler, @unchecked Sendable {
         }
     }
 
-    private nonisolated func sendMappedResponse(
+    nonisolated private func sendMappedResponse(
         context: ChannelHandlerContext,
         responseData: HTTPResponseData,
         requestData: HTTPRequestData,
@@ -710,7 +710,7 @@ final class HTTPSProxyRelayHandler: ChannelInboundHandler, @unchecked Sendable {
         callback(transaction)
     }
 
-    private nonisolated func sendErrorResponse(
+    nonisolated private func sendErrorResponse(
         context: ChannelHandlerContext,
         status: Int
     ) {
@@ -728,7 +728,7 @@ final class HTTPSProxyRelayHandler: ChannelInboundHandler, @unchecked Sendable {
 
     /// Pauses the HTTPS request and presents the breakpoint UI for user decision. Bridges
     /// from the NIO event loop to @MainActor via an EventLoopPromise + async task.
-    private nonisolated func handleBreakpoint(
+    nonisolated private func handleBreakpoint(
         context: ChannelHandlerContext,
         head: HTTPRequestHead,
         requestData: HTTPRequestData,
@@ -798,7 +798,7 @@ final class HTTPSProxyRelayHandler: ChannelInboundHandler, @unchecked Sendable {
         }
     }
 
-    private nonisolated func executeBreakpointDecision(
+    nonisolated private func executeBreakpointDecision(
         _ decision: BreakpointDecision,
         modifiedData: BreakpointRequestData,
         context: ChannelHandlerContext,

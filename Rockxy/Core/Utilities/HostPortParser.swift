@@ -82,7 +82,7 @@ enum HostPortParser {
             throw ParseError.invalidHostCharacters
         }
 
-        guard (1 ... 65535).contains(portValue) else {
+        guard (1 ... 65_535).contains(portValue) else {
             throw ParseError.portOutOfRange(portValue)
         }
 

@@ -4,7 +4,7 @@ import Foundation
 /// server binds to.
 struct ProxyConfiguration {
     static let `default` = ProxyConfiguration(
-        port: 9090,
+        port: 9_090,
         listenAddress: "127.0.0.1",
         listenIPv6: false
     )

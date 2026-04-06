@@ -79,7 +79,7 @@ private struct HAREntry {
         let startedDateTime = ISO8601DateFormatter.harFormatter.string(
             from: transaction.timestamp
         )
-        let timeMs = (transaction.timingInfo?.totalDuration ?? 0) * 1000.0
+        let timeMs = (transaction.timingInfo?.totalDuration ?? 0) * 1_000.0
 
         var dict: [String: Any] = [
             "startedDateTime": startedDateTime,
@@ -163,12 +163,12 @@ private struct HAREntry {
         }
 
         return [
-            "dns": timing.dnsLookup * 1000.0,
-            "connect": timing.tcpConnection * 1000.0,
-            "ssl": timing.tlsHandshake * 1000.0,
+            "dns": timing.dnsLookup * 1_000.0,
+            "connect": timing.tcpConnection * 1_000.0,
+            "ssl": timing.tlsHandshake * 1_000.0,
             "send": 0,
-            "wait": timing.timeToFirstByte * 1000.0,
-            "receive": timing.contentTransfer * 1000.0
+            "wait": timing.timeToFirstByte * 1_000.0,
+            "receive": timing.contentTransfer * 1_000.0
         ]
     }
 

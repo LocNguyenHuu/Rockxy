@@ -594,7 +594,7 @@ private struct NetworkConditionsEditSheet: View {
                 TextField("", value: $customLatencyMs, format: .number)
                     .font(.system(.body, design: .monospaced))
                     .frame(width: 100)
-                Stepper("", value: $customLatencyMs, in: 1 ... 30000, step: 50)
+                Stepper("", value: $customLatencyMs, in: 1 ... 30_000, step: 50)
                     .labelsHidden()
             }
 

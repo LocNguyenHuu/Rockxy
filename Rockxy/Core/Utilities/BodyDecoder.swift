@@ -29,7 +29,7 @@ enum BodyDecoder {
 
     private static let logger = Logger(subsystem: RockxyIdentity.current.logSubsystem, category: "BodyDecoder")
 
-    private static let maxDecompressedSize = 50 * 1024 * 1024 // 50MB
+    private static let maxDecompressedSize = 50 * 1_024 * 1_024 // 50MB
 
     private static func decompressGzip(_ data: Data) -> Data? {
         guard data.count >= 18 else {
@@ -112,7 +112,7 @@ enum BodyDecoder {
         }
         defer { compression_stream_destroy(&stream) }
 
-        let bufferSize = max(data.count * 4, 1024)
+        let bufferSize = max(data.count * 4, 1_024)
         guard bufferSize <= maxDecompressedSize else {
             logger.warning("Decompressed data exceeds \(maxDecompressedSize) byte limit")
             return nil

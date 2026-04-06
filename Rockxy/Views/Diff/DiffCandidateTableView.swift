@@ -122,6 +122,6 @@ struct DiffCandidateTableView: View {
         guard let seconds else {
             return "—"
         }
-        return String(format: "%.0fms", seconds * 1000)
+        return String(format: "%.0fms", seconds * 1_000)
     }
 }

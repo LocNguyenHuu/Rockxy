@@ -10,8 +10,8 @@ enum ImportSizePolicy {
 
     // Conservative MVP safety bounds to prevent OOM/hangs from accidental huge-file imports.
     // Not permanent product limits — values can be tuned based on real-world usage.
-    static let maxHARFileSize: UInt64 = 100 * 1024 * 1024 // 100 MB
-    static let maxSessionFileSize: UInt64 = 200 * 1024 * 1024 // 200 MB
+    static let maxHARFileSize: UInt64 = 100 * 1_024 * 1_024 // 100 MB
+    static let maxSessionFileSize: UInt64 = 200 * 1_024 * 1_024 // 200 MB
 
     static func validateFileSize(at url: URL, maxSize: UInt64) -> Result<Void, ImportSizeError> {
         do {
@@ -20,8 +20,8 @@ enum ImportSizePolicy {
                 return .success(())
             }
             if fileSize > maxSize {
-                let sizeMB = Double(fileSize) / (1024 * 1024)
-                let limitMB = Double(maxSize) / (1024 * 1024)
+                let sizeMB = Double(fileSize) / (1_024 * 1_024)
+                let limitMB = Double(maxSize) / (1_024 * 1_024)
                 logger.warning(
                     "File too large: \(sizeMB, format: .fixed(precision: 1)) MB (limit: \(limitMB, format: .fixed(precision: 0)) MB)"
                 )
@@ -53,8 +53,8 @@ enum ImportSizeError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case let .fileTooLarge(actual, limit):
-            let actualMB = Double(actual) / (1024 * 1024)
-            let limitMB = Double(limit) / (1024 * 1024)
+            let actualMB = Double(actual) / (1_024 * 1_024)
+            let limitMB = Double(limit) / (1_024 * 1_024)
             return String(
                 localized: "File is too large (\(String(format: "%.1f", actualMB)) MB). Maximum supported size is \(String(format: "%.0f", limitMB)) MB."
             )

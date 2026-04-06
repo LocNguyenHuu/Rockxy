@@ -223,7 +223,7 @@ struct RuleListView: View {
                     addPresetRule(
                         name: "Throttle API",
                         pattern: ".*/api/.*",
-                        action: .throttle(delayMs: 2000)
+                        action: .throttle(delayMs: 2_000)
                     )
                 }
                 Divider()
@@ -497,7 +497,7 @@ private struct RuleEditSheet: View {
     @State private var selectedAction: RuleActionType = .block
 
     @State private var blockStatusCode = 403
-    @State private var throttleDelay = 1000
+    @State private var throttleDelay = 1_000
     @State private var mapLocalPath = ""
     @State private var mapRemoteURL = ""
     @State private var headerOperations: [EditableHeaderOperation] = [EditableHeaderOperation()]

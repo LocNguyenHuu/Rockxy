@@ -204,6 +204,6 @@ struct HARImporter {
         guard let number = value as? Double, number >= 0 else {
             return 0
         }
-        return number / 1000.0
+        return number / 1_000.0
     }
 }

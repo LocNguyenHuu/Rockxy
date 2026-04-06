@@ -8,7 +8,7 @@ import os
 actor InMemorySessionBuffer {
     // MARK: Lifecycle
 
-    init(maxCapacity: Int = 50000) {
+    init(maxCapacity: Int = 50_000) {
         self.maxCapacity = maxCapacity
     }
 

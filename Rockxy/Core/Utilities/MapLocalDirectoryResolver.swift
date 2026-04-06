@@ -107,7 +107,7 @@ enum MapLocalDirectoryResolver {
     private static let logger = Logger(subsystem: RockxyIdentity.current.logSubsystem, category: "MapLocalDirectoryResolver")
 
     /// Maximum file size: 10 MB (same as MapLocalFileValidator).
-    private static let maxFileSize: UInt64 = 10 * 1024 * 1024
+    private static let maxFileSize: UInt64 = 10 * 1_024 * 1_024
 
     /// Extracts the subpath by stripping the URL pattern prefix from the request path.
     /// For a pattern like `https://cdn.example.com/static/.*` and request path `/static/js/app.js`,

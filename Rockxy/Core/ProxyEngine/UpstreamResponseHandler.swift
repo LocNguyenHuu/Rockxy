@@ -8,7 +8,7 @@ import os
 // Defines `UpstreamResponseHandler`, which handles upstream response flow in the proxy
 // engine.
 
-private nonisolated(unsafe) let upstreamLogger = Logger(
+nonisolated(unsafe) private let upstreamLogger = Logger(
     subsystem: RockxyIdentity.current.logSubsystem,
     category: "UpstreamResponseHandler"
 )
@@ -288,7 +288,7 @@ final class UpstreamResponseHandler: ChannelInboundHandler, @unchecked Sendable 
 
     // MARK: - Client Relay
 
-    private nonisolated func relayResponseHead(_ head: HTTPResponseHead) {
+    nonisolated private func relayResponseHead(_ head: HTTPResponseHead) {
         guard clientContext.channel.isActive else {
             return
         }
@@ -299,7 +299,7 @@ final class UpstreamResponseHandler: ChannelInboundHandler, @unchecked Sendable 
         )
     }
 
-    private nonisolated func relayResponseBody(_ buffer: ByteBuffer) {
+    nonisolated private func relayResponseBody(_ buffer: ByteBuffer) {
         guard clientContext.channel.isActive else {
             return
         }
@@ -309,7 +309,7 @@ final class UpstreamResponseHandler: ChannelInboundHandler, @unchecked Sendable 
         )
     }
 
-    private nonisolated func relayResponseEnd() {
+    nonisolated private func relayResponseEnd() {
         guard clientContext.channel.isActive else {
             return
         }
@@ -321,7 +321,7 @@ final class UpstreamResponseHandler: ChannelInboundHandler, @unchecked Sendable 
 
     // MARK: - Response Breakpoint
 
-    private nonisolated func handleResponseBreakpoint(
+    nonisolated private func handleResponseBreakpoint(
         context: ChannelHandlerContext,
         head: HTTPResponseHead,
         onBreakpointHit: @escaping @Sendable (BreakpointRequestData) async -> (
@@ -382,7 +382,7 @@ final class UpstreamResponseHandler: ChannelInboundHandler, @unchecked Sendable 
         }
     }
 
-    private nonisolated func executeResponseBreakpointDecision(
+    nonisolated private func executeResponseBreakpointDecision(
         _ decision: BreakpointDecision,
         modifiedData: BreakpointRequestData,
         context: ChannelHandlerContext,
@@ -446,7 +446,7 @@ final class UpstreamResponseHandler: ChannelInboundHandler, @unchecked Sendable 
 
     // MARK: - Transaction Assembly
 
-    private nonisolated func buildAndCompleteTransaction() {
+    nonisolated private func buildAndCompleteTransaction() {
         let endTime = DispatchTime.now()
 
         guard let head = responseHead else {
@@ -486,7 +486,7 @@ final class UpstreamResponseHandler: ChannelInboundHandler, @unchecked Sendable 
         onTransactionComplete(transaction)
     }
 
-    private nonisolated func buildTimingInfo(endTime: DispatchTime) -> TimingInfo {
+    nonisolated private func buildTimingInfo(endTime: DispatchTime) -> TimingInfo {
         let dnsLookup = nanosecondsToSeconds(from: startTime, to: connectTime)
         let rawTcpConnection = nanosecondsToSeconds(from: connectTime, to: tcpTime)
         let ttfb = firstByteTime.map { nanosecondsToSeconds(from: tcpTime, to: $0) } ?? 0
@@ -511,7 +511,7 @@ final class UpstreamResponseHandler: ChannelInboundHandler, @unchecked Sendable 
         )
     }
 
-    private nonisolated func nanosecondsToSeconds(
+    nonisolated private func nanosecondsToSeconds(
         from start: DispatchTime,
         to end: DispatchTime
     )
@@ -521,7 +521,7 @@ final class UpstreamResponseHandler: ChannelInboundHandler, @unchecked Sendable 
         return TimeInterval(nanos) / 1_000_000_000.0
     }
 
-    private nonisolated func callChannelClosed() {
+    nonisolated private func callChannelClosed() {
         guard !channelClosedCalled else {
             return
         }
