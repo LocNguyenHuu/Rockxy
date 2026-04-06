@@ -6,33 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-04-06
+
 ### Added
 
-- Lightweight `RequestListRow` model decoupling the request list from full `HTTPTransaction` objects
-- Column sorting via native `NSTableView` sort descriptors with per-workspace sort state
-- Column width and order persistence via `NSTableView` autosave
-- Incremental header discovery for custom columns (replaces biased first-500 sampling)
-- `refreshToken`-driven table refresh contract handling sort reorders, filter changes, and async enrichment
-- Sequence numbering for stable request-list row ordering independent of timestamps
-- `clientApp` enrichment callback for table refresh after async process resolution
-- Transaction lookup resolving both live and persisted favorites (live wins on duplicates)
-- Selected-scope export now correctly includes persisted-only rows
-- Automatic proxy port fallback when the preferred port is occupied
-- `autoSelectPort` setting now fully functional (enabled by default)
-- App-wide readiness state propagation for helper and root CA without requiring relaunch
-- Inline readiness warning banner in the main workspace for degraded capture state
-- Centralized app-activation refresh for external Keychain and System Settings changes
+- Add request-list row model, native table sorting, and scaling foundation
+- Add app-wide readiness state propagation and CA lifecycle hardening
+- Automatic proxy port fallback when preferred port is occupied
+
+### Fixed
+
+- Harden session store row iteration
+- Clear rockxy doctor release blockers
+- Replace force-unwrap with Data(UTF-8) in WebSocket test helper
+- Address review findings for request-list scaling foundation
+- Improve trust prompt and direct proxy recovery
+- Address review findings for request-list scaling foundation
+- Harden helper notification propagation, test reliability, and readability
+- Guard getsockname return value, snapshot full settings in test teardown
+- Socket failure returns unavailable, harden resolveAtMaxPort test
+- Resolver crash at port 65535, bind-probe for 0.0.0.0, stable tests
 
 ### Changed
 
-- Harden Intel plus Apple Silicon release validation across CI, helper verification, contributor guidance, and docs
-- Align installation docs with the current universal DMG packaging flow
-- Shorten root CA validity from 10 years to 2 years for new generations
-- Move root CA private key storage to Keychain-only in release builds
-- Clean legacy `.bak` private key files after successful Keychain migration
-- Replace per-view status polling with shared readiness coordinator
-- Consolidate certificate and settings test isolation onto shared helpers
-
+- Adopt community identity and harden macOS setup
+- Harden universal release validation
+- Fix changelog entries for v0.1.1 release
 ## [0.1.1] - 2026-03-31
 
 ### Fixed

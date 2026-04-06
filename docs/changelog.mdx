@@ -6,6 +6,33 @@ rss: true
 
 # Changelog
 
+<Update label="April 2026" description="v0.2.0">
+  ### Added
+
+  - Add request-list row model, native table sorting, and scaling foundation
+  - Add app-wide readiness state propagation and CA lifecycle hardening
+  - Automatic proxy port fallback when preferred port is occupied
+
+  ### Fixed
+
+  - Harden session store row iteration
+  - Clear rockxy doctor release blockers
+  - Replace force-unwrap with Data(UTF-8) in WebSocket test helper
+  - Address review findings for request-list scaling foundation
+  - Improve trust prompt and direct proxy recovery
+  - Address review findings for request-list scaling foundation
+  - Harden helper notification propagation, test reliability, and readability
+  - Guard getsockname return value, snapshot full settings in test teardown
+  - Socket failure returns unavailable, harden resolveAtMaxPort test
+  - Resolver crash at port 65535, bind-probe for 0.0.0.0, stable tests
+
+  ### Changed
+
+  - Adopt community identity and harden macOS setup
+  - Harden universal release validation
+  - Fix changelog entries for v0.1.1 release
+</Update>
+
 <Update label="March 2026" description="v0.1.1">
   ### Fixed
   - Menu links, Modify Headers empty state, About credits
