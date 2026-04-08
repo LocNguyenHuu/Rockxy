@@ -19,12 +19,10 @@ final class AppLifecycleState {
 struct RockxyApp: App {
     // MARK: Internal
 
-    private static let identity = RockxyIdentity.current
-
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
-        Window("Rockxy", id: "main") {
+        Window("Rockxy Community", id: "main") {
             MainWindowContent(lifecycleState: lifecycleState)
         }
         .commands {
@@ -100,7 +98,7 @@ struct RockxyApp: App {
             DiffWindowView()
         }
         .commandsRemoved()
-        .defaultSize(width: 1_240, height: 820)
+        .defaultSize(width: 1240, height: 820)
         .defaultPosition(.center)
 
         Window(String(localized: "Scripting"), id: "scripting") {
@@ -139,6 +137,8 @@ struct RockxyApp: App {
     }
 
     // MARK: Private
+
+    private static let identity = RockxyIdentity.current
 
     @State private var lifecycleState = AppLifecycleState()
 
@@ -181,8 +181,6 @@ private struct ComposeWindowScene: Scene {
 private struct MainWindowContent: View {
     // MARK: Internal
 
-    private static let identity = RockxyIdentity.current
-
     let lifecycleState: AppLifecycleState
 
     var body: some View {
@@ -222,8 +220,11 @@ private struct MainWindowContent: View {
 
     // MARK: Private
 
+    private static let identity = RockxyIdentity.current
+
     @AppStorage("showWelcomeOnLaunch") private var showWelcomeOnLaunch = true
-    @AppStorage(RockxyIdentity.current.defaultsKey("onboardingCompletedOnce")) private var onboardingCompletedOnce = false
+    @AppStorage(RockxyIdentity.current.defaultsKey("onboardingCompletedOnce")) private var onboardingCompletedOnce =
+        false
     @State private var setupChecked = false
 }
 
@@ -263,10 +264,6 @@ struct RockxyMenuCommands: Commands {
 
     private var appMenu: some Commands {
         CommandGroup(before: .appSettings) {
-            Button(String(localized: "Check for Updates…")) {}
-                .disabled(true)
-                .help(String(localized: "Planned for future release"))
-
             Button(String(localized: "Change Logs…")) {
                 openURL("https://github.com/LocNguyenHuu/Rockxy/blob/main/CHANGELOG.md")
             }

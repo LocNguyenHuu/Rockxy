@@ -154,7 +154,10 @@ final class NetworkConditionsWindowViewModel {
 
     // MARK: Private
 
-    private static let logger = Logger(subsystem: RockxyIdentity.current.logSubsystem, category: "NetworkConditionsWindowViewModel")
+    private static let logger = Logger(
+        subsystem: RockxyIdentity.current.logSubsystem,
+        category: "NetworkConditionsWindowViewModel"
+    )
 }
 
 // MARK: - NetworkConditionsWindowView
@@ -219,7 +222,7 @@ struct NetworkConditionsWindowView: View {
                 Text(String(localized: "No Network Conditions"))
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(.secondary)
-                Text(String(localized: "Simulate slow or unreliable networks. Click + below to create a condition."))
+                Text(String(localized: "Simulate slow networks. Click + below to create a condition."))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                     .multilineTextAlignment(.center)
@@ -597,10 +600,6 @@ private struct NetworkConditionsEditSheet: View {
                 Stepper("", value: $customLatencyMs, in: 1 ... 30000, step: 50)
                     .labelsHidden()
             }
-
-            Text(String(localized: "Bandwidth throttling and packet loss will be available in a future update."))
-                .font(.caption)
-                .foregroundStyle(.tertiary)
         }
     }
 

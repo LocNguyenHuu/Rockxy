@@ -61,7 +61,10 @@ struct AdvancedProxySettingsView: View {
 
     // MARK: Private
 
-    private static let logger = Logger(subsystem: RockxyIdentity.current.logSubsystem, category: "AdvancedProxySettings")
+    private static let logger = Logger(
+        subsystem: RockxyIdentity.current.logSubsystem,
+        category: "AdvancedProxySettings"
+    )
 
     @State private var settings = AppSettingsManager.shared.settings
     @State private var portText: String = ""
@@ -458,30 +461,6 @@ struct AdvancedProxySettingsView: View {
                     restoreDefaults()
                 }
                 Spacer()
-            }
-
-            GroupBox {
-                VStack(spacing: 8) {
-                    Image(systemName: "link")
-                        .font(.system(size: 24))
-                        .foregroundStyle(.tertiary)
-                    Text(String(localized: "External Proxy & SOCKS"))
-                        .font(.system(size: 13, weight: .medium))
-                    Text(
-                        String(
-                            localized:
-                            "Route traffic through an upstream HTTP or SOCKS proxy. Useful for corporate networks and proxy chaining."
-                        )
-                    )
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    Text(String(localized: "Planned for Future Release"))
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.orange)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(12)
             }
         }
     }

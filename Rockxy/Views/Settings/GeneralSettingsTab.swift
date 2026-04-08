@@ -2,8 +2,8 @@ import os
 import SwiftUI
 import UniformTypeIdentifiers
 
-// General settings tab covering proxy configuration (port, auto-start, system proxy override),
-// content layout preferences, and root CA certificate management (generate, export, reset).
+// General settings tab covering proxy configuration (port, auto-start)
+// and root CA certificate management (generate, export, reset).
 
 // MARK: - GeneralSettingsTab
 
@@ -13,76 +13,12 @@ struct GeneralSettingsTab: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                // Content Layout
-                settingsRow(label: String(localized: "Content Layout:")) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 16) {
-                            RadioButton(
-                                title: String(localized: "Vertical"),
-                                isSelected: contentLayout == "vertical"
-                            ) { contentLayout = "vertical" }
-                                .disabled(true)
-                            RadioButton(
-                                title: String(localized: "Horizontal"),
-                                isSelected: contentLayout == "horizontal"
-                            ) { contentLayout = "horizontal" }
-                                .disabled(true)
-                        }
-                        Text(String(localized: "Request and Response panels in Vertical or Horizontal Layout."))
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
-                        Text(String(localized: "Coming soon"))
-                            .font(.system(size: 10))
-                            .foregroundStyle(.tertiary)
-                    }
-                }
-
-                // Menu Bar
-                settingsRow(label: String(localized: "Menu Bar:")) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Toggle(String(localized: "Show Rockxy Icon on Menu Bar"), isOn: $showMenuBarIcon)
-                            .toggleStyle(.checkbox)
-                            .disabled(true)
-                        Text(String(localized: "Coming soon"))
-                            .font(.system(size: 10))
-                            .foregroundStyle(.tertiary)
-                    }
-                }
-
-                // Truncation Style
-                settingsRow(label: String(localized: "Truncation Style:")) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Picker("", selection: $truncationStyle) {
-                            Text(String(localized: "Tail")).tag("tail")
-                            Text(String(localized: "Middle")).tag("middle")
-                            Text(String(localized: "Head")).tag("head")
-                        }
-                        .labelsHidden()
-                        .frame(width: 120)
-                        .disabled(true)
-                        Text(String(localized: "Coming soon"))
-                            .font(.system(size: 10))
-                            .foregroundStyle(.tertiary)
-                    }
-                }
-
-                sectionDivider
-
                 // Port Number
                 settingsRow(label: String(localized: "Port Number:")) {
                     TextField("", value: $proxyPort, format: .number)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 80)
                 }
-
-                // Auto Override System Proxy
-                disabledCheckboxRow(
-                    isOn: $autoOverrideProxy,
-                    title: String(localized: "Auto Override System Proxy Settings at Launch"),
-                    description: String(
-                        localized: "Automatically override your macOS proxy settings when Rockxy starts."
-                    )
-                )
 
                 // Auto Start Recording
                 checkboxRow(
@@ -92,38 +28,6 @@ struct GeneralSettingsTab: View {
                         localized: "Start capturing network traffic as soon as the app launches."
                     )
                 )
-
-                // HTTP/2 (disabled beta)
-                HStack(alignment: .top, spacing: 0) {
-                    Color.clear.frame(width: 176)
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 6) {
-                            Toggle("", isOn: .constant(false))
-                                .toggleStyle(.checkbox)
-                                .disabled(true)
-                            HStack(spacing: 4) {
-                                Text(String(localized: "Use HTTP/2"))
-                                    .font(.system(size: 13))
-                                    .opacity(0.5)
-                                Text(String(localized: "Download..."))
-                                    .font(.system(size: 13))
-                                    .foregroundStyle(.blue)
-                                    .opacity(0.5)
-                                Text("(BETA)")
-                                    .font(.system(size: 11, weight: .semibold))
-                                    .foregroundStyle(.orange)
-                                    .opacity(0.5)
-                            }
-                        }
-                        Text(
-                            String(
-                                localized: "Enable HTTP/2 protocol support for the proxy engine. Requires additional components."
-                            )
-                        )
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                    }
-                }
 
                 // Advanced Proxy Setting button
                 HStack {
@@ -201,11 +105,8 @@ struct GeneralSettingsTab: View {
 
     @Environment(\.openWindow) private var openWindow
 
-    @AppStorage(RockxyIdentity.current.defaultsKey("contentLayout")) private var contentLayout = "vertical"
-    @AppStorage(RockxyIdentity.current.defaultsKey("showMenuBarIcon")) private var showMenuBarIcon = true
-    @AppStorage(RockxyIdentity.current.defaultsKey("truncationStyle")) private var truncationStyle = "tail"
-    @AppStorage(RockxyIdentity.current.defaultsKey("proxyPort")) private var proxyPort = 9090 // swiftlint:disable:this number_separator
-    @AppStorage(RockxyIdentity.current.defaultsKey("autoOverrideProxy")) private var autoOverrideProxy = true
+    @AppStorage(RockxyIdentity.current.defaultsKey("proxyPort")) private var proxyPort =
+        9090 // swiftlint:disable:this number_separator
     @AppStorage(RockxyIdentity.current.defaultsKey("recordOnLaunch")) private var recordOnLaunch = true
     @State private var certSnapshot: RootCAStatusSnapshot?
     @State private var certLoading = false
@@ -257,29 +158,6 @@ struct GeneralSettingsTab: View {
                 Text(description)
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
-            }
-        }
-    }
-
-    private func disabledCheckboxRow(
-        isOn: Binding<Bool>,
-        title: String,
-        description: String
-    )
-        -> some View
-    {
-        HStack(alignment: .top, spacing: 0) {
-            Color.clear.frame(width: 176)
-            VStack(alignment: .leading, spacing: 4) {
-                Toggle(title, isOn: isOn)
-                    .toggleStyle(.checkbox)
-                    .disabled(true)
-                Text(description)
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                Text(String(localized: "Coming soon"))
-                    .font(.system(size: 10))
-                    .foregroundStyle(.tertiary)
             }
         }
     }
@@ -358,30 +236,5 @@ struct GeneralSettingsTab: View {
                 Self.logger.error("Certificate reset failed: \(error)")
             }
         }
-    }
-}
-
-// MARK: - RadioButton
-
-/// Custom radio button since SwiftUI does not provide a native radio-button toggle style on macOS.
-private struct RadioButton: View {
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 5) {
-                Circle()
-                    .strokeBorder(isSelected ? Color.accentColor : Color.gray, lineWidth: 1)
-                    .background(
-                        Circle().fill(isSelected ? Color.accentColor : Color.clear).padding(4)
-                    )
-                    .frame(width: 16, height: 16)
-                Text(title)
-                    .font(.system(size: 13))
-            }
-        }
-        .buttonStyle(.plain)
     }
 }

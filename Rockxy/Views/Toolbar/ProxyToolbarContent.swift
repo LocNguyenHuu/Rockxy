@@ -29,18 +29,6 @@ struct ProxyToolbarContent: ToolbarContent {
             .help(coordinator.isProxyRunning ? "Stop proxy" : "Start proxy")
 
             Button {
-                let alert = NSAlert()
-                alert.messageText = String(localized: "Command Palette")
-                alert.informativeText = String(localized: "Coming soon!")
-                alert.alertStyle = .informational
-                alert.addButton(withTitle: "OK")
-                alert.runModal()
-            } label: {
-                Label(String(localized: "Command Palette"), systemImage: "command")
-            }
-            .help("Open Command Palette")
-
-            Button {
                 coordinator.clearSession()
             } label: {
                 Label(String(localized: "Clear"), systemImage: "trash")

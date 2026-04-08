@@ -3,23 +3,13 @@ import os
 import ServiceManagement
 import SwiftUI
 
-/// Advanced settings covering proxy helper tool management, time formatting,
-/// app language, update notifications, and miscellaneous behavioral toggles.
+/// Advanced settings covering proxy helper tool management and miscellaneous behavioral toggles.
 ///
 /// ## Settings Wiring Status
 ///
 /// | Key                    | Wired? | Consumer                          |
 /// |------------------------|--------|-----------------------------------|
-/// | appLanguage            | DEFERRED | No runtime consumer — future feature |
-/// | showUpdateNotification | DEFERRED | No runtime consumer — future feature |
-/// | use24HourTime          | DEFERRED | No runtime consumer — future feature |
-/// | showFullTime           | DEFERRED | No runtime consumer — future feature |
 /// | showAlertOnQuit        | WIRED  | AppDelegate.applicationShouldTerminate |
-/// | showResourceUsage      | DEFERRED | No runtime consumer — future feature |
-/// | hideAppleRequests      | DEFERRED | No runtime consumer — future feature |
-/// | stayOnTop              | DEFERRED | No runtime consumer — future feature |
-/// | showInvisibleChars     | DEFERRED | No runtime consumer — future feature |
-/// | autoCleanUp            | DEFERRED | No runtime consumer — future feature |
 struct AdvancedSettingsTab: View {
     // MARK: Internal
 
@@ -184,44 +174,6 @@ struct AdvancedSettingsTab: View {
 
                 Divider()
 
-                settingsRow(label: String(localized: "App Language:")) {
-                    Picker("", selection: $appLanguage) {
-                        Text("English").tag("en")
-                        Text("System Default").tag("system")
-                    }
-                    .labelsHidden()
-                    .frame(width: 150)
-                }
-                .disabled(true)
-                .opacity(0.6)
-
-                Divider()
-
-                settingsRow(label: String(localized: "App Update:")) {
-                    Toggle(
-                        String(localized: "Show notification when a new version is available"),
-                        isOn: $showUpdateNotification
-                    )
-                    .toggleStyle(.checkbox)
-                }
-                .disabled(true)
-                .opacity(0.6)
-
-                Divider()
-
-                settingsRow(label: String(localized: "Time Format:")) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Toggle(String(localized: "Use 24-Hour Time"), isOn: $use24HourTime)
-                            .toggleStyle(.checkbox)
-                        Toggle(String(localized: "Show Full Time"), isOn: $showFullTime)
-                            .toggleStyle(.checkbox)
-                    }
-                }
-                .disabled(true)
-                .opacity(0.6)
-
-                Divider()
-
                 Text(String(localized: "MISCELLANEOUS"))
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.secondary)
@@ -231,40 +183,6 @@ struct AdvancedSettingsTab: View {
                     title: String(localized: "Show alert when quitting Rockxy"),
                     isOn: $showAlertOnQuit
                 )
-                checkboxRow(
-                    title: String(localized: "Show resource usage in status bar"),
-                    isOn: $showResourceUsage
-                )
-                .disabled(true)
-                .opacity(0.6)
-
-                checkboxRow(
-                    title: String(localized: "Hide Apple system requests"),
-                    isOn: $hideAppleRequests
-                )
-                .disabled(true)
-                .opacity(0.6)
-
-                checkboxRow(
-                    title: String(localized: "Stay on top of other windows"),
-                    isOn: $stayOnTop
-                )
-                .disabled(true)
-                .opacity(0.6)
-
-                checkboxRow(
-                    title: String(localized: "Show invisible characters in body view"),
-                    isOn: $showInvisibleChars
-                )
-                .disabled(true)
-                .opacity(0.6)
-
-                checkboxRow(
-                    title: String(localized: "Auto clean up resources on quit"),
-                    isOn: $autoCleanUp
-                )
-                .disabled(true)
-                .opacity(0.6)
 
                 Spacer()
             }
@@ -280,26 +198,8 @@ struct AdvancedSettingsTab: View {
     @State private var helperManager = HelperManager.shared
     @State private var showUninstallConfirmation = false
 
-    @AppStorage(RockxyIdentity.current.defaultsKey("appLanguage")) private var appLanguage =
-        "en" // DEFERRED: No runtime consumer — future feature
-    @AppStorage(RockxyIdentity.current.defaultsKey("showUpdateNotification")) private var showUpdateNotification =
-        true // DEFERRED: No runtime consumer — future feature
-    @AppStorage(RockxyIdentity.current.defaultsKey("use24HourTime")) private var use24HourTime =
-        false // DEFERRED: No runtime consumer — future feature
-    @AppStorage(RockxyIdentity.current.defaultsKey("showFullTime")) private var showFullTime =
-        false // DEFERRED: No runtime consumer — future feature
     @AppStorage(RockxyIdentity.current.defaultsKey("showAlertOnQuit")) private var showAlertOnQuit =
         true // WIRED: AppDelegate.applicationShouldTerminate
-    @AppStorage(RockxyIdentity.current.defaultsKey("showResourceUsage")) private var showResourceUsage =
-        false // DEFERRED: No runtime consumer — future feature
-    @AppStorage(RockxyIdentity.current.defaultsKey("hideAppleRequests")) private var hideAppleRequests =
-        false // DEFERRED: No runtime consumer — future feature
-    @AppStorage(RockxyIdentity.current.defaultsKey("stayOnTop")) private var stayOnTop =
-        false // DEFERRED: No runtime consumer — future feature
-    @AppStorage(RockxyIdentity.current.defaultsKey("showInvisibleChars")) private var showInvisibleChars =
-        false // DEFERRED: No runtime consumer — future feature
-    @AppStorage(RockxyIdentity.current.defaultsKey("autoCleanUp")) private var autoCleanUp =
-        true // DEFERRED: No runtime consumer — future feature
 
     // MARK: - Helper Tool Status
 
