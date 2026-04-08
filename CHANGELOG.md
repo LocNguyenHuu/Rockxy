@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-08
+
+### Added
+
+- Add edition capability model, replay toast, and product naming
+
+### Fixed
+
+- Satisfy release doctor swiftlint check
+- Stop swallowing non-3 launchctl errors in watchdog removal
+- Replace precondition with throwing resolver in neutrality tests
+- Address review findings for community core cleanup
+- Remove release scripts from tracking
+- Guard universal web download release sync
+
+### Changed
+
+- Clean public repo language and harden release script guards
+- Remove placeholder surfaces and dead settings code
+- Apply swiftformat across codebase
 ## [0.2.0] - 2026-04-06
 
 ### Added
