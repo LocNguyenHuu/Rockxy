@@ -648,14 +648,7 @@ final class SystemProxyManager: @unchecked Sendable {
     )
         throws
     {
-        do {
-            _ = try runLaunchctl(["remove", label], toleratedExitCodes: tolerateMissing ? [3] : [])
-        } catch {
-            if tolerateMissing {
-                return
-            }
-            throw error
-        }
+        _ = try runLaunchctl(["remove", label], toleratedExitCodes: tolerateMissing ? [3] : [])
     }
 
     @discardableResult
