@@ -32,7 +32,10 @@ actor SessionStore {
         ).first else {
             throw SessionStoreError.directoryNotFound
         }
-        let rockxyDir = appSupport.appendingPathComponent(RockxyIdentity.current.appSupportDirectoryName, isDirectory: true)
+        let rockxyDir = appSupport.appendingPathComponent(
+            RockxyIdentity.current.appSupportDirectoryName,
+            isDirectory: true
+        )
         try self.init(directory: rockxyDir)
     }
 

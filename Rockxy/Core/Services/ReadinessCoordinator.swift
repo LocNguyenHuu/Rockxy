@@ -111,6 +111,23 @@ final class ReadinessCoordinator {
         return certReadiness != .trusted
     }
 
+    nonisolated static func shouldPerformActivationDeepRefresh(
+        lastCompletedAt: ContinuousClock.Instant?,
+        now: ContinuousClock.Instant,
+        isInFlight: Bool,
+        cooldown: Duration = activationRefreshCooldown
+    )
+        -> Bool
+    {
+        guard !isInFlight else {
+            return false
+        }
+        guard let lastCompletedAt else {
+            return true
+        }
+        return now - lastCompletedAt >= cooldown
+    }
+
     /// Begins observing readiness-related notifications. Idempotent — safe to call
     /// multiple times from workspace lifecycle without creating duplicate observers.
     func startObserving() {
@@ -343,21 +360,6 @@ final class ReadinessCoordinator {
         }
 
         await deepRefresh()
-    }
-
-    nonisolated static func shouldPerformActivationDeepRefresh(
-        lastCompletedAt: ContinuousClock.Instant?,
-        now: ContinuousClock.Instant,
-        isInFlight: Bool,
-        cooldown: Duration = activationRefreshCooldown
-    ) -> Bool {
-        guard !isInFlight else {
-            return false
-        }
-        guard let lastCompletedAt else {
-            return true
-        }
-        return now - lastCompletedAt >= cooldown
     }
 
     // MARK: - Warning Priority

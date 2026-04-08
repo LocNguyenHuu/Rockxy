@@ -2,21 +2,7 @@ import Foundation
 
 /// Bundle-driven identity and namespace values shared across the app, tests, and helper.
 struct RockxyIdentity {
-    let familyNamespace: String
-    let appBundleIdentifier: String
-    let helperBundleIdentifier: String
-    let helperMachServiceName: String
-    let helperPlistName: String
-    let allowedCallerIdentifiers: [String]
-    let defaultsPrefix: String
-    let notificationPrefix: String
-    let logSubsystem: String
-    let appSupportDirectoryName: String
-    let sharedSupportDirectoryName: String
-    let sharedCertificateLabelPrefix: String
-    let sharedUTTypePrefix: String
-
-    static let current = RockxyIdentity(bundle: .main)
+    // MARK: Lifecycle
 
     init(bundle: Bundle) {
         let info = bundle.infoDictionary ?? [:]
@@ -92,10 +78,39 @@ struct RockxyIdentity {
             .map(String.init)
     }
 
-    var rootCACertificateLabel: String { sharedCertificateLabelPrefix }
-    var rootCAKeyLabel: String { "\(sharedCertificateLabelPrefix).key" }
-    var sessionUTTypeIdentifier: String { "\(sharedUTTypePrefix).session" }
-    var harUTTypeIdentifier: String { "\(sharedUTTypePrefix).har" }
+    // MARK: Internal
+
+    static let current = RockxyIdentity(bundle: .main)
+
+    let familyNamespace: String
+    let appBundleIdentifier: String
+    let helperBundleIdentifier: String
+    let helperMachServiceName: String
+    let helperPlistName: String
+    let allowedCallerIdentifiers: [String]
+    let defaultsPrefix: String
+    let notificationPrefix: String
+    let logSubsystem: String
+    let appSupportDirectoryName: String
+    let sharedSupportDirectoryName: String
+    let sharedCertificateLabelPrefix: String
+    let sharedUTTypePrefix: String
+
+    var rootCACertificateLabel: String {
+        sharedCertificateLabelPrefix
+    }
+
+    var rootCAKeyLabel: String {
+        "\(sharedCertificateLabelPrefix).key"
+    }
+
+    var sessionUTTypeIdentifier: String {
+        "\(sharedUTTypePrefix).session"
+    }
+
+    var harUTTypeIdentifier: String {
+        "\(sharedUTTypePrefix).har"
+    }
 
     func defaultsKey(_ suffix: String) -> String {
         "\(defaultsPrefix).\(suffix)"
@@ -143,11 +158,15 @@ struct RockxyIdentity {
         sharedSupportDirectory(fileManager: fileManager).appendingPathComponent(relativePath)
     }
 
+    // MARK: Private
+
     private static func string(
         named key: String,
         in info: [String: Any],
         fallback: String
-    ) -> String {
+    )
+        -> String
+    {
         let value = (info[key] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let value, !value.isEmpty {
             return value

@@ -119,7 +119,10 @@ final class PluginSettingsViewModel {
 
     // MARK: Private
 
-    private static let logger = Logger(subsystem: RockxyIdentity.current.logSubsystem, category: "PluginSettingsViewModel")
+    private static let logger = Logger(
+        subsystem: RockxyIdentity.current.logSubsystem,
+        category: "PluginSettingsViewModel"
+    )
 
     private let pluginManager = ScriptPluginManager()
 }

@@ -49,7 +49,8 @@ struct WelcomeView: View {
 
     @State private var viewModel = WelcomeViewModel()
     @AppStorage("showWelcomeOnLaunch") private var showWelcomeOnLaunch = true
-    @AppStorage(RockxyIdentity.current.defaultsKey("onboardingCompletedOnce")) private var onboardingCompletedOnce = false
+    @AppStorage(RockxyIdentity.current.defaultsKey("onboardingCompletedOnce")) private var onboardingCompletedOnce =
+        false
     @Environment(\.dismiss) private var dismiss
 
     private var steps: [WelcomeStepItem] {

@@ -159,6 +159,10 @@ final class SystemProxyManager: @unchecked Sendable {
 
     static let shared = SystemProxyManager()
 
+    nonisolated static var directWatchdogLabel: String {
+        "\(RockxyIdentity.current.appBundleIdentifier).direct-proxy-watchdog"
+    }
+
     var systemProxyEnabled: Bool {
         lock.lock()
         let enabled = isEnabled
@@ -190,7 +194,9 @@ final class SystemProxyManager: @unchecked Sendable {
     nonisolated static func directProxyWatchdogAction(
         parentAlive: Bool,
         backupExists: Bool
-    ) -> DirectProxyWatchdogAction {
+    )
+        -> DirectProxyWatchdogAction
+    {
         if !backupExists {
             return .exit
         }
@@ -205,18 +211,22 @@ final class SystemProxyManager: @unchecked Sendable {
     nonisolated static func shouldClearDirectBackupAfterRestoreAttempt(
         commandsSucceeded: Bool,
         proxyStillPointsAtRockxy: Bool
-    ) -> Bool {
+    )
+        -> Bool
+    {
         commandsSucceeded && !proxyStillPointsAtRockxy
     }
 
     @discardableResult
     nonisolated static func runDirectProxyWatchdogIfRequested(
         arguments: [String] = ProcessInfo.processInfo.arguments
-    ) -> Bool {
+    )
+        -> Bool
+    {
         guard arguments.count >= 3,
               arguments[1] == "--rockxy-direct-proxy-watchdog",
-              let parentPID = Int32(arguments[2])
-        else {
+              let parentPID = Int32(arguments[2]) else
+        {
             return false
         }
 
@@ -237,6 +247,26 @@ final class SystemProxyManager: @unchecked Sendable {
                 return true
             }
         }
+    }
+
+    nonisolated static func directWatchdogSubmitArguments(
+        label: String,
+        executablePath: String,
+        parentPID: pid_t,
+        backupPath: String
+    )
+        -> [String]
+    {
+        [
+            "submit",
+            "-l",
+            label,
+            "--",
+            executablePath,
+            "--rockxy-direct-proxy-watchdog",
+            String(parentPID),
+            backupPath,
+        ]
     }
 
     // MARK: - Public API
@@ -493,7 +523,7 @@ final class SystemProxyManager: @unchecked Sendable {
     /// left behind by a crash or force-quit.
     func recoverStaleProxyIfNeeded() async {
         if let backup = loadDirectBackup() {
-            if Date().timeIntervalSince(backup.timestamp) > 86_400 {
+            if Date().timeIntervalSince(backup.timestamp) > 86400 {
                 Self.logger.info("Stale direct backup >24h old, clearing without restore")
                 clearDirectBackup()
             } else {
@@ -580,6 +610,12 @@ final class SystemProxyManager: @unchecked Sendable {
             .appendingPathComponent("proxy-backup-direct.plist")
     }
 
+    private static var directWatchdogExecutableURL: URL {
+        Bundle.main.bundleURL
+            .appendingPathComponent("Contents/Library/HelperTools", isDirectory: true)
+            .appendingPathComponent("RockxyHelperTool", isDirectory: false)
+    }
+
     private let lock = NSLock()
     private var isEnabled = false
     private var usingHelper = false
@@ -588,6 +624,77 @@ final class SystemProxyManager: @unchecked Sendable {
     private var originalBypassDomains: [String: [String]] = [:]
     private var originalProxyState: [String: ServiceProxySnapshot] = [:]
     private var bypassObserver: NSObjectProtocol?
+
+    private static func submitDirectProxyWatchdog(
+        label: String,
+        executableURL: URL,
+        parentPID: pid_t,
+        backupPath: String
+    )
+        throws
+    {
+        try removeDirectProxyWatchdog(label: label, tolerateMissing: true)
+        _ = try runLaunchctl(directWatchdogSubmitArguments(
+            label: label,
+            executablePath: executableURL.path,
+            parentPID: parentPID,
+            backupPath: backupPath
+        ))
+    }
+
+    private static func removeDirectProxyWatchdog(
+        label: String = directWatchdogLabel,
+        tolerateMissing: Bool
+    )
+        throws
+    {
+        do {
+            _ = try runLaunchctl(["remove", label], toleratedExitCodes: tolerateMissing ? [3] : [])
+        } catch {
+            if tolerateMissing {
+                return
+            }
+            throw error
+        }
+    }
+
+    @discardableResult
+    private static func runLaunchctl(
+        _ arguments: [String],
+        toleratedExitCodes: Set<Int32> = []
+    )
+        throws -> String
+    {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/launchctl")
+        process.arguments = arguments
+
+        let stdoutPipe = Pipe()
+        let stderrPipe = Pipe()
+        process.standardOutput = stdoutPipe
+        process.standardError = stderrPipe
+
+        do {
+            try process.run()
+        } catch {
+            throw SystemProxyError.unexpectedOutput("Failed to launch launchctl: \(error.localizedDescription)")
+        }
+
+        process.waitUntilExit()
+
+        let stdout = String(data: stdoutPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+        let stderr = String(data: stderrPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+
+        let terminationStatus = process.terminationStatus
+        if terminationStatus == 0 || toleratedExitCodes.contains(terminationStatus) {
+            return stdout
+        }
+
+        let combined = stderr.isEmpty ? stdout : stderr
+        throw SystemProxyError.unexpectedOutput(
+            "launchctl \(arguments.joined(separator: " ")) failed (exit \(terminationStatus)): \(combined)"
+        )
+    }
 
     /// Shared direct-mode restore routine used by both same-session cleanup and ownership-based cleanup.
     private func restoreDirectMode(using backup: DirectProxyBackup) {
@@ -646,14 +753,13 @@ final class SystemProxyManager: @unchecked Sendable {
             }
         }
 
-        let proxyStillPointsAtRockxy: Bool
-        if allSucceeded {
-            proxyStillPointsAtRockxy = directProxyStillOwnedAfterRestoreVerification(
+        let proxyStillPointsAtRockxy: Bool = if allSucceeded {
+            directProxyStillOwnedAfterRestoreVerification(
                 port: backup.rockxyPort,
                 backedUpServices: backedUpServices
             )
         } else {
-            proxyStillPointsAtRockxy = true
+            true
         }
 
         lock.lock()
@@ -1077,23 +1183,19 @@ final class SystemProxyManager: @unchecked Sendable {
         }
     }
 
-    private static var directWatchdogExecutableURL: URL {
-        Bundle.main.bundleURL
-            .appendingPathComponent("Contents/Library/HelperTools", isDirectory: true)
-            .appendingPathComponent("RockxyHelperTool", isDirectory: false)
-    }
-
     private func directProxyStillOwnedAfterRestoreVerification(
         port: Int,
         backedUpServices: [String],
         maxAttempts: Int = 5,
         pollInterval: TimeInterval = 0.2
-    ) -> Bool {
+    )
+        -> Bool
+    {
         guard !backedUpServices.isEmpty else {
             return anyLoopbackProxyEnabled(on: nil)
         }
 
-        for attempt in 0..<maxAttempts {
+        for attempt in 0 ..< maxAttempts {
             if !currentProxyMatchesRockxy(port: port, backedUpServices: backedUpServices) {
                 return false
             }
@@ -1104,93 +1206,6 @@ final class SystemProxyManager: @unchecked Sendable {
         }
 
         return true
-    }
-
-    nonisolated static var directWatchdogLabel: String {
-        "\(RockxyIdentity.current.appBundleIdentifier).direct-proxy-watchdog"
-    }
-
-    nonisolated static func directWatchdogSubmitArguments(
-        label: String,
-        executablePath: String,
-        parentPID: pid_t,
-        backupPath: String
-    ) -> [String] {
-        [
-            "submit",
-            "-l",
-            label,
-            "--",
-            executablePath,
-            "--rockxy-direct-proxy-watchdog",
-            String(parentPID),
-            backupPath,
-        ]
-    }
-
-    private static func submitDirectProxyWatchdog(
-        label: String,
-        executableURL: URL,
-        parentPID: pid_t,
-        backupPath: String
-    ) throws {
-        try removeDirectProxyWatchdog(label: label, tolerateMissing: true)
-        _ = try runLaunchctl(directWatchdogSubmitArguments(
-            label: label,
-            executablePath: executableURL.path,
-            parentPID: parentPID,
-            backupPath: backupPath
-        ))
-    }
-
-    private static func removeDirectProxyWatchdog(
-        label: String = directWatchdogLabel,
-        tolerateMissing: Bool
-    ) throws {
-        do {
-            _ = try runLaunchctl(["remove", label], toleratedExitCodes: tolerateMissing ? [3] : [])
-        } catch {
-            if tolerateMissing {
-                return
-            }
-            throw error
-        }
-    }
-
-    @discardableResult
-    private static func runLaunchctl(
-        _ arguments: [String],
-        toleratedExitCodes: Set<Int32> = []
-    ) throws -> String {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/launchctl")
-        process.arguments = arguments
-
-        let stdoutPipe = Pipe()
-        let stderrPipe = Pipe()
-        process.standardOutput = stdoutPipe
-        process.standardError = stderrPipe
-
-        do {
-            try process.run()
-        } catch {
-            throw SystemProxyError.unexpectedOutput("Failed to launch launchctl: \(error.localizedDescription)")
-        }
-
-        process.waitUntilExit()
-
-        let stdout = String(data: stdoutPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-        let stderr = String(data: stderrPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-
-        let terminationStatus = process.terminationStatus
-        if terminationStatus == 0 || toleratedExitCodes.contains(terminationStatus) {
-            return stdout
-        }
-
-        let combined = stderr.isEmpty ? stdout : stderr
-        throw SystemProxyError.unexpectedOutput(
-            "launchctl \(arguments.joined(separator: " ")) failed (exit \(terminationStatus)): \(combined)"
-        )
     }
 
     // MARK: - Process Execution

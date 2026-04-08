@@ -18,7 +18,8 @@ struct PrivacySettingsTab: View {
                             )
                             .font(.system(size: 11))
                             .foregroundStyle(.secondary)
-                            Text("~" + "/Library/Application Support/" + RockxyIdentity.current.appSupportDirectoryName + "/rockxy.sqlite3")
+                            Text("~" + "/Library/Application Support/" + RockxyIdentity.current
+                                .appSupportDirectoryName + "/rockxy.sqlite3")
                                 .font(.system(size: 11, design: .monospaced))
                                 .foregroundStyle(.blue)
                                 .textSelection(.enabled)
@@ -36,7 +37,8 @@ struct PrivacySettingsTab: View {
                             Text(String(localized: "Responses larger than 1 MB are saved as separate files."))
                                 .font(.system(size: 11))
                                 .foregroundStyle(.secondary)
-                            Text("~" + "/Library/Application Support/" + RockxyIdentity.current.appSupportDirectoryName + "/bodies/")
+                            Text("~" + "/Library/Application Support/" + RockxyIdentity.current
+                                .appSupportDirectoryName + "/bodies/")
                                 .font(.system(size: 11, design: .monospaced))
                                 .foregroundStyle(.blue)
                                 .textSelection(.enabled)

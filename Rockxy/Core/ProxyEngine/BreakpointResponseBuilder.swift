@@ -54,5 +54,8 @@ enum BreakpointResponseBuilder {
 
     // MARK: Private
 
-    private static let logger = Logger(subsystem: RockxyIdentity.current.logSubsystem, category: "BreakpointResponseBuilder")
+    private static let logger = Logger(
+        subsystem: RockxyIdentity.current.logSubsystem,
+        category: "BreakpointResponseBuilder"
+    )
 }

@@ -23,7 +23,10 @@ final class TerminationSignalMonitor {
 
     // MARK: Private
 
-    private static let logger = Logger(subsystem: RockxyIdentity.current.logSubsystem, category: "TerminationSignalMonitor")
+    private static let logger = Logger(
+        subsystem: RockxyIdentity.current.logSubsystem,
+        category: "TerminationSignalMonitor"
+    )
 
     private let cleanup: @Sendable (Int32) -> Void
     private let lock = NSLock()

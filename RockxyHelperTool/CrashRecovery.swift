@@ -138,7 +138,10 @@ enum CrashRecovery {
                     ofItemAtPath: url.path
                 )
             }
-            logger.info("Proxy backup saved to \(backupURLs.first?.path ?? "<unknown>") (\(serviceBackups.count) service(s))")
+            logger
+                .info(
+                    "Proxy backup saved to \(backupURLs.first?.path ?? "<unknown>") (\(serviceBackups.count) service(s))"
+                )
         } catch {
             logger.error("Failed to save proxy backup: \(error.localizedDescription)")
         }
@@ -200,7 +203,9 @@ enum CrashRecovery {
             do {
                 try FileManager.default.removeItem(at: url)
                 logger.info("Proxy backup cleared at \(url.path)")
-            } catch let error as NSError where error.domain == NSCocoaErrorDomain && error.code == NSFileNoSuchFileError {
+            } catch let error as NSError
+                where error.domain == NSCocoaErrorDomain && error.code == NSFileNoSuchFileError
+            {
                 // Already gone — nothing to do
             } catch {
                 logger.error("Failed to remove proxy backup at \(url.path): \(error.localizedDescription)")

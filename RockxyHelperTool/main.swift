@@ -7,11 +7,15 @@ import os
 private let identity = RockxyIdentity.current
 private let logger = Logger(subsystem: identity.logSubsystem, category: "Main")
 
+// MARK: - DirectProxyBackup
+
 private struct DirectProxyBackup: Decodable {
     let services: [DirectServiceBackup]
     let timestamp: Date
     let rockxyPort: Int
 }
+
+// MARK: - DirectServiceBackup
 
 private struct DirectServiceBackup: Decodable {
     let service: String
@@ -27,6 +31,8 @@ private struct DirectServiceBackup: Decodable {
     let bypassDomains: [String]
 }
 
+// MARK: - DirectProxySnapshot
+
 private struct DirectProxySnapshot {
     let httpEnabled: Bool
     let httpHost: String
@@ -39,14 +45,16 @@ private struct DirectProxySnapshot {
     let socksPort: Int
 }
 
+// MARK: - DirectProxyWatchdog
+
 private enum DirectProxyWatchdog {
-    private static let networkSetupPath = "/usr/sbin/networksetup"
+    // MARK: Internal
 
     static func run(arguments: [String]) -> Bool {
         guard arguments.count >= 4,
               arguments[1] == "--rockxy-direct-proxy-watchdog",
-              let parentPID = Int32(arguments[2])
-        else {
+              let parentPID = Int32(arguments[2]) else
+        {
             return false
         }
 
@@ -71,6 +79,10 @@ private enum DirectProxyWatchdog {
             return true
         }
     }
+
+    // MARK: Private
+
+    private static let networkSetupPath = "/usr/sbin/networksetup"
 
     private static func restoreIfNeeded(from backupURL: URL) {
         guard let backup = loadBackup(from: backupURL) else {
@@ -104,14 +116,20 @@ private enum DirectProxyWatchdog {
                 try restoreProxyState(for: entry.service, snapshot: snapshot)
             } catch {
                 allSucceeded = false
-                logger.error("Direct proxy watchdog failed to restore proxy state for '\(entry.service)': \(error.localizedDescription)")
+                logger
+                    .error(
+                        "Direct proxy watchdog failed to restore proxy state for '\(entry.service)': \(error.localizedDescription)"
+                    )
             }
 
             do {
                 try restoreBypassDomains(for: entry.service, domains: entry.bypassDomains)
             } catch {
                 allSucceeded = false
-                logger.error("Direct proxy watchdog failed to restore bypass domains for '\(entry.service)': \(error.localizedDescription)")
+                logger
+                    .error(
+                        "Direct proxy watchdog failed to restore bypass domains for '\(entry.service)': \(error.localizedDescription)"
+                    )
             }
         }
 

@@ -74,7 +74,8 @@ actor PluginDiscovery {
                     continue
                 }
 
-                let isEnabled = UserDefaults.standard.bool(forKey: RockxyIdentity.current.pluginEnabledKey(pluginID: manifest.id))
+                let isEnabled = UserDefaults.standard
+                    .bool(forKey: RockxyIdentity.current.pluginEnabledKey(pluginID: manifest.id))
 
                 let info = PluginInfo(
                     id: manifest.id,

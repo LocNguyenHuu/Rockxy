@@ -65,7 +65,10 @@ enum MapLocalSnapshotService {
 
     // MARK: Private
 
-    private static let logger = Logger(subsystem: RockxyIdentity.current.logSubsystem, category: "MapLocalSnapshotService")
+    private static let logger = Logger(
+        subsystem: RockxyIdentity.current.logSubsystem,
+        category: "MapLocalSnapshotService"
+    )
 
     private static func snapshotsDirectory() -> URL {
         guard let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {

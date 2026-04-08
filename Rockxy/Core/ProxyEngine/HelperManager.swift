@@ -51,6 +51,47 @@ final class HelperManager {
         Int(Bundle.main.infoDictionary?["RockxyHelperProtocolVersion"] as? String ?? "0") ?? 0
     }
 
+    static func installDisposition(for status: SMAppService.Status) -> InstallDisposition {
+        switch status {
+        case .requiresApproval:
+            .requiresApproval
+        case .enabled:
+            .alreadyEnabled
+        case .notRegistered,
+             .notFound:
+            .register
+        @unknown default:
+            .register
+        }
+    }
+
+    nonisolated static func requiresApproval(error: Error, serviceStatus: SMAppService.Status) -> Bool {
+        let nsError = error as NSError
+        return serviceStatus == .requiresApproval
+            || nsError.code == 1
+            || nsError.code == kSMErrorLaunchDeniedByUser
+    }
+
+    nonisolated static func approvalMessage(error: Error, serviceStatus: SMAppService.Status) -> String {
+        let nsError = error as NSError
+
+        if serviceStatus == .requiresApproval || nsError.code == kSMErrorLaunchDeniedByUser {
+            return helperApprovalMessage
+        }
+
+        if nsError.code == 1, serviceStatus == .notRegistered || serviceStatus == .notFound {
+            return String(
+                localized: """
+                macOS blocked helper registration before Rockxy could finish installing it. \
+                Open System Settings > Login Items and approve Rockxy if it appears there. \
+                If Rockxy is not listed, clear stale Rockxy helper registrations and try installing again.
+                """
+            )
+        }
+
+        return helperApprovalMessage
+    }
+
     /// Register the helper daemon via SMAppService.
     ///
     /// On macOS 13+, this uses `SMAppService.daemon(plistName:).register()` which
@@ -219,20 +260,6 @@ final class HelperManager {
             || installedInfo != previousInfo
         if changed {
             NotificationCenter.default.post(name: .helperStatusChanged, object: nil)
-        }
-    }
-
-    static func installDisposition(for status: SMAppService.Status) -> InstallDisposition {
-        switch status {
-        case .requiresApproval:
-            .requiresApproval
-        case .enabled:
-            .alreadyEnabled
-        case .notRegistered,
-             .notFound:
-            .register
-        @unknown default:
-            .register
         }
     }
 
@@ -437,32 +464,5 @@ final class HelperManager {
         ) {
             try await HelperConnection.shared.getHelperInfo()
         }
-    }
-
-    nonisolated static func requiresApproval(error: Error, serviceStatus: SMAppService.Status) -> Bool {
-        let nsError = error as NSError
-        return serviceStatus == .requiresApproval
-            || nsError.code == 1
-            || nsError.code == kSMErrorLaunchDeniedByUser
-    }
-
-    nonisolated static func approvalMessage(error: Error, serviceStatus: SMAppService.Status) -> String {
-        let nsError = error as NSError
-
-        if serviceStatus == .requiresApproval || nsError.code == kSMErrorLaunchDeniedByUser {
-            return helperApprovalMessage
-        }
-
-        if nsError.code == 1, serviceStatus == .notRegistered || serviceStatus == .notFound {
-            return String(
-                localized: """
-                macOS blocked helper registration before Rockxy could finish installing it. \
-                Open System Settings > Login Items and approve Rockxy if it appears there. \
-                If Rockxy is not listed, clear stale Rockxy helper registrations and try installing again.
-                """
-            )
-        }
-
-        return helperApprovalMessage
     }
 }

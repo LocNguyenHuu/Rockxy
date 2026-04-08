@@ -8,8 +8,6 @@ import os
 final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: Internal
 
-    private static let identity = RockxyIdentity.current
-
     func applicationDidFinishLaunching(_ notification: Notification) {
         let defaults = UserDefaults.standard
         let theme = defaults.string(forKey: Self.identity.defaultsKey("appTheme")) ?? "system"
@@ -95,6 +93,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     // MARK: Private
+
+    private static let identity = RockxyIdentity.current
 
     private static let logger = Logger(subsystem: identity.logSubsystem, category: "AppDelegate")
 

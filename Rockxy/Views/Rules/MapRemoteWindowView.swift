@@ -96,7 +96,10 @@ final class MapRemoteWindowViewModel {
 
     // MARK: Private
 
-    private static let logger = Logger(subsystem: RockxyIdentity.current.logSubsystem, category: "MapRemoteWindowViewModel")
+    private static let logger = Logger(
+        subsystem: RockxyIdentity.current.logSubsystem,
+        category: "MapRemoteWindowViewModel"
+    )
 }
 
 // MARK: - MapRemoteWindowView

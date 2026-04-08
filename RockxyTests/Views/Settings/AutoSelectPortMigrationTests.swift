@@ -6,8 +6,6 @@ import Testing
 
 @Suite(.serialized)
 struct AutoSelectPortMigrationTests {
-    // MARK: Internal
-
     @Test("unset key loads as true (new default)")
     func unsetKeyDefaultsToTrue() {
         let cleanup = installSettingsTestGuard()

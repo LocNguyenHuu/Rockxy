@@ -1,6 +1,6 @@
 import Foundation
 
-/// XPC protocol shared between Rockxy.app and RockxyHelperTool.
+/// XPC protocol shared between the Rockxy macOS app and RockxyHelperTool.
 /// All methods use the `withReply:` pattern required by NSXPCConnection.
 @objc
 protocol RockxyHelperProtocol {

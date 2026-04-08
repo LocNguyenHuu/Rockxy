@@ -42,7 +42,10 @@ actor ScriptRuntime {
             throw ScriptRuntimeError.scriptLoadFailed("Cannot read \(scriptURL.path): \(error.localizedDescription)")
         }
 
-        let queue = DispatchQueue(label: RockxyIdentity.current.pluginRuntimePrefix(pluginID: info.id) + ".queue", qos: .userInitiated)
+        let queue = DispatchQueue(
+            label: RockxyIdentity.current.pluginRuntimePrefix(pluginID: info.id) + ".queue",
+            qos: .userInitiated
+        )
         guard let context = JSContext() else {
             throw ScriptRuntimeError.scriptLoadFailed("Failed to create JSContext")
         }

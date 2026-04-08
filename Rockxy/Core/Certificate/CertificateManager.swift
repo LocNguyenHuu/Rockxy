@@ -40,6 +40,28 @@ actor CertificateManager {
         hostCertCache.count
     }
 
+    nonisolated static func shouldUseHelperForTrustInstall(
+        status: HelperManager.HelperStatus,
+        isReachable: Bool
+    )
+        -> Bool
+    {
+        guard isReachable else {
+            return false
+        }
+
+        switch status {
+        case .installedCompatible,
+             .installedOutdated:
+            return true
+        case .notInstalled,
+             .requiresApproval,
+             .installedIncompatible,
+             .unreachable:
+            return false
+        }
+    }
+
     // MARK: - Root CA
 
     func generateRootCA() throws {
@@ -261,26 +283,6 @@ actor CertificateManager {
                 )
         }
         postCertificateStatusChanged()
-    }
-
-    nonisolated static func shouldUseHelperForTrustInstall(
-        status: HelperManager.HelperStatus,
-        isReachable: Bool
-    ) -> Bool {
-        guard isReachable else {
-            return false
-        }
-
-        switch status {
-        case .installedCompatible,
-             .installedOutdated:
-            return true
-        case .notInstalled,
-             .requiresApproval,
-             .installedIncompatible,
-             .unreachable:
-            return false
-        }
     }
 
     /// Removes trust settings and certificate from keychain.
@@ -508,16 +510,14 @@ actor CertificateManager {
         let hasGenerated = rootCACertificate != nil
         let installed = isRootCAInstalled()
         let trustPresent = hasTrustSettingsPresent()
-        let systemTrusted: Bool
-
-        if performValidation, trustPresent {
-            systemTrusted = validateSystemTrust()
+        let systemTrusted: Bool = if performValidation, trustPresent {
+            validateSystemTrust()
         } else if let cachedValidation = lastTrustValidationResult {
-            systemTrusted = cachedValidation
+            cachedValidation
         } else if trustPresent {
-            systemTrusted = isRootCATrusted()
+            isRootCATrusted()
         } else {
-            systemTrusted = false
+            false
         }
 
         let validityBefore = rootCACertificate?.notValidBefore

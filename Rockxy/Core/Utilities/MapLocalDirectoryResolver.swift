@@ -104,7 +104,10 @@ enum MapLocalDirectoryResolver {
 
     // MARK: Private
 
-    private static let logger = Logger(subsystem: RockxyIdentity.current.logSubsystem, category: "MapLocalDirectoryResolver")
+    private static let logger = Logger(
+        subsystem: RockxyIdentity.current.logSubsystem,
+        category: "MapLocalDirectoryResolver"
+    )
 
     /// Maximum file size: 10 MB (same as MapLocalFileValidator).
     private static let maxFileSize: UInt64 = 10 * 1024 * 1024

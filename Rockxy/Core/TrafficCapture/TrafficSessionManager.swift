@@ -69,7 +69,10 @@ actor TrafficSessionManager {
 
     // MARK: Private
 
-    private static let logger = Logger(subsystem: RockxyIdentity.current.logSubsystem, category: "TrafficSessionManager")
+    private static let logger = Logger(
+        subsystem: RockxyIdentity.current.logSubsystem,
+        category: "TrafficSessionManager"
+    )
 
     private var pendingUpdates: [HTTPTransaction] = []
     private let batchSize = 50

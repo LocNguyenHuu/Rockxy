@@ -70,5 +70,8 @@ final class BreakpointWindowModel {
 
     // MARK: Private
 
-    private static let logger = Logger(subsystem: RockxyIdentity.current.logSubsystem, category: "BreakpointWindowModel")
+    private static let logger = Logger(
+        subsystem: RockxyIdentity.current.logSubsystem,
+        category: "BreakpointWindowModel"
+    )
 }
