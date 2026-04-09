@@ -34,26 +34,42 @@ final class BlockListViewModel {
         }
     }
 
-    func addBlockRule(urlPattern: String, matchType: BlockMatchType, blockAction: BlockActionType) {
-        let escapedPattern: String = switch matchType {
+    func addBlockRule(
+        ruleName: String,
+        urlPattern: String,
+        httpMethod: HTTPMethodFilter,
+        matchType: BlockMatchType,
+        blockAction: BlockActionType,
+        includeSubpaths: Bool,
+        graphQLQueryName: String?,
+        blockAppBundleID: String?
+    ) {
+        let escapedPattern: String
+        switch matchType {
         case .wildcard:
-            NSRegularExpression.escapedPattern(for: urlPattern)
+            var pattern = NSRegularExpression.escapedPattern(for: urlPattern)
                 .replacingOccurrences(of: "\\*", with: ".*")
+                .replacingOccurrences(of: "\\?", with: ".")
+            if includeSubpaths, !pattern.hasSuffix(".*") {
+                pattern += ".*"
+            }
+            escapedPattern = pattern
         case .regex:
-            urlPattern
-        case .exact:
-            "^" + NSRegularExpression.escapedPattern(for: urlPattern) + "$"
+            escapedPattern = urlPattern
+        case .graphQLQueryName:
+            escapedPattern = NSRegularExpression.escapedPattern(for: urlPattern)
+                .replacingOccurrences(of: "\\*", with: ".*")
         }
 
-        let statusCode = switch blockAction {
-        case .forbidden: 403
-        case .dropConnection: 0
-        }
+        let displayName = ruleName.isEmpty ? urlPattern : ruleName
 
         let rule = ProxyRule(
-            name: urlPattern,
-            matchCondition: RuleMatchCondition(urlPattern: escapedPattern),
-            action: .block(statusCode: statusCode)
+            name: displayName,
+            matchCondition: RuleMatchCondition(
+                urlPattern: escapedPattern,
+                method: httpMethod.methodValue
+            ),
+            action: .block(statusCode: blockAction.statusCode)
         )
         allRules.append(rule)
         Task { await RuleSyncService.addRule(rule) }
@@ -77,19 +93,69 @@ final class BlockListViewModel {
     }
 }
 
+// MARK: - HTTPMethodFilter
+
+enum HTTPMethodFilter: String, CaseIterable {
+    case any = "ANY"
+    case get = "GET"
+    case post = "POST"
+    case put = "PUT"
+    case delete = "DELETE"
+    case patch = "PATCH"
+    case head = "HEAD"
+    case options = "OPTIONS"
+    case trace = "TRACE"
+
+    // MARK: Internal
+
+    /// Returns the method string for rule matching, or `nil` for `.any`.
+    var methodValue: String? {
+        self == .any ? nil : rawValue
+    }
+}
+
 // MARK: - BlockMatchType
 
 enum BlockMatchType: String, CaseIterable {
-    case wildcard = "Wildcard"
-    case regex = "Regex"
-    case exact = "Exact"
+    case wildcard = "Use Wildcard"
+    case regex = "Use Regex"
+    case graphQLQueryName = "GraphQL QueryName"
+
+    // MARK: Internal
+
+    /// Whether the "Include all subpaths" checkbox should be shown.
+    var showsSubpathsToggle: Bool {
+        self == .wildcard || self == .regex
+    }
+
+    /// Whether the GraphQL query name text field should be shown.
+    var showsGraphQLField: Bool {
+        self == .graphQLQueryName
+    }
 }
 
 // MARK: - BlockActionType
 
 enum BlockActionType: String, CaseIterable {
-    case forbidden = "403 Forbidden"
-    case dropConnection = "Drop Connection"
+    case blockAndHide = "Block & Hide Request"
+    case blockAndDisplay = "Block & Display Requests"
+    case hideOnly = "Hide, but not Block"
+
+    // MARK: Internal
+
+    /// The HTTP status code for the block action.
+    var statusCode: Int {
+        switch self {
+        case .blockAndHide: 403
+        case .blockAndDisplay: 403
+        case .hideOnly: 0
+        }
+    }
+
+    /// Whether the blocked request should be hidden from the request list.
+    var hidesFromList: Bool {
+        self == .blockAndHide || self == .hideOnly
+    }
 }
 
 // MARK: - BlockListWindowView
@@ -107,14 +173,23 @@ struct BlockListWindowView: View {
             Divider()
             bottomBar
         }
-        .frame(width: 600, height: 480)
+        .frame(width: 800, height: 560)
         .task { await viewModel.refreshFromEngine() }
         .onReceive(NotificationCenter.default.publisher(for: .rulesDidChange)) { notification in
             viewModel.handleRulesDidChange(notification)
         }
         .sheet(isPresented: $viewModel.showAddSheet) {
-            AddBlockRuleSheet { pattern, matchType, action in
-                viewModel.addBlockRule(urlPattern: pattern, matchType: matchType, blockAction: action)
+            AddBlockRuleSheet { ruleName, pattern, method, matchType, action, includeSubpaths, graphQLQueryName, appBundleID in
+                viewModel.addBlockRule(
+                    ruleName: ruleName,
+                    urlPattern: pattern,
+                    httpMethod: method,
+                    matchType: matchType,
+                    blockAction: action,
+                    includeSubpaths: includeSubpaths,
+                    graphQLQueryName: graphQLQueryName,
+                    blockAppBundleID: appBundleID
+                )
             }
         }
     }
@@ -300,7 +375,9 @@ private struct BlockRuleRow: View {
 
     @ViewBuilder private var actionLabel: some View {
         if case let .block(statusCode) = rule.action {
-            let text = statusCode == 0 ? String(localized: "Drop Connection") : String(localized: "403 Forbidden")
+            let text = statusCode == 0
+                ? String(localized: "Hide, but not Block")
+                : String(localized: "403 Forbidden")
             Text(text)
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -334,35 +411,75 @@ private struct BlockRuleRow: View {
 private struct AddBlockRuleSheet: View {
     // MARK: Internal
 
-    let onSave: (String, BlockMatchType, BlockActionType) -> Void
+    let onSave: (String, String, HTTPMethodFilter, BlockMatchType, BlockActionType, Bool, String?, String?) -> Void
 
     var body: some View {
         VStack(spacing: 0) {
-            Form {
-                Section(String(localized: "URL Pattern")) {
-                    TextField(String(localized: "e.g. *.example.com/ads/*"), text: $urlPattern)
+            VStack(alignment: .leading, spacing: Theme.Layout.sectionSpacing) {
+                formRow(String(localized: "Name:")) {
+                    TextField("", text: $ruleName, prompt: Text(String(localized: "Untitled")))
+                        .textFieldStyle(.roundedBorder)
+                }
+
+                formRow(String(localized: "Matching Rule:")) {
+                    TextField("", text: $urlPattern, prompt: Text("https://example.com"))
+                        .textFieldStyle(.roundedBorder)
                         .font(.system(.body, design: .monospaced))
                 }
 
-                Section(String(localized: "Match Type")) {
-                    Picker(String(localized: "Match Type"), selection: $matchType) {
-                        ForEach(BlockMatchType.allCases, id: \.self) { type in
-                            Text(type.rawValue).tag(type)
+                methodAndMatchRow
+
+                conditionalFields
+
+                formRow(String(localized: "Block App:")) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Button(String(localized: "Select App...")) {
+                            showAppPicker = true
+                        }
+                        .popover(isPresented: $showAppPicker) {
+                            AppPickerPopover(selectedBundleID: $blockAppBundleID)
+                        }
+
+                        if let bundleID = blockAppBundleID {
+                            HStack(spacing: 4) {
+                                Image(systemName: "app.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Text(bundleID)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Button {
+                                    blockAppBundleID = nil
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .font(.caption)
+                                        .foregroundStyle(.tertiary)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        } else {
+                            Text(String(localized: "Allow blocking all traffic from a specific app (optional)."))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
                     }
-                    .pickerStyle(.segmented)
                 }
 
-                Section(String(localized: "Block Action")) {
-                    Picker(String(localized: "Action"), selection: $blockAction) {
+                formRow(String(localized: "Action:")) {
+                    Picker("", selection: $blockAction) {
                         ForEach(BlockActionType.allCases, id: \.self) { action in
                             Text(action.rawValue).tag(action)
                         }
                     }
-                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .frame(width: 220)
                 }
             }
-            .formStyle(.grouped)
+            .padding(.horizontal, 24)
+            .padding(.top, 24)
+            .padding(.bottom, Theme.Layout.sectionSpacing)
+
+            Divider()
 
             HStack {
                 Spacer()
@@ -371,22 +488,196 @@ private struct AddBlockRuleSheet: View {
                 }
                 .keyboardShortcut(.cancelAction)
 
-                Button(String(localized: "Add")) {
-                    onSave(urlPattern, matchType, blockAction)
+                Button(String(localized: "Done")) {
+                    onSave(
+                        ruleName,
+                        urlPattern,
+                        httpMethod,
+                        matchType,
+                        blockAction,
+                        includeSubpaths,
+                        matchType.showsGraphQLField ? graphQLQueryName : nil,
+                        blockAppBundleID
+                    )
                     dismiss()
                 }
                 .keyboardShortcut(.defaultAction)
                 .disabled(urlPattern.isEmpty)
             }
-            .padding()
+            .padding(.horizontal, 24)
+            .padding(.vertical, 12)
         }
-        .frame(width: 420, height: 300)
+        .frame(width: 560, height: 420)
     }
 
     // MARK: Private
 
+    private static let labelWidth: CGFloat = 110
+
     @Environment(\.dismiss) private var dismiss
+    @State private var ruleName = ""
     @State private var urlPattern = ""
+    @State private var httpMethod: HTTPMethodFilter = .any
     @State private var matchType: BlockMatchType = .wildcard
-    @State private var blockAction: BlockActionType = .forbidden
+    @State private var blockAction: BlockActionType = .blockAndHide
+    @State private var includeSubpaths = true
+    @State private var graphQLQueryName = ""
+    @State private var blockAppBundleID: String?
+    @State private var showAppPicker = false
+
+    private var methodAndMatchRow: some View {
+        HStack(spacing: 8) {
+            Spacer()
+                .frame(width: Self.labelWidth + Theme.Layout.sectionSpacing)
+            Picker("", selection: $httpMethod) {
+                ForEach(HTTPMethodFilter.allCases, id: \.self) { method in
+                    Text(method.rawValue).tag(method)
+                }
+            }
+            .labelsHidden()
+            .frame(width: 90)
+
+            Picker("", selection: $matchType) {
+                ForEach(BlockMatchType.allCases, id: \.self) { type in
+                    Text(type.rawValue).tag(type)
+                }
+            }
+            .labelsHidden()
+            .frame(width: 175)
+
+            if matchType == .wildcard {
+                Text(String(localized: "Support wildcard * and ?."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    @ViewBuilder private var conditionalFields: some View {
+        if matchType.showsSubpathsToggle {
+            HStack(spacing: 8) {
+                Spacer()
+                    .frame(width: Self.labelWidth + Theme.Layout.sectionSpacing)
+                Toggle(String(localized: "Include all subpaths of this URL"), isOn: $includeSubpaths)
+                    .toggleStyle(.checkbox)
+                    .font(.system(size: 13))
+            }
+        }
+
+        if matchType.showsGraphQLField {
+            formRow(String(localized: "Query Name:")) {
+                TextField("", text: $graphQLQueryName, prompt: Text("e.g. createUser"))
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(.body, design: .monospaced))
+            }
+        }
+    }
+
+    private func formRow(
+        _ label: String,
+        @ViewBuilder content: () -> some View
+    )
+        -> some View
+    {
+        HStack(alignment: .top, spacing: Theme.Layout.sectionSpacing) {
+            Text(label)
+                .font(.system(size: 13))
+                .frame(width: Self.labelWidth, alignment: .trailing)
+                .padding(.top, 4)
+            VStack(alignment: .leading, spacing: 4) {
+                content()
+            }
+        }
+    }
+}
+
+// MARK: - AppPickerPopover
+
+private struct AppPickerPopover: View {
+    // MARK: Internal
+
+    @Binding var selectedBundleID: String?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            TextField(String(localized: "Search apps..."), text: $searchText)
+                .textFieldStyle(.roundedBorder)
+                .padding(8)
+
+            Divider()
+
+            List(filteredApps, id: \.bundleID) { app in
+                Button {
+                    selectedBundleID = app.bundleID
+                    dismiss()
+                } label: {
+                    HStack(spacing: 8) {
+                        if let icon = app.icon {
+                            Image(nsImage: icon)
+                                .resizable()
+                                .frame(width: 20, height: 20)
+                        } else {
+                            Image(systemName: "app.fill")
+                                .frame(width: 20, height: 20)
+                                .foregroundStyle(.secondary)
+                        }
+                        Text(app.name)
+                            .font(.system(size: 13))
+                            .lineLimit(1)
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+            .listStyle(.plain)
+        }
+        .frame(width: 280, height: 320)
+        .task {
+            installedApps = Self.loadInstalledApps()
+        }
+    }
+
+    // MARK: Private
+
+    @State private var searchText = ""
+    @State private var installedApps: [(name: String, bundleID: String, icon: NSImage?)] = []
+    @Environment(\.dismiss) private var dismiss
+
+    private var filteredApps: [(name: String, bundleID: String, icon: NSImage?)] {
+        if searchText.isEmpty {
+            return installedApps
+        }
+        let query = searchText.lowercased()
+        return installedApps.filter {
+            $0.name.lowercased().contains(query) || $0.bundleID.lowercased().contains(query)
+        }
+    }
+
+    private static func loadInstalledApps() -> [(name: String, bundleID: String, icon: NSImage?)] {
+        let appDirs = [
+            "/Applications",
+            "/System/Applications",
+            NSHomeDirectory() + "/Applications",
+        ]
+        var apps: [(name: String, bundleID: String, icon: NSImage?)] = []
+        let fileManager = FileManager.default
+
+        for dir in appDirs {
+            guard let contents = try? fileManager.contentsOfDirectory(atPath: dir) else {
+                continue
+            }
+            for item in contents where item.hasSuffix(".app") {
+                let path = (dir as NSString).appendingPathComponent(item)
+                guard let bundle = Bundle(path: path),
+                      let bundleID = bundle.bundleIdentifier else
+                {
+                    continue
+                }
+                let name = (item as NSString).deletingPathExtension
+                let icon = NSWorkspace.shared.icon(forFile: path)
+                icon.size = NSSize(width: 20, height: 20)
+                apps.append((name: name, bundleID: bundleID, icon: icon))
+            }
+        }
+        return apps.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
 }
