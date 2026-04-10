@@ -6,6 +6,18 @@ import SwiftUI
 // MARK: - JSONInspectorView
 
 struct JSONInspectorView: View {
+    // MARK: Lifecycle
+
+    init(transaction: HTTPTransaction) {
+        self.transaction = transaction
+        let initial: JSONTab = if transaction.response?.body != nil {
+            .response
+        } else {
+            .request
+        }
+        _selectedTab = State(initialValue: initial)
+    }
+
     // MARK: Internal
 
     let transaction: HTTPTransaction
@@ -16,16 +28,11 @@ struct JSONInspectorView: View {
             Divider()
             contentArea
         }
-        .onAppear {
-            if transaction.response?.body == nil, transaction.request.body != nil {
-                selectedTab = .request
-            }
-        }
     }
 
     // MARK: Private
 
-    @State private var selectedTab: JSONTab = .response
+    @State private var selectedTab: JSONTab
 
     private var tabBar: some View {
         HStack(spacing: 12) {

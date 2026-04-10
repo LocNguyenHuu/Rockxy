@@ -194,7 +194,9 @@ struct ResponseInspectorView: View {
 
     @ViewBuilder
     private func responseBodyView(response: HTTPResponseData) -> some View {
-        if let body = response.body {
+        if response.contentType == .json, response.body != nil {
+            JSONInspectorView(transaction: transaction)
+        } else if let body = response.body {
             ScrollView {
                 if let text = String(data: body, encoding: .utf8) {
                     Text(text)
