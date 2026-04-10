@@ -35,6 +35,9 @@ struct CertificateStatusPanel: View {
 
     // MARK: Private
 
+    private static let expiryWarningDays = 30
+    private static let expiryWarningSeconds: TimeInterval = .init(expiryWarningDays) * 24 * 3_600
+
     private var state: PanelState {
         guard let snapshot else {
             return .notAvailable
@@ -77,7 +80,7 @@ struct CertificateStatusPanel: View {
         if expiryDate < Date() {
             return .red
         }
-        if expiryDate.timeIntervalSinceNow < 30 * 24 * 3_600 {
+        if expiryDate.timeIntervalSinceNow < Self.expiryWarningSeconds {
             return .orange
         }
         return .primary
@@ -93,7 +96,7 @@ struct CertificateStatusPanel: View {
             )
         }
         let daysRemaining = Int(expiryDate.timeIntervalSinceNow / (24 * 3_600))
-        if daysRemaining < 30 {
+        if daysRemaining < Self.expiryWarningDays {
             return String(
                 localized: "Certificate expires in \(daysRemaining) days. Generate a new certificate and re-trust to maintain HTTPS interception."
             )

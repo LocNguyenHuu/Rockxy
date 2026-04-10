@@ -13,14 +13,22 @@ enum BinaryValidator {
 
     /// Validates that the binary at the given path has a valid Apple code signature.
     /// Returns `true` if the binary passes signature validation, `false` otherwise.
-    /// Results are cached per path.
+    /// Results are cached per path. Thread-safe.
     static func validateAppleSignedBinary(at path: String) -> Bool {
-        if let cached = cache[path] {
+        cacheLock.lock()
+        let cached = cache[path]
+        cacheLock.unlock()
+
+        if let cached {
             return cached
         }
 
         let result = performValidation(path: path)
+
+        cacheLock.lock()
         cache[path] = result
+        cacheLock.unlock()
+
         return result
     }
 
@@ -31,6 +39,7 @@ enum BinaryValidator {
         category: "BinaryValidator"
     )
 
+    private static let cacheLock = NSLock()
     private static var cache: [String: Bool] = [:]
 
     private static func performValidation(path: String) -> Bool {
@@ -46,7 +55,6 @@ enum BinaryValidator {
             return false
         }
 
-        // Validate the code signature is intact and valid
         let validityStatus = SecStaticCodeCheckValidity(code, SecCSFlags([]), nil)
         guard validityStatus == errSecSuccess else {
             logger.error(
@@ -55,7 +63,6 @@ enum BinaryValidator {
             return false
         }
 
-        // Verify the binary is signed by Apple
         var requirement: SecRequirement?
         let reqStatus = SecRequirementCreateWithString(
             "anchor apple" as CFString,

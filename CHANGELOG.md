@@ -21,10 +21,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Remove SwiftUI dependency from `Core/Plugins/` — `PluginProtocol` no longer requires `AnyView`, `JSONInspectorView` moved to `Views/Inspector/`
+- Analytics docs: error-analysis and performance-insights pages now marked as "Planned" — no runtime implementation exists yet
 
 ### Fixed
 
-- [Planned] Analytics docs: error-analysis and performance-insights pages now marked as "Planned" — no runtime implementation exists yet
 - Inconsistent timing colors in `TimingInspectorView` (DNS was blue instead of cyan, Transfer was cyan instead of blue)
 
 ### Removed

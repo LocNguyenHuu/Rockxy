@@ -46,21 +46,21 @@
 
 ### 新增
 
-- Redesign rule editor with Proxyman-style dropdowns and enlarged window
+- 重新设计规则编辑器，新增下拉菜单并扩大窗口
 
 ### 修复
 
-- Prevent selectPlugin load failure from being overwritten by success status
-- Surface UI feedback when applyTemplate receives unknown name
-- Tighten scripting template fallback, scope subpaths toggle, localize provenance
-- Address code review findings for block-list PR
-- Restore quick-create handoff, remove nonfunctional controls, enforce honest UI
+- 修复 selectPlugin 加载失败状态被覆盖的问题
+- 当 applyTemplate 收到未知名称时显示 UI 反馈
+- 改进脚本模板回退、子路径切换作用域和来源本地化
+- 修复 block-list PR 代码审查中发现的问题
+- 恢复 quick-create 交接，移除无效控件，确保 UI 诚实
 
 ### 变更
 
-- Merge remote-tracking branch 'origin/main'
-- Add multilingual README translations
-- Add localized readmes
+- 合并远程跟踪分支 'origin/main'
+- 添加多语言 README 翻译
+- 添加本地化 README
 
 完整发布历史见 [CHANGELOG.md](CHANGELOG.md)。
 <!-- END GENERATED: latest-release -->

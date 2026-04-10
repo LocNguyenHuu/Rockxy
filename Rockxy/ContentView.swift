@@ -140,13 +140,13 @@ struct ContentView: View {
             Task { @MainActor in
                 do {
                     try await CertificateManager.shared.installAndTrust()
-                    await ReadinessCoordinator.shared.deepRefresh()
                 } catch {
                     coordinator.activeToast = ToastMessage(
                         style: .error,
                         text: String(localized: "Failed to install certificate — \(error.localizedDescription)")
                     )
                 }
+                await ReadinessCoordinator.shared.deepRefresh()
             }
         case nil:
             break

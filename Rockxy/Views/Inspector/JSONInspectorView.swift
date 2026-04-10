@@ -16,6 +16,11 @@ struct JSONInspectorView: View {
             Divider()
             contentArea
         }
+        .onAppear {
+            if transaction.response?.body == nil, transaction.request.body != nil {
+                selectedTab = .request
+            }
+        }
     }
 
     // MARK: Private
@@ -106,7 +111,7 @@ private enum JSONTab {
 /// Recursive enum representing a parsed JSON document. Bridges from
 /// `JSONSerialization`'s `Any` output to a strongly-typed tree that
 /// `JSONNodeTreeView` can render with `ForEach`.
-private enum JSONValue: Identifiable {
+private enum JSONValue {
     case string(String)
     case number(NSNumber)
     case bool(Bool)
@@ -148,12 +153,6 @@ private enum JSONValue: Identifiable {
             return nil
         }
     }
-
-    // MARK: Internal
-
-    nonisolated var id: String {
-        UUID().uuidString
-    }
 }
 
 // MARK: - JSONNodeTreeView
@@ -172,13 +171,13 @@ private struct JSONNodeTreeView: View {
         case let .array(items):
             arrayView(items: items)
         case let .string(str):
-            leafView(label: label, valueText: "\"\(str)\"", color: .green)
+            leafView(label: label, valueText: "\"\(str)\"", color: Theme.JSON.string)
         case let .number(num):
-            leafView(label: label, valueText: "\(num)", color: .blue)
+            leafView(label: label, valueText: "\(num)", color: Theme.JSON.number)
         case let .bool(val):
-            leafView(label: label, valueText: val ? "true" : "false", color: .orange)
+            leafView(label: label, valueText: val ? "true" : "false", color: Theme.JSON.bool)
         case .null:
-            leafView(label: label, valueText: "null", color: .gray)
+            leafView(label: label, valueText: "null", color: Theme.JSON.null)
         }
     }
 
