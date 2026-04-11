@@ -42,20 +42,19 @@
 <!-- BEGIN GENERATED: latest-release -->
 ## Dernière Version
 
-**v0.5.0** — 2026-04-10
+**v0.6.0** — 2026-04-11
 
 ### Ajouts
 
-- Security hardening, docs honesty, trust recovery, helper lifecycle, architecture cleanup
-
-### Corrections
-
-- Wire JSONInspectorView into response body tab, deterministic tab selection
-- Code review follow-up — thread safety, fail-closed backup, honest docs, UI polish
+- Redesign Allow List with full URL pattern matching and dedicated management window
+- Redesign breakpoint rules window with dedicated management UI
 
 ### Changements
 
-- Sync changelog release surfaces
+- Sync changelog surfaces
+- Trim Allow List rule name before persisting
+- Noun-phrase inflection for paused header, trim and regex-safe Allow List save
+- Allow List and Breakpoint cleanup pass — normalize method, tighten logs, localize headers, tighten tests
 
 Consultez [CHANGELOG.md](CHANGELOG.md) pour l’historique complet des versions.
 <!-- END GENERATED: latest-release -->

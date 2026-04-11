@@ -42,20 +42,19 @@
 <!-- BEGIN GENERATED: latest-release -->
 ## Bản Phát Hành Mới Nhất
 
-**v0.5.0** — 2026-04-10
+**v0.6.0** — 2026-04-11
 
 ### Đã Thêm
 
-- Security hardening, docs honesty, trust recovery, helper lifecycle, architecture cleanup
-
-### Đã Sửa
-
-- Wire JSONInspectorView into response body tab, deterministic tab selection
-- Code review follow-up — thread safety, fail-closed backup, honest docs, UI polish
+- Redesign Allow List with full URL pattern matching and dedicated management window
+- Redesign breakpoint rules window with dedicated management UI
 
 ### Đã Thay Đổi
 
-- Sync changelog release surfaces
+- Sync changelog surfaces
+- Trim Allow List rule name before persisting
+- Noun-phrase inflection for paused header, trim and regex-safe Allow List save
+- Allow List and Breakpoint cleanup pass — normalize method, tighten logs, localize headers, tighten tests
 
 Xem [CHANGELOG.md](CHANGELOG.md) để biết toàn bộ lịch sử phát hành.
 <!-- END GENERATED: latest-release -->

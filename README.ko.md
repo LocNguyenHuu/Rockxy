@@ -42,20 +42,19 @@
 <!-- BEGIN GENERATED: latest-release -->
 ## 최신 릴리스
 
-**v0.5.0** — 2026-04-10
+**v0.6.0** — 2026-04-11
 
 ### 추가
 
-- Security hardening, docs honesty, trust recovery, helper lifecycle, architecture cleanup
-
-### 수정
-
-- Wire JSONInspectorView into response body tab, deterministic tab selection
-- Code review follow-up — thread safety, fail-closed backup, honest docs, UI polish
+- Redesign Allow List with full URL pattern matching and dedicated management window
+- Redesign breakpoint rules window with dedicated management UI
 
 ### 변경
 
-- Sync changelog release surfaces
+- Sync changelog surfaces
+- Trim Allow List rule name before persisting
+- Noun-phrase inflection for paused header, trim and regex-safe Allow List save
+- Allow List and Breakpoint cleanup pass — normalize method, tighten logs, localize headers, tighten tests
 
 전체 릴리스 기록은 [CHANGELOG.md](CHANGELOG.md)에서 확인하세요.
 <!-- END GENERATED: latest-release -->
