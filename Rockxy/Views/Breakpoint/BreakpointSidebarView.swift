@@ -7,46 +7,30 @@ import SwiftUI
 /// Left panel of the Breakpoints window showing breakpoint rules and paused items.
 /// Two sections: Rules (breakpoint-type rules) and Paused (items awaiting user decision).
 struct BreakpointSidebarView: View {
+    // MARK: Internal
+
     let windowModel: BreakpointWindowModel
     let manager: BreakpointManager
 
     var body: some View {
         VStack(spacing: 0) {
-            if windowModel.breakpointRules.isEmpty, manager.pausedItems.isEmpty {
+            if manager.pausedItems.isEmpty {
                 VStack(spacing: 4) {
                     Image(systemName: "pause.circle")
                         .font(.title2).foregroundStyle(.secondary)
-                    Text(String(localized: "No breakpoint rules or paused items."))
+                    Text(String(localized: "No paused items."))
                         .font(.caption).foregroundStyle(.secondary)
-                    Text(String(localized: "Create breakpoint from context menu or Tools menu."))
+                    Text(String(localized: "Manage breakpoint rules from Tools → Breakpoint Rules."))
                         .font(.caption2).foregroundStyle(.tertiary).multilineTextAlignment(.center)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List {
-                    if !windowModel.breakpointRules.isEmpty {
-                        Section(header: Text("Rules (\(windowModel.breakpointRules.count))")) {
-                            ForEach(windowModel.breakpointRules) { rule in
-                                BreakpointRuleRow(
-                                    rule: rule,
-                                    isSelected: windowModel.selectedBreakpointRuleId == rule.id,
-                                    onToggle: { ruleId in
-                                        Task { await RuleSyncService.toggleRule(id: ruleId) }
-                                    }
-                                )
+                    Section(header: pausedSectionHeader) {
+                        ForEach(manager.pausedItems) { item in
+                            BreakpointQueueRow(item: item)
                                 .contentShape(Rectangle())
-                                .onTapGesture { windowModel.selectRule(rule.id) }
-                            }
-                        }
-                    }
-
-                    if !manager.pausedItems.isEmpty {
-                        Section(header: Text("Paused (\(manager.pausedItems.count))")) {
-                            ForEach(manager.pausedItems) { item in
-                                BreakpointQueueRow(item: item)
-                                    .contentShape(Rectangle())
-                                    .onTapGesture { windowModel.selectPausedItem(item.id) }
-                            }
+                                .onTapGesture { windowModel.selectPausedItem(item.id) }
                         }
                     }
                 }
@@ -54,5 +38,21 @@ struct BreakpointSidebarView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: Private
+
+    /// Returns a SwiftUI `Text` header for the paused items section.
+    /// The string is an inline inflect-able localized literal using the
+    /// `^[…](inflect: true)` markdown form, so the noun phrase `paused item`
+    /// automatically resolves to the correct singular/plural form at runtime
+    /// based on `count`. The integer count is a first-class argument that
+    /// localizers can reorder per locale.
+    private var pausedSectionHeader: Text {
+        let count = manager.pausedItems.count
+        return Text(
+            "^[\(count) paused item](inflect: true)",
+            comment: "Section header showing how many paused items are in the breakpoint queue"
+        )
     }
 }

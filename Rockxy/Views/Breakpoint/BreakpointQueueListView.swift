@@ -7,12 +7,14 @@ import SwiftUI
 /// Left panel of the Breakpoints window showing all paused items as selectable rows.
 /// Each row displays the phase badge, method/status, host + path, and elapsed time.
 struct BreakpointQueueListView: View {
+    // MARK: Internal
+
     @Bindable var manager: BreakpointManager
 
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("Paused (\(manager.pausedItems.count))")
+                pausedHeader
                     .font(.caption)
                     .fontWeight(.semibold)
                     .foregroundStyle(.secondary)
@@ -47,6 +49,20 @@ struct BreakpointQueueListView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: Private
+
+    /// Localized, plural-aware header for the paused items section.
+    /// Uses SwiftUI `Text` inflection so the singular/plural form resolves at
+    /// runtime and the integer count is a first-class argument localizers can
+    /// reorder per locale.
+    private var pausedHeader: Text {
+        let count = manager.pausedItems.count
+        return Text(
+            "^[\(count) paused](inflect: true)",
+            comment: "Header showing how many paused breakpoint items are in the queue"
+        )
     }
 }
 

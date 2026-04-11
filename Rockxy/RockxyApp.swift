@@ -88,11 +88,12 @@ struct RockxyApp: App {
         .defaultPosition(.center)
 
         Window(String(localized: "Allow List"), id: "allowList") {
-            AllowListView()
+            AllowListWindowView()
         }
         .commandsRemoved()
         .windowResizability(.contentSize)
         .defaultPosition(.center)
+        .windowToolbarStyle(.unifiedCompact)
 
         Window(String(localized: "Diff"), id: "diff") {
             DiffWindowView()
@@ -122,7 +123,15 @@ struct RockxyApp: App {
         .windowResizability(.contentSize)
         .defaultPosition(.center)
 
-        Window(String(localized: "Breakpoints"), id: "breakpoints") {
+        Window(String(localized: "Breakpoint Rules"), id: "breakpointRules") {
+            BreakpointRulesWindowView()
+        }
+        .commandsRemoved()
+        .windowResizability(.contentSize)
+        .defaultPosition(.center)
+        .windowToolbarStyle(.unifiedCompact)
+
+        Window(String(localized: "Breakpoint Queue"), id: "breakpoints") {
             BreakpointWindowView()
         }
         .commandsRemoved()
@@ -490,10 +499,18 @@ struct RockxyMenuCommands: Commands {
             }
             .keyboardShortcut("b", modifiers: [.command, .option])
 
-            Button(String(localized: "Allow List…")) {
-                openWindow(id: "allowList")
+            Divider()
+
+            Button(String(localized: "Breakpoint Rules…")) {
+                openWindow(id: "breakpointRules")
             }
-            .keyboardShortcut("a", modifiers: [.command, .option])
+            .keyboardShortcut("b", modifiers: [.command, .shift])
+
+            Button(String(localized: "Breakpoint Queue…")) {
+                openWindow(id: "breakpoints")
+            }
+
+            Divider()
 
             Button(String(localized: "Map Local…")) {
                 openWindow(id: "mapLocal")
@@ -505,26 +522,28 @@ struct RockxyMenuCommands: Commands {
             }
             .keyboardShortcut("r", modifiers: [.command, .option])
 
+            Divider()
+
             Button(String(localized: "Block List…")) {
                 openWindow(id: "blockList")
             }
             .keyboardShortcut("[", modifiers: [.command, .option])
 
+            Button(String(localized: "Allow List…")) {
+                openWindow(id: "allowList")
+            }
+            .keyboardShortcut("a", modifiers: [.command, .option])
+
             Button(String(localized: "Modify Headers…")) {
                 openWindow(id: "modifyHeaders")
             }
+
+            Divider()
 
             Button(String(localized: "Network Conditions…")) {
                 openWindow(id: "networkConditions")
             }
             .keyboardShortcut("n", modifiers: [.command, .option])
-
-            Divider()
-
-            Button(String(localized: "Breakpoints…")) {
-                openWindow(id: "breakpoints")
-            }
-            .keyboardShortcut("b", modifiers: [.command, .shift])
 
             Divider()
 
