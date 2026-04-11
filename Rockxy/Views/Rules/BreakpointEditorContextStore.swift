@@ -15,7 +15,7 @@ final class BreakpointEditorContextStore {
     static let shared = BreakpointEditorContextStore()
 
     private(set) var pendingContext: BreakpointEditorContext?
-    var contextVersion: UInt64 = 0
+    private(set) var contextVersion: UInt64 = 0
 
     func setPending(_ context: BreakpointEditorContext) {
         pendingContext = context

@@ -15,7 +15,7 @@ final class AllowListEditorContextStore {
     static let shared = AllowListEditorContextStore()
 
     private(set) var pendingContext: AllowListEditorContext?
-    var contextVersion: UInt64 = 0
+    private(set) var contextVersion: UInt64 = 0
 
     func setPending(_ context: AllowListEditorContext) {
         pendingContext = context

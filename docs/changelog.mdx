@@ -6,22 +6,33 @@ rss: true
 
 # Changelog
 
-<Update label="Unreleased" description="Breakpoint Rules Redesign">
+<Update label="Unreleased" description="Breakpoint Rules and Allow List Redesign">
   ### Added
 
   - Dedicated Breakpoint Rules management window with table view, enable toggle, filter bar, and More menu
   - Add/Edit Breakpoint Rule sheet with name, URL pattern, method/match-type pickers, request/response phase checkboxes
   - Master "Enable Breakpoint Tool" toggle that disables all breakpoint evaluation without modifying individual rules
+  - Dedicated Allow List management window (860×620) with toolbar, info banner, rules table, collapsible filter bar, and More menu (New / Edit / Duplicate / Enable / Export / Import / Delete)
+  - Add/Edit Allow List Rule sheet with name, URL pattern, HTTP method, wildcard/regex match type, and include-subpaths toggle
+  - "Allow List…" entry in the request list right-click Tools submenu, opening the editor sheet pre-filled from the selected transaction
+  - "Create Allow List Rule…" entry in the sidebar domain Tools submenu, opening the editor sheet pre-filled with the domain's wildcard pattern
 
   ### Changed
 
   - Breakpoint rule creation from context menu now opens the rules window with a pre-filled sheet
   - Tools menu split: "Breakpoint Rules..." for rule management, "Breakpoint Queue..." for paused items
   - Existing breakpoint execution window simplified to show only paused items
+  - Allow List rewritten from a host-only filter into a full URL pattern rule system with HTTP method filtering, wildcard/regex modes, and include-subpaths semantics — consistent with Block List and Breakpoint Rules
+  - Allow List capture filter now evaluates full URL patterns via `isRequestAllowed(method:url:)` instead of host-only equality
+  - Existing host-only `allow-list.json` files auto-migrate on load into anchored regex rules that preserve old matching semantics exactly (case-insensitive host, no substring matches, subdomain wildcards do not match bare root); a one-time `allow-list.legacy.json` snapshot is written for recovery
+  - Allow List JSON storage bumped to schema v2 (`{schemaVersion, isActive, rules}`); v1 format still readable for migration and import
+  - Request list right-click Tools submenu reorganized into grouped sections (Breakpoint / Map Local • Map Remote / Block List • Allow List / Network Conditions / SSL Proxying)
 
   ### Removed
 
   - Direct breakpoint rule creation (replaced by editor context pipeline with user review)
+  - Silent `Add to Allow List` / `Remove from Allow List` sidebar toggle (replaced by the `Create Allow List Rule…` editor sheet entry)
+  - Legacy `AllowListEntry` host-only model, `AllowListView` settings-style window, and the dead `.allowListDidChange` notification with no consumers
 </Update>
 
 <Update label="April 2026" description="v0.5.0">

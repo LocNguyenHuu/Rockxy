@@ -383,23 +383,22 @@ struct AllowListWindowViewModelTests {
     // MARK: - Editor Session (sheet state is identity-driven)
 
     @Test
-    func presentNewRuleEditorAssignsCreateSession() {
+    func presentNewRuleEditorAssignsCreateSession() throws {
         let (viewModel, url) = makeSetup()
         defer { cleanup(url) }
 
         #expect(viewModel.editorSession == nil)
         viewModel.presentNewRuleEditor()
 
-        let session = try? #require(viewModel.editorSession)
-        if case .create(nil) = session?.mode {
-            // expected — blank new rule
-        } else {
-            Issue.record("expected .create(nil) mode, got \(String(describing: session?.mode))")
+        let session = try #require(viewModel.editorSession)
+        guard case .create(nil) = session.mode else {
+            Issue.record("expected .create(nil) mode, got \(String(describing: session.mode))")
+            return
         }
     }
 
     @Test
-    func presentEditorForContextAssignsCreateSessionWithContext() {
+    func presentEditorForContextAssignsCreateSessionWithContext() throws {
         let (viewModel, url) = makeSetup()
         defer { cleanup(url) }
 
@@ -407,17 +406,17 @@ struct AllowListWindowViewModelTests {
         let context = AllowListEditorContextBuilder.fromTransaction(tx)
         viewModel.presentEditorForContext(context)
 
-        let session = try? #require(viewModel.editorSession)
-        if case let .create(ctx?) = session?.mode {
-            #expect(ctx.sourceHost == "api.github.com")
-            #expect(ctx.origin == .selectedTransaction)
-        } else {
-            Issue.record("expected .create with context, got \(String(describing: session?.mode))")
+        let session = try #require(viewModel.editorSession)
+        guard case let .create(ctx?) = session.mode else {
+            Issue.record("expected .create with context, got \(String(describing: session.mode))")
+            return
         }
+        #expect(ctx.sourceHost == "api.github.com")
+        #expect(ctx.origin == .selectedTransaction)
     }
 
     @Test
-    func presentEditorForEditingAssignsEditSession() {
+    func presentEditorForEditingAssignsEditSession() throws {
         let (viewModel, url) = makeSetup()
         defer { cleanup(url) }
 
@@ -431,12 +430,12 @@ struct AllowListWindowViewModelTests {
         let rule = viewModel.manager.rules[0]
         viewModel.presentEditorForEditing(rule)
 
-        let session = try? #require(viewModel.editorSession)
-        if case let .edit(editingRule) = session?.mode {
-            #expect(editingRule.id == rule.id)
-        } else {
-            Issue.record("expected .edit mode, got \(String(describing: session?.mode))")
+        let session = try #require(viewModel.editorSession)
+        guard case let .edit(editingRule) = session.mode else {
+            Issue.record("expected .edit mode, got \(String(describing: session.mode))")
+            return
         }
+        #expect(editingRule.id == rule.id)
     }
 
     @Test
@@ -456,7 +455,7 @@ struct AllowListWindowViewModelTests {
     /// `.sheet(item:)` tears down the old sheet view (dropping its stale
     /// `@State` draft) and re-inits with the new context.
     @Test
-    func secondQuickCreateReplacesOpenEditorSessionWithFreshIdentity() {
+    func secondQuickCreateReplacesOpenEditorSessionWithFreshIdentity() throws {
         let (viewModel, url) = makeSetup()
         defer { cleanup(url) }
 
@@ -464,23 +463,23 @@ struct AllowListWindowViewModelTests {
         let firstContext = AllowListEditorContextBuilder.fromTransaction(firstTx)
         viewModel.presentEditorForContext(firstContext)
 
-        let firstSession = try? #require(viewModel.editorSession)
-        let firstID = firstSession?.id
+        let firstSession = try #require(viewModel.editorSession)
+        let firstID = firstSession.id
 
         // Second quick-create arrives while the sheet is still open.
         let secondTx = TestFixtures.makeTransaction(method: "POST", url: "https://second.example.com/b")
         let secondContext = AllowListEditorContextBuilder.fromTransaction(secondTx)
         viewModel.presentEditorForContext(secondContext)
 
-        let secondSession = try? #require(viewModel.editorSession)
-        #expect(secondSession?.id != firstID, "session id must change so .sheet(item:) rebuilds")
+        let secondSession = try #require(viewModel.editorSession)
+        #expect(secondSession.id != firstID, "session id must change so .sheet(item:) rebuilds")
 
-        if case let .create(ctx?) = secondSession?.mode {
-            #expect(ctx.sourceHost == "second.example.com")
-            #expect(ctx.sourceMethod == "POST")
-        } else {
+        guard case let .create(ctx?) = secondSession.mode else {
             Issue.record("expected second session to carry the new context")
+            return
         }
+        #expect(ctx.sourceHost == "second.example.com")
+        #expect(ctx.sourceMethod == "POST")
     }
 
     @Test

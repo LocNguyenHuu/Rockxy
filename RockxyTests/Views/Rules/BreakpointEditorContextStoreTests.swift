@@ -44,13 +44,18 @@ struct BreakpointEditorContextStoreTests {
     @MainActor
     func contextVersionIncrements() {
         let store = BreakpointEditorContextStore.shared
-        let initial = store.contextVersion
+        // The store is a `.shared` singleton, so a prior test (or the app
+        // process hosting the tests) may have already bumped `contextVersion`.
+        // Capture a snapshot after clearing any pending context and assert
+        // strictly against that snapshot so the test is deterministic.
+        _ = store.consumePending()
+        let baseline = store.contextVersion
 
         store.setPending(BreakpointEditorContextBuilder.fromDomain("a.com"))
-        #expect(store.contextVersion == initial + 1)
+        #expect(store.contextVersion == baseline &+ 1)
 
         store.setPending(BreakpointEditorContextBuilder.fromDomain("b.com"))
-        #expect(store.contextVersion == initial + 2)
+        #expect(store.contextVersion == baseline &+ 2)
 
         _ = store.consumePending()
     }

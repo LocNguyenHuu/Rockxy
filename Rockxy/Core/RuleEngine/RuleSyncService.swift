@@ -58,9 +58,12 @@ enum RuleSyncService {
     }
 
     static func loadFromDisk() async {
-        try? await RuleEngine.shared.loadRules(from: RuleStore())
+        // Read and apply the breakpoint-tool flag BEFORE loading rules so the
+        // rule engine has the correct evaluation gate in place when rules are
+        // first compiled and become live.
         let bpEnabled = UserDefaults.standard.object(forKey: "breakpointToolEnabled") as? Bool ?? true
         await RuleEngine.shared.setBreakpointToolEnabled(bpEnabled)
+        try? await RuleEngine.shared.loadRules(from: RuleStore())
         await syncAll()
     }
 

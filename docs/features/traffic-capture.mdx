@@ -178,6 +178,12 @@ If you have an existing `allow-list.json` from before the redesign, it is loaded
 - Exact host `example.com` becomes an anchored regex that matches only `example.com` (with any scheme, port, path, query, or fragment) — never substring hosts like `notexample.com` or subdomains like `api.example.com`.
 - Subdomain wildcard `*.example.com` becomes an anchored regex that matches subdomains only (`api.example.com`, `a.b.example.com`) — never the bare root `example.com` and never substring hosts.
 
+<Note>
+Migrated legacy entries preserve legacy **case-insensitive host matching** via an inline `(?i)` flag at the start of the generated regex. This applies to both migrated exact-host entries like `example.com` and migrated subdomain wildcard entries like `*.example.com`, so `https://EXAMPLE.com/path` and `https://API.example.com/path` still match their migrated rules.
+
+**Newly authored regex rules are case-sensitive by default.** If you need case-insensitive matching on a new rule, add an inline flag to your pattern, e.g. `(?i)^https://api\.example\.com/.*$`.
+</Note>
+
 ## Sessions and Export
 
 Save your captured traffic for later analysis or sharing.

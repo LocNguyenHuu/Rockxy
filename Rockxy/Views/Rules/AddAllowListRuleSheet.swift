@@ -26,8 +26,13 @@ struct AddAllowListRuleSheet: View {
         case let .edit(rule):
             _ruleName = State(initialValue: rule.name)
             _urlPattern = State(initialValue: rule.rawPattern)
+            // Normalize before enum lookup — imported rules may carry
+            // lowercase method strings that would otherwise fall back to `.any`.
+            let normalizedMethod = rule.method?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .uppercased()
             _httpMethod = State(
-                initialValue: rule.method.flatMap(HTTPMethodFilter.init(rawValue:)) ?? .any
+                initialValue: normalizedMethod.flatMap(HTTPMethodFilter.init(rawValue:)) ?? .any
             )
             _matchType = State(initialValue: rule.matchType)
             _includeSubpaths = State(initialValue: rule.includeSubpaths)

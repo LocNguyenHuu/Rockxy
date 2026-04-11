@@ -7,6 +7,8 @@ import SwiftUI
 /// Left panel of the Breakpoints window showing breakpoint rules and paused items.
 /// Two sections: Rules (breakpoint-type rules) and Paused (items awaiting user decision).
 struct BreakpointSidebarView: View {
+    // MARK: Internal
+
     let windowModel: BreakpointWindowModel
     let manager: BreakpointManager
 
@@ -24,7 +26,7 @@ struct BreakpointSidebarView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List {
-                    Section(header: Text("Paused (\(manager.pausedItems.count))")) {
+                    Section(header: pausedSectionHeader) {
                         ForEach(manager.pausedItems) { item in
                             BreakpointQueueRow(item: item)
                                 .contentShape(Rectangle())
@@ -36,5 +38,20 @@ struct BreakpointSidebarView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: Private
+
+    /// Localized, plural-aware header for the paused items section.
+    /// Uses `AttributedString` with `localized:` + `defaultValue:` so the inline
+    /// `^[…](inflect:)` markdown resolves to the correct singular/plural form
+    /// at runtime, and the integer count remains a first-class argument that
+    /// localizers can reorder per locale.
+    private var pausedSectionHeader: Text {
+        let count = manager.pausedItems.count
+        return Text(
+            "^[\(count) paused](inflect: true)",
+            comment: "Section header showing how many paused items are in the breakpoint queue"
+        )
     }
 }

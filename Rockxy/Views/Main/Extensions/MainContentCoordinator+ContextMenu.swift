@@ -183,7 +183,11 @@ extension MainContentCoordinator {
         let context = AllowListEditorContextBuilder.fromTransaction(transaction)
         AllowListEditorContextStore.shared.setPending(context)
         NotificationCenter.default.post(name: .openAllowListWindow, object: nil)
-        Self.logger.info("Created Allow List rule context for \(transaction.request.url.absoluteString)")
+        // Log only host + path — query strings and fragments may contain
+        // tokens, session IDs, or other sensitive values we must not leak
+        // into OSLog.
+        let safePath = transaction.request.host + transaction.request.path
+        Self.logger.info("Created Allow List rule context for \(safePath, privacy: .private)")
     }
 
     func createNetworkConditionsRule(for transaction: HTTPTransaction) {
