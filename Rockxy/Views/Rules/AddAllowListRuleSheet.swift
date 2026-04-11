@@ -83,6 +83,7 @@ struct AddAllowListRuleSheet: View {
                 }
                 .keyboardShortcut(.cancelAction)
 
+                let trimmedName = ruleName.trimmingCharacters(in: .whitespacesAndNewlines)
                 let trimmedURL = urlPattern.trimmingCharacters(in: .whitespacesAndNewlines)
 
                 Button(isEditing ? String(localized: "Save") : String(localized: "Add")) {
@@ -91,7 +92,7 @@ struct AddAllowListRuleSheet: View {
                     // state from a user who flipped the match type.
                     let effectiveIncludeSubpaths = matchType == .wildcard ? includeSubpaths : false
                     onSave(
-                        ruleName,
+                        trimmedName,
                         trimmedURL,
                         httpMethod,
                         matchType,
