@@ -29,7 +29,7 @@ struct BypassProxySettingsSheet: View {
                             .stroke(Color(nsColor: .separatorColor), lineWidth: 1)
                     )
 
-                Text(String(localized: "Support Wildcard (* and ?); Separate by Comma."))
+                Text(String(localized: "Use * to match all, or *.domain.com for subdomains. Separate by comma."))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }

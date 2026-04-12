@@ -331,6 +331,39 @@ struct SSLProxyingManagerTests {
         #expect(manager.shouldIntercept("secret.example.com"))
     }
 
+    // MARK: - Sidebar Include/Exclude Semantics (Fix 4 regression)
+
+    @Test("exclude rule is not treated as enabled include for sidebar query")
+    func excludeRuleNotTreatedAsEnabled() {
+        let manager = makeManager()
+        manager.addRule(SSLProxyingRule(domain: "api.example.com", listType: .exclude))
+        let enabledIncludes = manager.includeRules.filter { $0.isEnabled && $0.matches("api.example.com") }
+        #expect(enabledIncludes.isEmpty)
+    }
+
+    @Test("disabled include rule is not treated as enabled for sidebar query")
+    func disabledIncludeNotTreatedAsEnabled() {
+        let manager = makeManager()
+        manager.addRule(SSLProxyingRule(domain: "api.example.com", listType: .include))
+        manager.toggleRule(id: manager.rules[0].id)
+        let enabledIncludes = manager.includeRules.filter { $0.isEnabled && $0.matches("api.example.com") }
+        #expect(enabledIncludes.isEmpty)
+    }
+
+    @Test("removing matching include rules preserves exclude rules")
+    func removeIncludePreservesExclude() {
+        let manager = makeManager()
+        manager.addRule(SSLProxyingRule(domain: "api.example.com", listType: .include))
+        manager.addRule(SSLProxyingRule(domain: "api.example.com", listType: .exclude))
+
+        let includeIDs = Set(manager.includeRules.filter { $0.matches("api.example.com") }.map(\.id))
+        manager.removeRules(ids: includeIDs)
+
+        #expect(manager.includeRules.isEmpty)
+        #expect(manager.excludeRules.count == 1)
+        #expect(manager.excludeRules[0].domain == "api.example.com")
+    }
+
     // MARK: Private
 
     private func makeManager() -> SSLProxyingManager {
