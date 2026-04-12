@@ -23,6 +23,7 @@
 		DCA9C5BC2F627204005B1552 /* NIOWebSocket in Frameworks */ = {isa = PBXBuildFile; productRef = DCA9A6462F624B60005B1552 /* NIOWebSocket */; };
 		DCA9D00D2F700001005B1552 /* RockxyHelperTool in Embed Helper Tool */ = {isa = PBXBuildFile; fileRef = DCA9D0012F700000005B1552 /* RockxyHelperTool */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		DCA9D00F2F700001005B1552 /* com.amunx.rockxy.helper.plist in Copy LaunchDaemon Plist */ = {isa = PBXBuildFile; fileRef = DCA9D00E2F700001005B1552 /* com.amunx.rockxy.helper.plist */; };
+		E25EC1AF9EA69827D8EA666D /* SidebarSSLProxyingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BF2554950304269415B1F9D /* SidebarSSLProxyingTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -76,6 +77,7 @@
 
 /* Begin PBXFileReference section */
 		1EBEB3946795881C025CFF6F /* SSLProxyingManagerTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SSLProxyingManagerTests.swift; path = RockxyTests/Core/ProxyEngine/SSLProxyingManagerTests.swift; sourceTree = "<group>"; };
+		2BF2554950304269415B1F9D /* SidebarSSLProxyingTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SidebarSSLProxyingTests.swift; path = RockxyTests/Views/Main/SidebarSSLProxyingTests.swift; sourceTree = "<group>"; };
 		2C99BCD60A0C621D6F0C3A84 /* SSLProxyingListViewModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SSLProxyingListViewModelTests.swift; path = RockxyTests/Views/Settings/SSLProxyingListViewModelTests.swift; sourceTree = "<group>"; };
 		94D100EF398E433CBF214BB5 /* SSLImporterTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SSLImporterTests.swift; path = RockxyTests/Core/ProxyEngine/SSLImporterTests.swift; sourceTree = "<group>"; };
 		B4AB602A25240F8F700239D0 /* SSLProxyingRuleTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SSLProxyingRuleTests.swift; path = RockxyTests/Models/Settings/SSLProxyingRuleTests.swift; sourceTree = "<group>"; };
@@ -199,6 +201,14 @@
 			name = Models;
 			sourceTree = "<group>";
 		};
+		2FCC80A8F99ED24C5FBBA7A0 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				ADC94577101C27700366E9E6 /* Main */,
+			);
+			name = Views;
+			sourceTree = "<group>";
+		};
 		5B7D9626F6D6ADD5A0557D3C /* RockxyTests */ = {
 			isa = PBXGroup;
 			children = (
@@ -237,6 +247,14 @@
 				C9D348B54FEF83D6732D6F41 /* ProxyEngine */,
 			);
 			name = Core;
+			sourceTree = "<group>";
+		};
+		ADC94577101C27700366E9E6 /* Main */ = {
+			isa = PBXGroup;
+			children = (
+				2BF2554950304269415B1F9D /* SidebarSSLProxyingTests.swift */,
+			);
+			name = Main;
 			sourceTree = "<group>";
 		};
 		B0D53E55A0395AE86AB9283A /* RockxyTests */ = {
@@ -286,6 +304,7 @@
 				B0D53E55A0395AE86AB9283A /* RockxyTests */,
 				5B7D9626F6D6ADD5A0557D3C /* RockxyTests */,
 				129A3C61A8A5DBD53D1EA91B /* RockxyTests */,
+				ECBA3EE42792B0D2030227EA /* RockxyTests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -298,6 +317,14 @@
 				DCA99FD42F61ADCC005B1552 /* RockxyUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		ECBA3EE42792B0D2030227EA /* RockxyTests */ = {
+			isa = PBXGroup;
+			children = (
+				2FCC80A8F99ED24C5FBBA7A0 /* Views */,
+			);
+			name = RockxyTests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -514,6 +541,7 @@
 				367616A431CBEF0267406816 /* SSLProxyingManagerTests.swift in Sources */,
 				54693F1BBE4DAE550D67ABB1 /* SSLImporterTests.swift in Sources */,
 				69DD8D8F306B4AEE24A4234C /* SSLProxyingListViewModelTests.swift in Sources */,
+				E25EC1AF9EA69827D8EA666D /* SidebarSSLProxyingTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
