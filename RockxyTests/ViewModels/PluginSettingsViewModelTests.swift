@@ -32,7 +32,7 @@ struct PluginSettingsViewModelTests {
         viewModel.plugins = [
             makePlugin(id: "a", name: "Alpha", types: [.script]),
             makePlugin(id: "b", name: "Beta", types: [.inspector]),
-            makePlugin(id: "c", name: "Gamma", types: [.exporter])
+            makePlugin(id: "c", name: "Gamma", types: [.exporter]),
         ]
 
         #expect(viewModel.filteredPlugins.count == 3)
@@ -44,7 +44,7 @@ struct PluginSettingsViewModelTests {
         viewModel.plugins = [
             makePlugin(id: "a", name: "Alpha", types: [.script]),
             makePlugin(id: "b", name: "Beta", types: [.inspector]),
-            makePlugin(id: "c", name: "Gamma", types: [.inspector, .exporter])
+            makePlugin(id: "c", name: "Gamma", types: [.inspector, .exporter]),
         ]
         viewModel.selectedCategory = .inspector
 
@@ -59,7 +59,7 @@ struct PluginSettingsViewModelTests {
         viewModel.plugins = [
             makePlugin(id: "a", name: "JSON Viewer", types: [.inspector]),
             makePlugin(id: "b", name: "HAR Exporter", types: [.exporter]),
-            makePlugin(id: "c", name: "JSON Formatter", types: [.script])
+            makePlugin(id: "c", name: "JSON Formatter", types: [.script]),
         ]
         viewModel.searchText = "json"
 
@@ -74,7 +74,7 @@ struct PluginSettingsViewModelTests {
         viewModel.plugins = [
             makePlugin(id: "a", name: "JSON Viewer", types: [.inspector]),
             makePlugin(id: "b", name: "JSON Exporter", types: [.exporter]),
-            makePlugin(id: "c", name: "HAR Exporter", types: [.exporter])
+            makePlugin(id: "c", name: "HAR Exporter", types: [.exporter]),
         ]
         viewModel.searchText = "json"
         viewModel.selectedCategory = .exporter
@@ -89,7 +89,7 @@ struct PluginSettingsViewModelTests {
         let viewModel = PluginSettingsViewModel()
         viewModel.plugins = [
             makePlugin(id: "a", name: "Alpha", types: [.script]),
-            makePlugin(id: "b", name: "Beta", types: [.inspector])
+            makePlugin(id: "b", name: "Beta", types: [.inspector]),
         ]
         viewModel.selectedPluginID = "b"
 
@@ -101,23 +101,63 @@ struct PluginSettingsViewModelTests {
     func selectedPluginReturnsNilForUnknownID() {
         let viewModel = PluginSettingsViewModel()
         viewModel.plugins = [
-            makePlugin(id: "a", name: "Alpha", types: [.script])
+            makePlugin(id: "a", name: "Alpha", types: [.script]),
         ]
         viewModel.selectedPluginID = "nonexistent"
 
         #expect(viewModel.selectedPlugin == nil)
     }
 
-    @Test("togglePlugin does not crash for unmanaged plugin")
-    func togglePluginSafe() async {
-        let viewModel = PluginSettingsViewModel()
+    // MARK: - Runtime-Backed Toggle Tests
+
+    @Test("togglePlugin disable refreshes from shared manager")
+    func toggleDisableRefreshes() async {
+        let manager = ScriptPluginManager()
+        let viewModel = PluginSettingsViewModel(pluginManager: manager)
         viewModel.plugins = [
-            makePlugin(id: "toggle-test", name: "Toggle Me", types: [.script], enabled: true)
+            makePlugin(id: "test-toggle", name: "Toggle", types: [.script], enabled: true),
         ]
-        // Toggling a plugin not loaded in the shared ScriptPluginManager
-        // gracefully handles the no-op from the manager's guard.
-        await viewModel.togglePlugin(id: "toggle-test")
-        // No crash — the toggle refreshes plugins from the shared manager.
+
+        // Disable a plugin not in the real manager — manager's disable is a
+        // no-op for unknown IDs, and the VM refreshes from the manager state.
+        await viewModel.togglePlugin(id: "test-toggle")
+
+        // After refresh, viewModel.plugins reflects the manager's actual list
+        // (which is empty since we never loaded real plugins).
+        let managerPlugins = await manager.plugins
+        #expect(viewModel.plugins.count == managerPlugins.count)
+    }
+
+    @Test("togglePlugin enable for missing plugin refreshes on error")
+    func toggleEnableMissingPluginRefreshes() async {
+        let manager = ScriptPluginManager()
+        let viewModel = PluginSettingsViewModel(pluginManager: manager)
+        viewModel.plugins = [
+            makePlugin(id: "gone", name: "Gone", types: [.script], enabled: false),
+        ]
+
+        // Enabling a plugin that doesn't exist in the manager throws
+        // ScriptPluginError.pluginNotFound — the VM catches and refreshes.
+        await viewModel.togglePlugin(id: "gone")
+
+        // plugins refreshed from the manager (which has no plugins loaded)
+        let managerPlugins = await manager.plugins
+        #expect(viewModel.plugins.count == managerPlugins.count)
+    }
+
+    @Test("Both ViewModels observe same ScriptPluginManager state")
+    func sharedManagerState() async {
+        let manager = ScriptPluginManager()
+        let settings = PluginSettingsViewModel(pluginManager: manager)
+        let scripting = ScriptingViewModel(pluginManager: manager)
+
+        await settings.loadPlugins()
+        await scripting.loadPlugins()
+
+        // Both should reflect the same (empty) plugin list from the shared manager
+        let managerPlugins = await manager.plugins
+        #expect(settings.plugins.count == managerPlugins.count)
+        #expect(scripting.plugins.count == managerPlugins.count)
     }
 
     // MARK: Private

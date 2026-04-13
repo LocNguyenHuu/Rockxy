@@ -25,12 +25,75 @@ struct ScriptQuotaTests {
         #expect(error.localizedDescription.contains("5"))
     }
 
-    @Test("enablePluginIfAllowed is atomic — rejects when at limit")
-    func enableIfAllowedAtLimit() async {
+    @Test("ScriptPluginError.pluginNotFound provides description")
+    func pluginNotFoundDescription() {
+        let error = ScriptPluginError.pluginNotFound("test-id")
+        #expect(error.localizedDescription.contains("test-id"))
+    }
+
+    @Test("enablePluginIfAllowed throws for missing plugin ID")
+    func enableMissingPluginThrows() async {
         let manager = ScriptPluginManager()
-        // No plugins loaded → enabledCount is 0, maxEnabled 0 → should reject
-        let accepted = try? await manager.enablePluginIfAllowed(id: "nonexistent", maxEnabled: 0)
-        #expect(accepted == false)
+        do {
+            _ = try await manager.enablePluginIfAllowed(id: "nonexistent", maxEnabled: 10)
+            Issue.record("Expected ScriptPluginError.pluginNotFound")
+        } catch is ScriptPluginError {
+            // Expected
+        } catch {
+            Issue.record("Expected ScriptPluginError, got \(error)")
+        }
+    }
+
+    @Test("enablePlugin throws for missing plugin ID")
+    func enablePluginMissingThrows() async {
+        let manager = ScriptPluginManager()
+        do {
+            try await manager.enablePlugin(id: "nonexistent")
+            Issue.record("Expected ScriptPluginError.pluginNotFound")
+        } catch is ScriptPluginError {
+            // Expected
+        } catch {
+            Issue.record("Expected ScriptPluginError, got \(error)")
+        }
+    }
+
+    @Test("enablePluginIfAllowed throws for missing plugin even at zero limit")
+    func enableIfAllowedMissingAtZeroLimit() async {
+        let manager = ScriptPluginManager()
+        // Plugin not found is checked before quota — throws, does not return false
+        do {
+            _ = try await manager.enablePluginIfAllowed(id: "nonexistent", maxEnabled: 0)
+            Issue.record("Expected ScriptPluginError.pluginNotFound")
+        } catch is ScriptPluginError {
+            // Expected — plugin not found checked first
+        } catch {
+            Issue.record("Expected ScriptPluginError, got \(error)")
+        }
+    }
+
+    @Test("Concurrent enables against shared manager are serialized by actor")
+    func concurrentEnablesAreSerialized() async {
+        let manager = ScriptPluginManager()
+        // With no plugins loaded, all enables will throw pluginNotFound.
+        // The key test here is that the actor serializes calls correctly
+        // without crashing or data corruption.
+        await withTaskGroup(of: Bool.self) { group in
+            for _ in 0 ..< 10 {
+                group.addTask {
+                    do {
+                        return try await manager.enablePluginIfAllowed(id: "test", maxEnabled: 2)
+                    } catch {
+                        return false
+                    }
+                }
+            }
+            var results: [Bool] = []
+            for await result in group {
+                results.append(result)
+            }
+            // All should return false (either quota or plugin-not-found)
+            #expect(results.allSatisfy { !$0 })
+        }
     }
 
     @Test("ScriptPolicyGate.configure only applies first call")
@@ -39,11 +102,9 @@ struct ScriptQuotaTests {
         ScriptPolicyGate.resetForTesting(policy: TinyScriptPolicy())
         #expect(ScriptPolicyGate.shared.policy.maxEnabledScripts == 2)
 
-        // Second configure should be ignored
         ScriptPolicyGate.configure(policy: DefaultAppPolicy())
         #expect(ScriptPolicyGate.shared.policy.maxEnabledScripts == 2)
 
-        // Cleanup
         ScriptPolicyGate.resetForTesting()
     }
 }

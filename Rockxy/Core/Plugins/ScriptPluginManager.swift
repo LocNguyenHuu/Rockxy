@@ -4,6 +4,21 @@ import os
 // Defines `ScriptPluginManager`, which coordinates script plugin behavior in the plugin
 // and scripting subsystem.
 
+// MARK: - ScriptPluginError
+
+enum ScriptPluginError: Error, LocalizedError {
+    case pluginNotFound(String)
+
+    // MARK: Internal
+
+    var errorDescription: String? {
+        switch self {
+        case let .pluginNotFound(id):
+            "Plugin not found: \(id)"
+        }
+    }
+}
+
 // MARK: - ScriptPluginManager
 
 actor ScriptPluginManager {
@@ -31,7 +46,7 @@ actor ScriptPluginManager {
 
     func enablePlugin(id: String) async throws {
         guard let index = plugins.firstIndex(where: { $0.id == id }) else {
-            return
+            throw ScriptPluginError.pluginNotFound(id)
         }
         try await runtime.loadPlugin(plugins[index])
         plugins[index].isEnabled = true
@@ -40,13 +55,35 @@ actor ScriptPluginManager {
         Self.logger.info("Enabled plugin: \(id)")
     }
 
+    /// Atomically check quota and enable. Marks isEnabled = true BEFORE the
+    /// async runtime.loadPlugin suspend point so concurrent callers see the
+    /// updated count. Rolls back on load failure.
     func enablePluginIfAllowed(id: String, maxEnabled: Int) async throws -> Bool {
+        guard let index = plugins.firstIndex(where: { $0.id == id }) else {
+            throw ScriptPluginError.pluginNotFound(id)
+        }
+
         let enabledCount = plugins.filter(\.isEnabled).count
         guard enabledCount < maxEnabled else {
             return false
         }
-        try await enablePlugin(id: id)
-        return true
+
+        // Claim the slot before suspending — concurrent callers will see
+        // this plugin as enabled and count it toward the limit.
+        plugins[index].isEnabled = true
+
+        do {
+            try await runtime.loadPlugin(plugins[index])
+            plugins[index].status = .active
+            UserDefaults.standard.set(true, forKey: RockxyIdentity.current.pluginEnabledKey(pluginID: id))
+            Self.logger.info("Enabled plugin: \(id)")
+            return true
+        } catch {
+            // Roll back on load failure
+            plugins[index].isEnabled = false
+            plugins[index].status = .error(error.localizedDescription)
+            throw error
+        }
     }
 
     func disablePlugin(id: String) async {
