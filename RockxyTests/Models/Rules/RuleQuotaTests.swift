@@ -6,10 +6,9 @@ import Testing
 
 /// Tests ``RulePolicyGate`` per-category active rule limits.
 ///
-/// Uses throttle rules (unique category, no other suite creates them).
-/// Seeds directly into RuleEngine (no RuleSyncService disk writes).
-/// Gate methods are called only for rejection paths (quota reached) which
-/// return `false` before reaching RuleSyncService.
+/// Counts pre-existing rules in the shared ``RuleEngine`` before seeding,
+/// so tests are immune to cross-suite singleton pollution from parallel
+/// test processes.
 @Suite(.serialized)
 @MainActor
 struct RuleQuotaTests {
@@ -17,9 +16,11 @@ struct RuleQuotaTests {
 
     @Test("Adding rule at quota is rejected")
     func addAtQuotaRejected() async {
+        let baseline = await activeCount(for: "throttle")
+        let gate = RulePolicyGate(policy: PolicyWithLimit(baseline + 2))
+
         let ids = await seedThrottleRules(count: 2)
 
-        let gate = makeGate()
         let rejected = await gate.addRule(makeThrottle())
         #expect(!rejected)
 
@@ -28,13 +29,15 @@ struct RuleQuotaTests {
 
     @Test("Toggle-enable at quota is rejected")
     func toggleEnableAtQuota() async {
+        let baseline = await activeCount(for: "throttle")
+        let gate = RulePolicyGate(policy: PolicyWithLimit(baseline + 2))
+
         let ids = await seedThrottleRules(count: 2)
 
         var disabled = makeThrottle()
         disabled.isEnabled = false
         await RuleEngine.shared.addRule(disabled)
 
-        let gate = makeGate()
         let toggled = await gate.toggleRule(id: disabled.id)
         #expect(!toggled)
 
@@ -44,19 +47,18 @@ struct RuleQuotaTests {
 
     @Test("Disabled rules do not count toward quota")
     func disabledRulesExcluded() async {
+        let baseline = await activeCount(for: "throttle")
+        let gate = RulePolicyGate(policy: PolicyWithLimit(baseline + 2))
+
         let ids = await seedThrottleRules(count: 2)
 
-        // Add a disabled rule directly (bypasses sync)
         var disabled = makeThrottle()
         disabled.isEnabled = false
         await RuleEngine.shared.addRule(disabled)
 
-        // Verify: 2 enabled + 1 disabled = the disabled one doesn't push over quota
         let allRules = await RuleEngine.shared.allRules
         let activeThrottle = allRules.filter { $0.isEnabled && $0.action.toolCategory == "throttle" }.count
-        #expect(activeThrottle == 2)
-        let totalThrottle = allRules.filter { $0.action.toolCategory == "throttle" }.count
-        #expect(totalThrottle == 3)
+        #expect(activeThrottle == baseline + 2)
 
         await RuleEngine.shared.removeRule(id: disabled.id)
         await removeRules(ids)
@@ -88,8 +90,9 @@ struct RuleQuotaTests {
 
     // MARK: - Helpers
 
-    private func makeGate() -> RulePolicyGate {
-        RulePolicyGate(policy: SmallRulePolicy())
+    private func activeCount(for category: String) async -> Int {
+        let allRules = await RuleEngine.shared.allRules
+        return allRules.filter { $0.isEnabled && $0.action.toolCategory == category }.count
     }
 
     private func makeThrottle() -> ProxyRule {
@@ -117,12 +120,21 @@ struct RuleQuotaTests {
     }
 }
 
-// MARK: - SmallRulePolicy
+// MARK: - PolicyWithLimit
 
-private struct SmallRulePolicy: AppPolicy {
+/// Policy that sets the per-tool limit to a specific value (baseline + headroom).
+private struct PolicyWithLimit: AppPolicy {
+    // MARK: Lifecycle
+
+    init(_ maxRules: Int) {
+        maxActiveRulesPerTool = maxRules
+    }
+
+    // MARK: Internal
+
     let maxWorkspaceTabs = 8
     let maxDomainFavorites = 5
-    let maxActiveRulesPerTool = 2
+    let maxActiveRulesPerTool: Int
     let maxEnabledScripts = 10
     let maxLiveHistoryEntries = 1_000
 }
