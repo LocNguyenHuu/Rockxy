@@ -31,6 +31,8 @@ struct ScriptQuotaTests {
         #expect(error.localizedDescription.contains("test-id"))
     }
 
+    // MARK: - Missing Plugin Errors
+
     @Test("enablePluginIfAllowed throws for missing plugin ID")
     func enableMissingPluginThrows() async {
         let manager = ScriptPluginManager()
@@ -44,11 +46,11 @@ struct ScriptQuotaTests {
         }
     }
 
-    @Test("enablePlugin throws for missing plugin ID")
-    func enablePluginMissingThrows() async {
+    @Test("enablePluginIfAllowed throws for missing plugin even at zero limit")
+    func enableIfAllowedMissingAtZeroLimit() async {
         let manager = ScriptPluginManager()
         do {
-            try await manager.enablePlugin(id: "nonexistent")
+            _ = try await manager.enablePluginIfAllowed(id: "nonexistent", maxEnabled: 0)
             Issue.record("Expected ScriptPluginError.pluginNotFound")
         } catch is ScriptPluginError {
             // Expected
@@ -57,26 +59,28 @@ struct ScriptQuotaTests {
         }
     }
 
-    @Test("enablePluginIfAllowed throws for missing plugin even at zero limit")
-    func enableIfAllowedMissingAtZeroLimit() async {
+    @Test("ScriptPolicyGate.enablePlugin propagates pluginNotFound")
+    @MainActor
+    func gatePropagatesPluginNotFound() async {
         let manager = ScriptPluginManager()
-        // Plugin not found is checked before quota — throws, does not return false
+        let gate = ScriptPolicyGate(policy: DefaultAppPolicy())
         do {
-            _ = try await manager.enablePluginIfAllowed(id: "nonexistent", maxEnabled: 0)
-            Issue.record("Expected ScriptPluginError.pluginNotFound")
+            try await gate.enablePlugin(id: "ghost", using: manager)
+            Issue.record("Expected error")
         } catch is ScriptPluginError {
-            // Expected — plugin not found checked first
+            // Expected — missing plugin
+        } catch is ScriptQuotaError {
+            Issue.record("Should have thrown ScriptPluginError, not quota error")
         } catch {
-            Issue.record("Expected ScriptPluginError, got \(error)")
+            Issue.record("Unexpected error: \(error)")
         }
     }
+
+    // MARK: - Concurrent Enables
 
     @Test("Concurrent enables against shared manager are serialized by actor")
     func concurrentEnablesAreSerialized() async {
         let manager = ScriptPluginManager()
-        // With no plugins loaded, all enables will throw pluginNotFound.
-        // The key test here is that the actor serializes calls correctly
-        // without crashing or data corruption.
         await withTaskGroup(of: Bool.self) { group in
             for _ in 0 ..< 10 {
                 group.addTask {
@@ -91,21 +95,24 @@ struct ScriptQuotaTests {
             for await result in group {
                 results.append(result)
             }
-            // All should return false (either quota or plugin-not-found)
+            // All should fail (plugin not found)
             #expect(results.allSatisfy { !$0 })
         }
     }
 
-    @Test("ScriptPolicyGate.configure only applies first call")
+    // MARK: - Policy Injection
+
+    @Test("Custom policy takes effect through .shared assignment")
     @MainActor
-    func gateConfigureOnce() {
-        ScriptPolicyGate.resetForTesting(policy: TinyScriptPolicy())
+    func customPolicyInjectable() {
+        let saved = ScriptPolicyGate.shared
+        defer { ScriptPolicyGate.shared = saved }
+
+        ScriptPolicyGate.shared = ScriptPolicyGate(policy: TinyScriptPolicy())
         #expect(ScriptPolicyGate.shared.policy.maxEnabledScripts == 2)
 
-        ScriptPolicyGate.configure(policy: DefaultAppPolicy())
-        #expect(ScriptPolicyGate.shared.policy.maxEnabledScripts == 2)
-
-        ScriptPolicyGate.resetForTesting()
+        ScriptPolicyGate.shared = ScriptPolicyGate(policy: DefaultAppPolicy())
+        #expect(ScriptPolicyGate.shared.policy.maxEnabledScripts == 10)
     }
 }
 

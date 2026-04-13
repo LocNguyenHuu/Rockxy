@@ -86,63 +86,67 @@ struct RuleQuotaTests {
 
     // MARK: - Bulk Replace Quota
 
-    @Test("capEnabledPerCategory disables excess rules per category")
-    func bulkReplaceCapsExcess() {
-        let rules: [ProxyRule] = (0 ..< 5).map { _ in
-            ProxyRule(
-                name: "Block",
-                matchCondition: RuleMatchCondition(urlPattern: ".*"),
-                action: .block(statusCode: 403)
-            )
-        }
-        let capped = RulePolicyGate.capEnabledPerCategory(rules, limit: 3)
-        let enabledCount = capped.filter(\.isEnabled).count
-        #expect(enabledCount == 3)
-        let disabledCount = capped.filter { !$0.isEnabled }.count
-        #expect(disabledCount == 2)
-    }
+    @Test("capEnabledPerCategory caps excess in changed category only")
+    func bulkReplaceCapsChangedCategoryOnly() {
+        // Baseline: 2 blocks enabled, 1 throttle enabled
+        let baseline: [ProxyRule] = [
+            makeNamedRule(name: "B1", action: .block(statusCode: 403), enabled: true),
+            makeNamedRule(name: "B2", action: .block(statusCode: 403), enabled: true),
+            makeNamedRule(name: "T1", action: .throttle(delayMs: 100), enabled: true),
+        ]
+        // Replacement: enable ALL 4 blocks, keep 1 throttle
+        var replacement = baseline
+        replacement.append(makeNamedRule(name: "B3", action: .block(statusCode: 403), enabled: true))
+        replacement.append(makeNamedRule(name: "B4", action: .block(statusCode: 403), enabled: true))
 
-    @Test("capEnabledPerCategory respects cross-category limits independently")
-    func bulkReplaceCrossCategoryIndependence() {
-        var rules: [ProxyRule] = (0 ..< 3).map { _ in
-            ProxyRule(
-                name: "Block",
-                matchCondition: RuleMatchCondition(urlPattern: ".*"),
-                action: .block(statusCode: 403)
-            )
-        }
-        rules += (0 ..< 3).map { _ in
-            ProxyRule(
-                name: "Throttle",
-                matchCondition: RuleMatchCondition(urlPattern: ".*"),
-                action: .throttle(delayMs: 100)
-            )
-        }
-        let capped = RulePolicyGate.capEnabledPerCategory(rules, limit: 2)
+        let capped = RulePolicyGate.capEnabledPerCategory(replacement, limit: 3, baseline: baseline)
         let enabledBlocks = capped.filter { $0.isEnabled && $0.action.toolCategory == "block" }.count
         let enabledThrottles = capped.filter { $0.isEnabled && $0.action.toolCategory == "throttle" }.count
-        #expect(enabledBlocks == 2)
-        #expect(enabledThrottles == 2)
+        // Blocks capped at 3 (grew from 2 → 4, exceeds limit 3)
+        #expect(enabledBlocks == 3)
+        // Throttle untouched (was 1, still 1 — no growth beyond limit)
+        #expect(enabledThrottles == 1)
     }
 
-    // MARK: - Gate Configure-Once
+    @Test("capEnabledPerCategory does not touch categories within quota")
+    func bulkReplacePreservesWithinQuota() {
+        let baseline: [ProxyRule] = [
+            makeNamedRule(name: "B1", action: .block(statusCode: 403), enabled: true),
+            makeNamedRule(name: "B2", action: .block(statusCode: 403), enabled: true),
+        ]
+        // No change — same rules
+        let capped = RulePolicyGate.capEnabledPerCategory(baseline, limit: 3, baseline: baseline)
+        let enabledBlocks = capped.filter { $0.isEnabled && $0.action.toolCategory == "block" }.count
+        #expect(enabledBlocks == 2)
+    }
 
-    @Test("RulePolicyGate.configure only applies first call")
-    func gateConfigureOnce() {
-        RulePolicyGate.resetForTesting(policy: PolicyWithLimit(5))
+    // MARK: - Policy Injection
+
+    @Test("Custom policy takes effect through .shared assignment")
+    func customPolicyInjectable() {
+        let saved = RulePolicyGate.shared
+        defer { RulePolicyGate.shared = saved }
+
+        RulePolicyGate.shared = RulePolicyGate(policy: PolicyWithLimit(5))
         #expect(RulePolicyGate.shared.policy.maxActiveRulesPerTool == 5)
 
-        // Second configure should be ignored
-        RulePolicyGate.configure(policy: PolicyWithLimit(99))
-        #expect(RulePolicyGate.shared.policy.maxActiveRulesPerTool == 5)
+        RulePolicyGate.shared = RulePolicyGate(policy: PolicyWithLimit(99))
+        #expect(RulePolicyGate.shared.policy.maxActiveRulesPerTool == 99)
+    }
 
-        // Cleanup
-        RulePolicyGate.resetForTesting()
+    @Test("Multiple coordinators can each set different policy")
+    func multipleCoordinatorPolicies() {
+        let saved = RulePolicyGate.shared
+        defer { RulePolicyGate.shared = saved }
+
+        _ = MainContentCoordinator(policy: PolicyWithLimit(3))
+        #expect(RulePolicyGate.shared.policy.maxActiveRulesPerTool == 3)
+
+        _ = MainContentCoordinator(policy: PolicyWithLimit(7))
+        #expect(RulePolicyGate.shared.policy.maxActiveRulesPerTool == 7)
     }
 
     // MARK: Private
-
-    // MARK: - Helpers
 
     private func activeCount(for category: String) async -> Int {
         let allRules = await RuleEngine.shared.allRules
@@ -155,6 +159,16 @@ struct RuleQuotaTests {
             matchCondition: RuleMatchCondition(urlPattern: ".*quota-test-throttle.*"),
             action: .throttle(delayMs: 999)
         )
+    }
+
+    private func makeNamedRule(name: String, action: RuleAction, enabled: Bool) -> ProxyRule {
+        var rule = ProxyRule(
+            name: name,
+            matchCondition: RuleMatchCondition(urlPattern: ".*"),
+            action: action
+        )
+        rule.isEnabled = enabled
+        return rule
     }
 
     private func seedThrottleRules(count: Int) async -> [UUID] {
@@ -176,7 +190,7 @@ struct RuleQuotaTests {
 
 // MARK: - PolicyWithLimit
 
-/// Policy that sets the per-tool limit to a specific value (baseline + headroom).
+/// Policy that sets the per-tool limit to a specific value.
 private struct PolicyWithLimit: AppPolicy {
     // MARK: Lifecycle
 

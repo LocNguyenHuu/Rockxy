@@ -31,23 +31,9 @@ final class ScriptPolicyGate {
 
     // MARK: Internal
 
-    private(set) static var shared = ScriptPolicyGate()
+    static var shared = ScriptPolicyGate()
 
     let policy: any AppPolicy
-
-    static func configure(policy: any AppPolicy) {
-        guard !isConfigured else {
-            return
-        }
-        isConfigured = true
-        shared = ScriptPolicyGate(policy: policy)
-    }
-
-    /// Reset shared state for testing. Not for production use.
-    static func resetForTesting(policy: any AppPolicy = DefaultAppPolicy()) {
-        isConfigured = false
-        configure(policy: policy)
-    }
 
     func enablePlugin(id: String, using manager: ScriptPluginManager) async throws {
         let accepted = try await manager.enablePluginIfAllowed(
@@ -60,8 +46,6 @@ final class ScriptPolicyGate {
     }
 
     // MARK: Private
-
-    private static var isConfigured = false
 
     private static let logger = Logger(
         subsystem: RockxyIdentity.current.logSubsystem,

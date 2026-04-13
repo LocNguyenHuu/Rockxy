@@ -94,6 +94,9 @@ final class BreakpointRulesViewModel {
             let accepted = await RulePolicyGate.shared.addRule(rule)
             if !accepted {
                 allRules = await RuleEngine.shared.allRules
+                if !allRules.contains(where: { $0.id == rule.id }) {
+                    selectedRuleID = nil
+                }
             }
         }
     }
@@ -169,6 +172,9 @@ final class BreakpointRulesViewModel {
             let accepted = await RulePolicyGate.shared.addRule(copy)
             if !accepted {
                 allRules = await RuleEngine.shared.allRules
+                if !allRules.contains(where: { $0.id == copy.id }) {
+                    selectedRuleID = nil
+                }
             }
         }
     }

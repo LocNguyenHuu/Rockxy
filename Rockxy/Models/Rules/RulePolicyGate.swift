@@ -17,34 +17,48 @@ final class RulePolicyGate {
 
     // MARK: Internal
 
-    private(set) static var shared = RulePolicyGate()
+    static var shared = RulePolicyGate()
 
     let policy: any AppPolicy
 
-    static func configure(policy: any AppPolicy) {
-        guard !isConfigured else {
-            return
+    /// Cap enabled rules only in categories that exceed the limit compared to the
+    /// `baseline`. Categories unchanged or within quota are left untouched.
+    static func capEnabledPerCategory(
+        _ rules: [ProxyRule],
+        limit: Int,
+        baseline: [ProxyRule]
+    )
+        -> [ProxyRule]
+    {
+        let baselineCounts = enabledCounts(in: baseline)
+        var newCounts = enabledCounts(in: rules)
+
+        // Only enforce on categories that grew beyond the limit
+        var categoriesToCap: Set<String> = []
+        for (cat, count) in newCounts where count > limit {
+            let prior = baselineCounts[cat, default: 0]
+            if count > prior {
+                categoriesToCap.insert(cat)
+            }
         }
-        isConfigured = true
-        shared = RulePolicyGate(policy: policy)
-    }
 
-    /// Reset shared state for testing. Not for production use.
-    static func resetForTesting(policy: any AppPolicy = DefaultAppPolicy()) {
-        isConfigured = false
-        configure(policy: policy)
-    }
+        guard !categoriesToCap.isEmpty else {
+            return rules
+        }
 
-    static func capEnabledPerCategory(_ rules: [ProxyRule], limit: Int) -> [ProxyRule] {
-        var counts: [String: Int] = [:]
         var result = rules
+        var running: [String: Int] = [:]
         for index in result.indices where result[index].isEnabled {
             let cat = result[index].action.toolCategory
-            let count = counts[cat, default: 0]
+            guard categoriesToCap.contains(cat) else {
+                continue
+            }
+            let count = running[cat, default: 0]
             if count >= limit {
                 result[index].isEnabled = false
+                newCounts[cat] = (newCounts[cat] ?? 0) - 1
             } else {
-                counts[cat] = count + 1
+                running[cat] = count + 1
             }
         }
         return result
@@ -124,7 +138,8 @@ final class RulePolicyGate {
     }
 
     func replaceAllRules(_ rules: [ProxyRule]) async {
-        let capped = Self.capEnabledPerCategory(rules, limit: policy.maxActiveRulesPerTool)
+        let baseline = await RuleEngine.shared.allRules
+        let capped = Self.capEnabledPerCategory(rules, limit: policy.maxActiveRulesPerTool, baseline: baseline)
         await RuleSyncService.replaceAllRules(capped)
     }
 
@@ -134,12 +149,18 @@ final class RulePolicyGate {
 
     // MARK: Private
 
-    private static var isConfigured = false
-
     private static let logger = Logger(
         subsystem: RockxyIdentity.current.logSubsystem,
         category: "RulePolicyGate"
     )
+
+    private static func enabledCounts(in rules: [ProxyRule]) -> [String: Int] {
+        var counts: [String: Int] = [:]
+        for rule in rules where rule.isEnabled {
+            counts[rule.action.toolCategory, default: 0] += 1
+        }
+        return counts
+    }
 
     private func canAddActiveRule(action: RuleAction) async -> Bool {
         let allRules = await RuleEngine.shared.allRules

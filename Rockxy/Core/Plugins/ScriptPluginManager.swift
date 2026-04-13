@@ -44,20 +44,10 @@ actor ScriptPluginManager {
         Self.logger.info("Loaded \(self.plugins.count) plugins")
     }
 
-    func enablePlugin(id: String) async throws {
-        guard let index = plugins.firstIndex(where: { $0.id == id }) else {
-            throw ScriptPluginError.pluginNotFound(id)
-        }
-        try await runtime.loadPlugin(plugins[index])
-        plugins[index].isEnabled = true
-        plugins[index].status = .active
-        UserDefaults.standard.set(true, forKey: RockxyIdentity.current.pluginEnabledKey(pluginID: id))
-        Self.logger.info("Enabled plugin: \(id)")
-    }
-
-    /// Atomically check quota and enable. Marks isEnabled = true BEFORE the
-    /// async runtime.loadPlugin suspend point so concurrent callers see the
-    /// updated count. Rolls back on load failure.
+    /// Enable a plugin if the quota allows. Claims the enabled slot synchronously
+    /// before the first `await` so concurrent callers see the updated count.
+    /// Rolls back on load failure. Throws `ScriptPluginError.pluginNotFound` if
+    /// the plugin ID does not exist.
     func enablePluginIfAllowed(id: String, maxEnabled: Int) async throws -> Bool {
         guard let index = plugins.firstIndex(where: { $0.id == id }) else {
             throw ScriptPluginError.pluginNotFound(id)
@@ -68,8 +58,8 @@ actor ScriptPluginManager {
             return false
         }
 
-        // Claim the slot before suspending — concurrent callers will see
-        // this plugin as enabled and count it toward the limit.
+        // Claim the slot synchronously — no await has occurred yet, so this
+        // is atomic with the count check above within the actor.
         plugins[index].isEnabled = true
 
         do {
@@ -79,7 +69,6 @@ actor ScriptPluginManager {
             Self.logger.info("Enabled plugin: \(id)")
             return true
         } catch {
-            // Roll back on load failure
             plugins[index].isEnabled = false
             plugins[index].status = .error(error.localizedDescription)
             throw error
