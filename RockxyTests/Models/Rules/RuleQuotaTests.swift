@@ -180,6 +180,46 @@ struct RuleQuotaTests {
         #expect(RulePolicyGate.shared.policy.maxActiveRulesPerTool == 42)
     }
 
+    // MARK: - Exclusive Network Condition Quota
+
+    @Test("Exclusive network-condition enable respects injected quota")
+    func exclusiveNetworkConditionRespectsQuota() async {
+        // Create a gate with limit = 0 — no rules should be enableable
+        let gate = RulePolicyGate(policy: PolicyWithLimit(0))
+
+        let rule = ProxyRule(
+            name: "NetCond",
+            isEnabled: false,
+            matchCondition: RuleMatchCondition(urlPattern: ".*"),
+            action: .networkCondition(preset: .custom, delayMs: 100)
+        )
+        await RuleEngine.shared.addRule(rule)
+
+        let accepted = await gate.enableExclusiveNetworkCondition(id: rule.id)
+        #expect(!accepted)
+
+        // Rule should still be disabled in the engine
+        let allRules = await RuleEngine.shared.allRules
+        let found = allRules.first { $0.id == rule.id }
+        #expect(found?.isEnabled == false)
+
+        await RuleEngine.shared.removeRule(id: rule.id)
+    }
+
+    // MARK: - Rule Loading Race Regression
+
+    @Test("rulesLoaded is false until loadFromDisk completes")
+    func rulesLoadedAfterCompletion() {
+        let coordinator = MainContentCoordinator()
+        #expect(!coordinator.rulesLoaded)
+        // loadInitialRules fires the async load but does NOT
+        // set rulesLoaded = true synchronously
+        coordinator.loadInitialRules()
+        // rulesLoaded is still false immediately after the call
+        // (the Task hasn't completed yet)
+        #expect(!coordinator.rulesLoaded)
+    }
+
     // MARK: Private
 
     private func activeCount(for category: String) async -> Int {

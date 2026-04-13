@@ -263,8 +263,10 @@ final class MainContentCoordinator {
         guard !rulesLoaded else {
             return
         }
-        rulesLoaded = true
-        Task { await RuleSyncService.loadFromDisk() }
+        Task {
+            await RuleSyncService.loadFromDisk()
+            rulesLoaded = true
+        }
     }
 
     func resolveSessionStore() throws -> SessionStore {

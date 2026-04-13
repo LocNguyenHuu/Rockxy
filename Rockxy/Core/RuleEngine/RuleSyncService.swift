@@ -52,6 +52,22 @@ enum RuleSyncService {
         await syncAll()
     }
 
+    static func enableExclusiveNetworkConditionIfAllowed(
+        id: UUID,
+        maxPerCategory: Int
+    )
+        async -> Bool
+    {
+        let accepted = await RuleEngine.shared.enableExclusiveNetworkConditionIfAllowed(
+            id: id,
+            maxPerCategory: maxPerCategory
+        )
+        if accepted {
+            await syncAll()
+        }
+        return accepted
+    }
+
     // MARK: - Atomic Quota-Checked Operations
 
     static func addRuleIfAllowed(_ rule: ProxyRule, maxPerCategory: Int) async -> Bool {

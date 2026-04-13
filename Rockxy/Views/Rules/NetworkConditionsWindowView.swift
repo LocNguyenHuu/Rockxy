@@ -91,7 +91,12 @@ final class NetworkConditionsWindowViewModel {
             if let index = allRules.firstIndex(where: { $0.id == id }) {
                 allRules[index].isEnabled = true
             }
-            Task { await RulePolicyGate.shared.enableExclusiveNetworkCondition(id: id) }
+            Task {
+                let accepted = await RulePolicyGate.shared.enableExclusiveNetworkCondition(id: id)
+                if !accepted {
+                    allRules = await RuleEngine.shared.allRules
+                }
+            }
         }
     }
 

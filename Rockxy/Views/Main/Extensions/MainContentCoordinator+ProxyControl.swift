@@ -40,8 +40,8 @@ extension MainContentCoordinator {
                 }
 
                 if !rulesLoaded {
-                    rulesLoaded = true
                     await RuleSyncService.loadFromDisk()
+                    rulesLoaded = true
                 }
                 Self.logger.info("Rules loaded")
 

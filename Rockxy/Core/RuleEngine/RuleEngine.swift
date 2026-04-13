@@ -96,6 +96,19 @@ actor RuleEngine {
         }
     }
 
+    func enableExclusiveNetworkConditionIfAllowed(id: UUID, maxPerCategory: Int) -> Bool {
+        guard let index = rules.firstIndex(where: { $0.id == id }) else {
+            return false
+        }
+        let category = rules[index].action.toolCategory
+        let activeCount = rules.filter { $0.isEnabled && $0.action.toolCategory == category }.count
+        guard activeCount < maxPerCategory || rules[index].isEnabled else {
+            return false
+        }
+        enableExclusiveNetworkCondition(id: id)
+        return true
+    }
+
     func addNetworkConditionExclusive(_ rule: ProxyRule) {
         precondition(
             { if case .networkCondition = rule.action {

@@ -145,8 +145,16 @@ final class RulePolicyGate {
         await RuleSyncService.updateRule(rule)
     }
 
-    func enableExclusiveNetworkCondition(id: UUID) async {
-        await RuleSyncService.enableExclusiveNetworkCondition(id: id)
+    @discardableResult
+    func enableExclusiveNetworkCondition(id: UUID) async -> Bool {
+        let accepted = await RuleSyncService.enableExclusiveNetworkConditionIfAllowed(
+            id: id,
+            maxPerCategory: policy.maxActiveRulesPerTool
+        )
+        if !accepted {
+            Self.logger.info("Cannot enable network condition — quota reached")
+        }
+        return accepted
     }
 
     func disableAllNetworkConditions() async {
