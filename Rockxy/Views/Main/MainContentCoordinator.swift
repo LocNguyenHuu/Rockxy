@@ -18,6 +18,7 @@ final class MainContentCoordinator {
         self.policy = policy
         self.workspaceStore = WorkspaceStore(maxWorkspaces: policy.maxWorkspaceTabs)
         RulePolicyGate.shared = RulePolicyGate(policy: policy)
+        ScriptPolicyGate.shared = ScriptPolicyGate(policy: policy)
     }
 
     // MARK: Internal

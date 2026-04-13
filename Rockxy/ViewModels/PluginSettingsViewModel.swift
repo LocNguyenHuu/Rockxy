@@ -8,6 +8,12 @@ import os
 
 @MainActor @Observable
 final class PluginSettingsViewModel {
+    // MARK: Lifecycle
+
+    init(pluginManager: ScriptPluginManager = PluginManager.shared.scriptManager) {
+        self.pluginManager = pluginManager
+    }
+
     // MARK: Internal
 
     internal(set) var plugins: [PluginInfo] = []
@@ -40,13 +46,21 @@ final class PluginSettingsViewModel {
     }
 
     func togglePlugin(id: String) async {
-        guard let index = plugins.firstIndex(where: { $0.id == id }) else {
+        guard let plugin = plugins.first(where: { $0.id == id }) else {
             return
         }
-        plugins[index].isEnabled.toggle()
-        let enabled = plugins[index].isEnabled
-        plugins[index].status = enabled ? .active : .disabled
-        UserDefaults.standard.set(enabled, forKey: RockxyIdentity.current.pluginEnabledKey(pluginID: id))
+        let shouldEnable = !plugin.isEnabled
+        if shouldEnable {
+            do {
+                try await ScriptPolicyGate.shared.enablePlugin(id: id, using: pluginManager)
+                plugins = await pluginManager.plugins
+            } catch {
+                Self.logger.warning("Cannot enable plugin \(id): \(error.localizedDescription)")
+            }
+        } else {
+            await pluginManager.disablePlugin(id: id)
+            plugins = await pluginManager.plugins
+        }
     }
 
     func reloadPlugin(id: String) async {
@@ -124,5 +138,5 @@ final class PluginSettingsViewModel {
         category: "PluginSettingsViewModel"
     )
 
-    private let pluginManager = ScriptPluginManager()
+    private let pluginManager: ScriptPluginManager
 }

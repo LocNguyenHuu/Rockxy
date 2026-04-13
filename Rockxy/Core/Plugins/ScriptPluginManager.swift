@@ -16,6 +16,10 @@ actor ScriptPluginManager {
     }
 
     func loadAllPlugins() async {
+        guard !hasLoaded else {
+            return
+        }
+        hasLoaded = true
         plugins = await discovery.discoverPlugins()
         for i in plugins.indices where plugins[i].isEnabled {
             do {
@@ -114,6 +118,7 @@ actor ScriptPluginManager {
 
     private static let logger = Logger(subsystem: RockxyIdentity.current.logSubsystem, category: "ScriptPluginManager")
 
+    private var hasLoaded = false
     private let discovery = PluginDiscovery()
     private let runtime = ScriptRuntime()
 }
