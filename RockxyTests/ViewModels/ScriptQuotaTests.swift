@@ -135,6 +135,35 @@ struct ScriptQuotaTests {
         #expect(scripting.plugins.first { $0.id == id }?.isEnabled == true)
     }
 
+    // MARK: - Stale Cross-Window Re-Enable
+
+    @Test("Re-enabling an already-enabled plugin is a no-op success")
+    func reEnableIsNoOp() async throws {
+        let id = "reenable-\(UUID().uuidString.prefix(8))"
+        let pluginDir = try Self.createTempPlugin(id: id, enabled: false)
+        defer { Self.cleanupPlugin(id: id, bundlePath: pluginDir) }
+
+        let manager = ScriptPluginManager()
+        await manager.loadAllPlugins()
+
+        // First window enables the plugin
+        let first = try await manager.enablePluginIfAllowed(id: id, maxEnabled: 1)
+        #expect(first)
+        let afterFirst = await manager.plugins
+        #expect(afterFirst.first { $0.id == id }?.isEnabled == true)
+        #expect(afterFirst.first { $0.id == id }?.status == .active)
+
+        // Second window has stale local state and issues enable again.
+        // This must succeed as a no-op — no runtime reload, no quota rejection.
+        let second = try await manager.enablePluginIfAllowed(id: id, maxEnabled: 1)
+        #expect(second)
+
+        // State remains stable
+        let afterSecond = await manager.plugins
+        #expect(afterSecond.first { $0.id == id }?.isEnabled == true)
+        #expect(afterSecond.first { $0.id == id }?.status == .active)
+    }
+
     // MARK: - Policy Injection
 
     @Test("Custom policy takes effect through .shared assignment")

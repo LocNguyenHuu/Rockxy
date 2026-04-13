@@ -56,9 +56,17 @@ actor ScriptPluginManager {
     /// Atomically check quota, claim the enabled slot, load the runtime, and
     /// commit or roll back. The count check + isEnabled = true happen before
     /// the first await, so concurrent callers see the claimed slot.
+    ///
+    /// If the plugin is already enabled, returns `true` immediately as a
+    /// no-op — no runtime reload, no quota consumption.
     func enablePluginIfAllowed(id: String, maxEnabled: Int) async throws -> Bool {
         guard let index = plugins.firstIndex(where: { $0.id == id }) else {
             throw ScriptPluginError.pluginNotFound(id)
+        }
+
+        // Already enabled — treat as no-op success without reloading runtime
+        if plugins[index].isEnabled {
+            return true
         }
 
         let enabledCount = plugins.filter(\.isEnabled).count

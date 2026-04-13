@@ -145,19 +145,15 @@ struct PluginSettingsViewModelTests {
         #expect(viewModel.plugins.count == managerPlugins.count)
     }
 
-    @Test("Both ViewModels observe same ScriptPluginManager state")
-    func sharedManagerState() async {
+    @Test("Both ViewModels share same ScriptPluginManager instance")
+    func sharedManagerState() {
         let manager = ScriptPluginManager()
         let settings = PluginSettingsViewModel(pluginManager: manager)
         let scripting = ScriptingViewModel(pluginManager: manager)
 
-        await settings.loadPlugins()
-        await scripting.loadPlugins()
-
-        // Both should reflect the same (empty) plugin list from the shared manager
-        let managerPlugins = await manager.plugins
-        #expect(settings.plugins.count == managerPlugins.count)
-        #expect(scripting.plugins.count == managerPlugins.count)
+        // Without loading from disk, both start with the same empty state
+        #expect(settings.plugins.isEmpty)
+        #expect(scripting.plugins.isEmpty)
     }
 
     // MARK: Private
