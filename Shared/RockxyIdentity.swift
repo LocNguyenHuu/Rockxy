@@ -7,6 +7,11 @@ struct RockxyIdentity {
     init(bundle: Bundle) {
         let info = bundle.infoDictionary ?? [:]
 
+        displayName = Self.string(
+            named: "CFBundleDisplayName",
+            in: info,
+            fallback: Self.string(named: "CFBundleName", in: info, fallback: "Rockxy")
+        )
         familyNamespace = Self.string(
             named: "RockxyFamilyNamespace",
             in: info,
@@ -82,6 +87,7 @@ struct RockxyIdentity {
 
     static let current = RockxyIdentity(bundle: .main)
 
+    let displayName: String
     let familyNamespace: String
     let appBundleIdentifier: String
     let helperBundleIdentifier: String

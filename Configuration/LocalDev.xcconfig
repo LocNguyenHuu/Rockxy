@@ -1,14 +1,8 @@
-// LocalDev.xcconfig — Local development configuration
-// Uses release identity (same as staging/production) so dev builds
-// can still communicate with the helper without full identity isolation.
+// LocalDev.xcconfig — Local development configuration.
+// Uses release identity so dev builds can communicate with the helper
+// without full identity isolation.
 
-#include "Base.xcconfig"
+#include "RockxyBase.xcconfig"
 
-ROCKXY_APP_BUNDLE_ID = com.amunx.rockxy.community
-ROCKXY_APP_NAMESPACE = $(ROCKXY_APP_BUNDLE_ID)
-ROCKXY_LOG_SUBSYSTEM = $(ROCKXY_APP_NAMESPACE)
-ROCKXY_DEFAULTS_PREFIX = $(ROCKXY_APP_NAMESPACE)
-ROCKXY_NOTIFICATION_PREFIX = $(ROCKXY_APP_NAMESPACE)
-ROCKXY_APP_SUPPORT_DIRECTORY_NAME = $(ROCKXY_APP_NAMESPACE)
 ROCKXY_RELEASE_CHANNEL = local-dev
 ROCKXY_UPDATES_ENABLED = NO
