@@ -19,8 +19,8 @@ enum ScriptQuotaError: LocalizedError {
 // MARK: - ScriptPolicyGate
 
 /// App-layer quota gate for script plugin enablement.
-/// Wraps ``ScriptPluginManager.enablePlugin(id:)`` with a count check
-/// against the policy limit. Disable calls bypass the gate.
+/// Uses ``ScriptPluginManager.enablePluginIfAllowed(id:maxEnabled:)`` for
+/// atomic check-and-enable within the actor's serialized context.
 @MainActor
 final class ScriptPolicyGate {
     // MARK: Lifecycle
@@ -31,21 +31,37 @@ final class ScriptPolicyGate {
 
     // MARK: Internal
 
-    static var shared = ScriptPolicyGate()
+    private(set) static var shared = ScriptPolicyGate()
 
     let policy: any AppPolicy
 
+    static func configure(policy: any AppPolicy) {
+        guard !isConfigured else {
+            return
+        }
+        isConfigured = true
+        shared = ScriptPolicyGate(policy: policy)
+    }
+
+    /// Reset shared state for testing. Not for production use.
+    static func resetForTesting(policy: any AppPolicy = DefaultAppPolicy()) {
+        isConfigured = false
+        configure(policy: policy)
+    }
+
     func enablePlugin(id: String, using manager: ScriptPluginManager) async throws {
-        let plugins = await manager.plugins
-        let enabledCount = plugins.filter(\.isEnabled).count
-        guard enabledCount < policy.maxEnabledScripts else {
-            Self.logger.info("Script quota reached (\(self.policy.maxEnabledScripts))")
+        let accepted = try await manager.enablePluginIfAllowed(
+            id: id,
+            maxEnabled: policy.maxEnabledScripts
+        )
+        if !accepted {
             throw ScriptQuotaError.limitReached(max: policy.maxEnabledScripts)
         }
-        try await manager.enablePlugin(id: id)
     }
 
     // MARK: Private
+
+    private static var isConfigured = false
 
     private static let logger = Logger(
         subsystem: RockxyIdentity.current.logSubsystem,

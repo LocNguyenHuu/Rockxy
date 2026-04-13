@@ -16,10 +16,6 @@ actor ScriptPluginManager {
     }
 
     func loadAllPlugins() async {
-        guard !hasLoaded else {
-            return
-        }
-        hasLoaded = true
         plugins = await discovery.discoverPlugins()
         for i in plugins.indices where plugins[i].isEnabled {
             do {
@@ -42,6 +38,15 @@ actor ScriptPluginManager {
         plugins[index].status = .active
         UserDefaults.standard.set(true, forKey: RockxyIdentity.current.pluginEnabledKey(pluginID: id))
         Self.logger.info("Enabled plugin: \(id)")
+    }
+
+    func enablePluginIfAllowed(id: String, maxEnabled: Int) async throws -> Bool {
+        let enabledCount = plugins.filter(\.isEnabled).count
+        guard enabledCount < maxEnabled else {
+            return false
+        }
+        try await enablePlugin(id: id)
+        return true
     }
 
     func disablePlugin(id: String) async {
@@ -118,7 +123,6 @@ actor ScriptPluginManager {
 
     private static let logger = Logger(subsystem: RockxyIdentity.current.logSubsystem, category: "ScriptPluginManager")
 
-    private var hasLoaded = false
     private let discovery = PluginDiscovery()
     private let runtime = ScriptRuntime()
 }

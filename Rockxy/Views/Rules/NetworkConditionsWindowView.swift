@@ -104,9 +104,15 @@ final class NetworkConditionsWindowViewModel {
         allRules.append(rule)
         Task {
             if rule.isEnabled {
-                await RulePolicyGate.shared.addNetworkConditionExclusive(rule)
+                let accepted = await RulePolicyGate.shared.addNetworkConditionExclusive(rule)
+                if !accepted {
+                    allRules = await RuleEngine.shared.allRules
+                }
             } else {
-                await RulePolicyGate.shared.addRule(rule)
+                let accepted = await RulePolicyGate.shared.addRule(rule)
+                if !accepted {
+                    allRules = await RuleEngine.shared.allRules
+                }
             }
         }
     }

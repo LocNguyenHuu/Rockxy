@@ -17,8 +17,8 @@ final class MainContentCoordinator {
     init(policy: any AppPolicy = DefaultAppPolicy()) {
         self.policy = policy
         self.workspaceStore = WorkspaceStore(maxWorkspaces: policy.maxWorkspaceTabs)
-        RulePolicyGate.shared = RulePolicyGate(policy: policy)
-        ScriptPolicyGate.shared = ScriptPolicyGate(policy: policy)
+        RulePolicyGate.configure(policy: policy)
+        ScriptPolicyGate.configure(policy: policy)
     }
 
     // MARK: Internal

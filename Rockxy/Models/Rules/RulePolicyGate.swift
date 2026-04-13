@@ -17,9 +17,38 @@ final class RulePolicyGate {
 
     // MARK: Internal
 
-    static var shared = RulePolicyGate()
+    private(set) static var shared = RulePolicyGate()
 
     let policy: any AppPolicy
+
+    static func configure(policy: any AppPolicy) {
+        guard !isConfigured else {
+            return
+        }
+        isConfigured = true
+        shared = RulePolicyGate(policy: policy)
+    }
+
+    /// Reset shared state for testing. Not for production use.
+    static func resetForTesting(policy: any AppPolicy = DefaultAppPolicy()) {
+        isConfigured = false
+        configure(policy: policy)
+    }
+
+    static func capEnabledPerCategory(_ rules: [ProxyRule], limit: Int) -> [ProxyRule] {
+        var counts: [String: Int] = [:]
+        var result = rules
+        for index in result.indices where result[index].isEnabled {
+            let cat = result[index].action.toolCategory
+            let count = counts[cat, default: 0]
+            if count >= limit {
+                result[index].isEnabled = false
+            } else {
+                counts[cat] = count + 1
+            }
+        }
+        return result
+    }
 
     // MARK: - Quota-Checked Operations
 
@@ -95,7 +124,8 @@ final class RulePolicyGate {
     }
 
     func replaceAllRules(_ rules: [ProxyRule]) async {
-        await RuleSyncService.replaceAllRules(rules)
+        let capped = Self.capEnabledPerCategory(rules, limit: policy.maxActiveRulesPerTool)
+        await RuleSyncService.replaceAllRules(capped)
     }
 
     func setBreakpointToolEnabled(_ enabled: Bool) async {
@@ -103,6 +133,8 @@ final class RulePolicyGate {
     }
 
     // MARK: Private
+
+    private static var isConfigured = false
 
     private static let logger = Logger(
         subsystem: RockxyIdentity.current.logSubsystem,

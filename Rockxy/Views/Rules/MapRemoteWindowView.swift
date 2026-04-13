@@ -48,7 +48,12 @@ final class MapRemoteWindowViewModel {
             return
         }
         allRules[index].isEnabled.toggle()
-        Task { await RulePolicyGate.shared.toggleRule(id: id) }
+        Task {
+            let accepted = await RulePolicyGate.shared.toggleRule(id: id)
+            if !accepted {
+                allRules = await RuleEngine.shared.allRules
+            }
+        }
     }
 
     func enableAll() {
@@ -59,12 +64,20 @@ final class MapRemoteWindowViewModel {
             }
         }
         allRules = updated
-        Task { await RulePolicyGate.shared.replaceAllRules(updated) }
+        Task {
+            await RulePolicyGate.shared.replaceAllRules(updated)
+            allRules = await RuleEngine.shared.allRules
+        }
     }
 
     func addRule(_ rule: ProxyRule) {
         allRules.append(rule)
-        Task { await RulePolicyGate.shared.addRule(rule) }
+        Task {
+            let accepted = await RulePolicyGate.shared.addRule(rule)
+            if !accepted {
+                allRules = await RuleEngine.shared.allRules
+            }
+        }
     }
 
     func updateRule(_ rule: ProxyRule) {

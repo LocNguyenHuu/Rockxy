@@ -90,7 +90,12 @@ final class BreakpointRulesViewModel {
         )
         allRules.append(rule)
         selectedRuleID = rule.id
-        Task { await RulePolicyGate.shared.addRule(rule) }
+        Task {
+            let accepted = await RulePolicyGate.shared.addRule(rule)
+            if !accepted {
+                allRules = await RuleEngine.shared.allRules
+            }
+        }
     }
 
     func updateRule(
@@ -139,7 +144,12 @@ final class BreakpointRulesViewModel {
             return
         }
         allRules[index].isEnabled.toggle()
-        Task { await RulePolicyGate.shared.toggleRule(id: id) }
+        Task {
+            let accepted = await RulePolicyGate.shared.toggleRule(id: id)
+            if !accepted {
+                allRules = await RuleEngine.shared.allRules
+            }
+        }
     }
 
     func duplicateRule(id: UUID) {
@@ -155,7 +165,12 @@ final class BreakpointRulesViewModel {
         )
         allRules.append(copy)
         selectedRuleID = copy.id
-        Task { await RulePolicyGate.shared.addRule(copy) }
+        Task {
+            let accepted = await RulePolicyGate.shared.addRule(copy)
+            if !accepted {
+                allRules = await RuleEngine.shared.allRules
+            }
+        }
     }
 
     func toggleBreakpointTool() {

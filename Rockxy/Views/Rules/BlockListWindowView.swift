@@ -72,7 +72,12 @@ final class BlockListViewModel {
             action: .block(statusCode: blockAction.statusCode)
         )
         allRules.append(rule)
-        Task { await RulePolicyGate.shared.addRule(rule) }
+        Task {
+            let accepted = await RulePolicyGate.shared.addRule(rule)
+            if !accepted {
+                allRules = await RuleEngine.shared.allRules
+            }
+        }
     }
 
     func removeSelected() {
@@ -89,7 +94,12 @@ final class BlockListViewModel {
             return
         }
         allRules[index].isEnabled.toggle()
-        Task { await RulePolicyGate.shared.toggleRule(id: id) }
+        Task {
+            let accepted = await RulePolicyGate.shared.toggleRule(id: id)
+            if !accepted {
+                allRules = await RuleEngine.shared.allRules
+            }
+        }
     }
 }
 
