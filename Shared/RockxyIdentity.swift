@@ -83,6 +83,83 @@ struct RockxyIdentity {
             .map(String.init)
     }
 
+    init(infoDictionary info: [String: Any]) {
+        displayName = Self.string(
+            named: "CFBundleDisplayName",
+            in: info,
+            fallback: Self.string(named: "CFBundleName", in: info, fallback: "Rockxy")
+        )
+        familyNamespace = Self.string(
+            named: "RockxyFamilyNamespace",
+            in: info,
+            fallback: "com.amunx.rockxy"
+        )
+        appBundleIdentifier = Self.string(
+            named: "CFBundleIdentifier",
+            in: info,
+            fallback: "com.amunx.rockxy.community"
+        )
+        helperBundleIdentifier = Self.string(
+            named: "RockxyHelperBundleIdentifier",
+            in: info,
+            fallback: "com.amunx.rockxy.helper"
+        )
+        helperMachServiceName = Self.string(
+            named: "RockxyHelperMachServiceName",
+            in: info,
+            fallback: "com.amunx.rockxy.helper"
+        )
+        helperPlistName = Self.string(
+            named: "RockxyHelperPlistName",
+            in: info,
+            fallback: "com.amunx.rockxy.helper.plist"
+        )
+        defaultsPrefix = Self.string(
+            named: "RockxyDefaultsPrefix",
+            in: info,
+            fallback: "com.amunx.rockxy.community"
+        )
+        notificationPrefix = Self.string(
+            named: "RockxyNotificationPrefix",
+            in: info,
+            fallback: defaultsPrefix
+        )
+        logSubsystem = Self.string(
+            named: "RockxyLogSubsystem",
+            in: info,
+            fallback: appBundleIdentifier
+        )
+        appSupportDirectoryName = Self.string(
+            named: "RockxyAppSupportDirectoryName",
+            in: info,
+            fallback: "com.amunx.rockxy.community"
+        )
+        sharedSupportDirectoryName = Self.string(
+            named: "RockxySharedSupportDirectoryName",
+            in: info,
+            fallback: "com.amunx.rockxy"
+        )
+        sharedCertificateLabelPrefix = Self.string(
+            named: "RockxySharedCertificateLabelPrefix",
+            in: info,
+            fallback: "com.amunx.rockxy.rootCA"
+        )
+        sharedUTTypePrefix = Self.string(
+            named: "RockxySharedUTTypePrefix",
+            in: info,
+            fallback: "com.amunx.rockxy"
+        )
+
+        let callers = Self.string(
+            named: "RockxyAllowedCallerIdentifiers",
+            in: info,
+            fallback: appBundleIdentifier
+        )
+        allowedCallerIdentifiers = callers
+            .split(whereSeparator: \.isWhitespace)
+            .map(String.init)
+    }
+
     // MARK: Internal
 
     static let current = RockxyIdentity(bundle: .main)
