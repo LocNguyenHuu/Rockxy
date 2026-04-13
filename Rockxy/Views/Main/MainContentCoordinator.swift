@@ -12,9 +12,17 @@ import os
 /// each file focused and within SwiftLint size limits.
 @MainActor @Observable
 final class MainContentCoordinator {
+    // MARK: Lifecycle
+
+    init(policy: any AppPolicy = DefaultAppPolicy()) {
+        self.policy = policy
+    }
+
     // MARK: Internal
 
     static let logger = Logger(subsystem: RockxyIdentity.current.logSubsystem, category: "MainContentCoordinator")
+
+    let policy: any AppPolicy
 
     // MARK: - Engine References
 

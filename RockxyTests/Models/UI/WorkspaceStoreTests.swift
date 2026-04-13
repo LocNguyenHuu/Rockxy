@@ -288,11 +288,10 @@ struct WorkspaceStoreTests {
         #expect(store.activeWorkspaceIndex == 0)
     }
 
-    // MARK: - Edition Capability
+    // MARK: - Default Capacity
 
-    @Test("community edition limits workspace tabs to 8")
-    func communityWorkspaceTabLimit() {
-        #expect(ProductEdition.current == .community)
+    @Test("default workspace tab limit is 8")
+    func defaultWorkspaceTabLimit() {
         #expect(WorkspaceStore.maxWorkspaces == 8)
     }
 }

@@ -18,7 +18,7 @@ final class WorkspaceStore {
 
     // MARK: Internal
 
-    static let maxWorkspaces = EditionCapabilities.current.maxWorkspaceTabs
+    static let maxWorkspaces = 8
 
     var workspaces: [WorkspaceState]
     var activeWorkspaceID: UUID
