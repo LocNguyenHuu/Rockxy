@@ -130,6 +130,16 @@ struct SSLProxyingListViewModelTests {
         #expect(vm.manager.rules[0].domain == "new.com")
     }
 
+    @Test("updateRule rejects whitespace-only input and preserves original domain")
+    func updateRuleRejectsWhitespace() {
+        let (vm, tempURL) = makeViewModel()
+        defer { try? FileManager.default.removeItem(at: tempURL) }
+        vm.addRule(domain: "old.com")
+        let id = vm.manager.rules[0].id
+        vm.updateRule(id: id, domain: "  ")
+        #expect(vm.manager.rules[0].domain == "old.com")
+    }
+
     @Test("removeSelected removes and clears selection")
     func removeSelected() {
         let (vm, tempURL) = makeViewModel()

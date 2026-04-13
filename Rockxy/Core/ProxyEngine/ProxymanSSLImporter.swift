@@ -25,7 +25,9 @@ enum ProxymanSSLImporter {
     }
 
     static func importRules(from data: Data) throws -> [SSLProxyingRule] {
-        if let structured = try? JSONDecoder().decode(StructuredExport.self, from: data) {
+        if let structured = try? JSONDecoder().decode(StructuredExport.self, from: data),
+           structured.includeDomains != nil || structured.excludeDomains != nil
+        {
             let rules = buildRules(from: structured)
             guard !rules.isEmpty else {
                 throw ImportError.noHostsFound

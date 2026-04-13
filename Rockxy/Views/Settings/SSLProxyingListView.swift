@@ -210,10 +210,14 @@ struct SSLProxyingListView: View {
                     }
                 }
                 .listStyle(.inset(alternatesRowBackgrounds: true))
-                .contextMenu(forSelectionType: UUID.self) { _ in
-                    contextMenuItems
-                } primaryAction: { _ in
-                    viewModel.presentEditorForSelection()
+                .contextMenu(forSelectionType: UUID.self) { items in
+                    if let id = items.first {
+                        contextMenuItems(for: id)
+                    }
+                } primaryAction: { items in
+                    if let id = items.first {
+                        viewModel.presentEditor(for: id)
+                    }
                 }
             }
         }
@@ -258,28 +262,6 @@ struct SSLProxyingListView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.horizontal, 24)
         .padding(.top, 12)
-    }
-
-    // MARK: - Context Menu
-
-    @ViewBuilder private var contextMenuItems: some View {
-        Button(String(localized: "Edit…")) {
-            viewModel.presentEditorForSelection()
-        }
-        .keyboardShortcut(.return, modifiers: .command)
-
-        Button(viewModel.enableDisableLabel) {
-            if let id = viewModel.selectedRuleID {
-                viewModel.toggleRule(id: id)
-            }
-        }
-
-        Divider()
-
-        Button(String(localized: "Delete"), role: .destructive) {
-            viewModel.removeSelected()
-        }
-        .keyboardShortcut(.delete, modifiers: .command)
     }
 
     // MARK: - Filter Bar
@@ -454,6 +436,34 @@ struct SSLProxyingListView: View {
                 .font(.caption2)
         }
         .menuStyle(.borderlessButton)
+    }
+
+    // MARK: - Context Menu
+
+    @ViewBuilder
+    private func contextMenuItems(for id: UUID) -> some View {
+        Button(String(localized: "Edit…")) {
+            viewModel.presentEditor(for: id)
+        }
+
+        Button(enableDisableLabel(for: id)) {
+            viewModel.toggleRule(id: id)
+        }
+
+        Divider()
+
+        Button(String(localized: "Delete"), role: .destructive) {
+            viewModel.removeRule(id: id)
+        }
+    }
+
+    private func enableDisableLabel(for id: UUID) -> String {
+        guard let rule = viewModel.manager.rules.first(where: { $0.id == id }) else {
+            return String(localized: "Enable Rule")
+        }
+        return rule.isEnabled
+            ? String(localized: "Disable Rule")
+            : String(localized: "Enable Rule")
     }
 
     // MARK: - Import / Export

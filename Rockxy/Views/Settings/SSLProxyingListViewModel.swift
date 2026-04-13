@@ -106,13 +106,25 @@ final class SSLProxyingListViewModel {
         filterText = ""
     }
 
-    func presentEditorForSelection() {
-        guard let id = selectedRuleID,
-              let rule = manager.rules.first(where: { $0.id == id }) else
-        {
+    func presentEditor(for id: UUID) {
+        guard let rule = manager.rules.first(where: { $0.id == id }) else {
             return
         }
         editingRule = rule
         showAddDomainSheet = true
+    }
+
+    func presentEditorForSelection() {
+        guard let id = selectedRuleID else {
+            return
+        }
+        presentEditor(for: id)
+    }
+
+    func removeRule(id: UUID) {
+        manager.removeRule(id: id)
+        if selectedRuleID == id {
+            selectedRuleID = nil
+        }
     }
 }
