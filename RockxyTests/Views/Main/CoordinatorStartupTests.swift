@@ -75,11 +75,17 @@ struct CoordinatorStartupTests {
         await RuleTestLock.shared.acquire()
         let engineSnapshot = await RuleEngine.shared.allRules
         let coordinator = MainContentCoordinator()
-        await coordinator.ensureRulesLoaded()
-        #expect(coordinator.rulesLoaded)
-
         coordinator.loadInitialRules()
         #expect(coordinator.ruleLoadTask != nil)
+        #expect(!coordinator.rulesLoaded)
+
+        // A second call while the first load is still in flight should reuse the existing task path.
+        coordinator.loadInitialRules()
+        #expect(coordinator.ruleLoadTask != nil)
+        #expect(!coordinator.rulesLoaded)
+
+        await coordinator.ruleLoadTask?.value
+        #expect(coordinator.ruleLoadTask == nil)
         #expect(coordinator.rulesLoaded)
 
         await RuleEngine.shared.replaceAll(engineSnapshot)
