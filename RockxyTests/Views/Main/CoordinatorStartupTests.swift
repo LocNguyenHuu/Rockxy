@@ -19,21 +19,23 @@ struct CoordinatorStartupTests {
         await RuleTestLock.shared.release()
     }
 
-    @Test("ruleLoadTask persists after ensureRulesLoaded completes")
-    func ruleLoadTaskPersistsAfterCompletion() async {
+    @Test("ruleLoadTask is cleared after ensureRulesLoaded completes")
+    func ruleLoadTaskClearedAfterCompletion() async {
         await RuleTestLock.shared.acquire()
         let engineSnapshot = await RuleEngine.shared.allRules
         let coordinator = MainContentCoordinator()
         #expect(coordinator.ruleLoadTask == nil)
 
         await coordinator.ensureRulesLoaded()
-        #expect(coordinator.ruleLoadTask != nil)
+        // Completion clears the task handle so the coordinator no longer retains it.
+        #expect(coordinator.ruleLoadTask == nil)
+        #expect(coordinator.rulesLoaded)
 
         await RuleEngine.shared.replaceAll(engineSnapshot)
         await RuleTestLock.shared.release()
     }
 
-    @Test("Calling ensureRulesLoaded twice completes without crash")
+    @Test("ensureRulesLoaded early-returns when rules are already loaded")
     func ensureRulesLoadedIdempotent() async {
         await RuleTestLock.shared.acquire()
         let engineSnapshot = await RuleEngine.shared.allRules
@@ -41,10 +43,12 @@ struct CoordinatorStartupTests {
 
         await coordinator.ensureRulesLoaded()
         #expect(coordinator.rulesLoaded)
+        #expect(coordinator.ruleLoadTask == nil)
 
+        // Second call sees `rulesLoaded == true` and returns without spawning a new task.
         await coordinator.ensureRulesLoaded()
         #expect(coordinator.rulesLoaded)
-        #expect(coordinator.ruleLoadTask != nil)
+        #expect(coordinator.ruleLoadTask == nil)
 
         await RuleEngine.shared.replaceAll(engineSnapshot)
         await RuleTestLock.shared.release()

@@ -9,10 +9,14 @@ enum TestFixtures {
     struct IsolatedPluginEnv {
         let pluginsDir: URL
         let defaults: UserDefaults
+        let defaultsSuiteName: String
         let manager: ScriptPluginManager
 
         func cleanup() {
             try? FileManager.default.removeItem(at: pluginsDir)
+            // Also clear the ephemeral UserDefaults suite so plugin-enabled keys
+            // and other stored values do not leak into sibling tests.
+            defaults.removePersistentDomain(forName: defaultsSuiteName)
         }
     }
 
@@ -437,8 +441,22 @@ enum TestFixtures {
         return bundlePath
     }
 
-    /// Convenience overload that writes into the real app-support Plugins directory.
-    /// Prefer the `in:` variant with `makeIsolatedPluginDir()` for isolated tests.
+    /// **Deprecated for new call sites.** Writes into the **real app-support `Plugins/`
+    /// directory** and mutates `UserDefaults.standard` for the plugin-enabled key.
+    ///
+    /// **Residual risk:** a crash between creation and the matching
+    /// `cleanupTempPlugin(id:bundlePath:)` leaks the plugin bundle and enabled flag
+    /// into the developer's real environment until manual cleanup.
+    ///
+    /// Prefer `makeIsolatedPluginEnv()` plus `createTempPlugin(id:enabled:in:defaults:)`
+    /// for new tests so the plugin directory, defaults suite, and manager are fully
+    /// isolated and teardown is bounded. This overload is retained only for tests that
+    /// intentionally exercise the production singleton path.
+    @available(
+        *,
+        deprecated,
+        message: "Writes to real app-support Plugins directory; use createTempPlugin(id:enabled:in:defaults:) with makeIsolatedPluginEnv() or makeIsolatedPluginDir() for isolated tests."
+    )
     static func createTempPlugin(id: String, enabled: Bool) throws -> URL {
         try createTempPlugin(
             id: id,
@@ -460,16 +478,28 @@ enum TestFixtures {
 
     /// Returns an ephemeral `UserDefaults` suite isolated from `.standard`.
     static func makeIsolatedDefaults() -> UserDefaults {
-        UserDefaults(suiteName: "RockxyPluginTests-\(UUID().uuidString)")!
+        makeNamedIsolatedDefaults().defaults
+    }
+
+    /// Returns an ephemeral `UserDefaults` suite isolated from `.standard`, together
+    /// with the suite name so callers can clear the persistent domain on teardown.
+    static func makeNamedIsolatedDefaults() -> (defaults: UserDefaults, suiteName: String) {
+        let suiteName = "RockxyPluginTests-\(UUID().uuidString)"
+        return (UserDefaults(suiteName: suiteName)!, suiteName)
     }
 
     /// Creates a fully isolated plugin test environment.
     static func makeIsolatedPluginEnv() -> IsolatedPluginEnv {
         let dir = makeIsolatedPluginDir()
-        let defs = makeIsolatedDefaults()
+        let (defs, suiteName) = makeNamedIsolatedDefaults()
         let discovery = PluginDiscovery(pluginsDirectory: dir, defaults: defs)
         let manager = ScriptPluginManager(discovery: discovery, defaults: defs)
-        return IsolatedPluginEnv(pluginsDir: dir, defaults: defs, manager: manager)
+        return IsolatedPluginEnv(
+            pluginsDir: dir,
+            defaults: defs,
+            defaultsSuiteName: suiteName,
+            manager: manager
+        )
     }
 
     /// Removes an isolated plugin test directory entirely.

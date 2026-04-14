@@ -51,7 +51,7 @@ struct HistoryRetentionTests {
         #expect(coordinator.cachedSessionStore == nil)
     }
 
-    @Test("reportAcceptedCount triggers eviction when buffer overflows")
+    @Test("reportAcceptedCount triggers eviction sized to the exact overflow")
     @MainActor
     func reportAcceptedCountTriggersEviction() async {
         let manager = TrafficSessionManager()
@@ -65,18 +65,18 @@ struct HistoryRetentionTests {
         }
         defer { NotificationCenter.default.removeObserver(observer) }
 
-        // Report 25 accepted transactions — exceeds maxBufferSize (20)
+        // Report 25 accepted transactions — exceeds maxBufferSize (20) by 5
         let gen = await manager.currentGeneration
         await manager.reportAcceptedCount(25, generation: gen)
 
         try? await Task.sleep(for: .milliseconds(100))
 
-        #expect(evictionCount == 2) // maxBufferSize / 10 = 20 / 10
+        #expect(evictionCount == 5)
     }
 
-    @Test("Eviction count is at least 1 even for buffer sizes below 10")
+    @Test("Small buffer overflow evicts exact overflow count")
     @MainActor
-    func smallBufferEvictionNotZero() async {
+    func smallBufferEvictsExactOverflow() async {
         let manager = TrafficSessionManager()
         await manager.setMaxBufferSize(5)
 
@@ -88,14 +88,82 @@ struct HistoryRetentionTests {
         }
         defer { NotificationCenter.default.removeObserver(observer) }
 
-        // Report 10 accepted — exceeds maxBufferSize (5)
+        // Report 10 accepted — exceeds maxBufferSize (5) by 5
         let gen = await manager.currentGeneration
         await manager.reportAcceptedCount(10, generation: gen)
 
         try? await Task.sleep(for: .milliseconds(100))
 
-        // max(5 / 10, 1) = max(0, 1) = 1
-        #expect(evictionCount == 1)
+        #expect(evictionCount == 5)
+    }
+
+    @Test("Live history stays capped without double-trim drift")
+    @MainActor
+    func liveHistoryCapAlignsWithActorAccounting() async {
+        let coordinator = MainContentCoordinator(policy: SmallHistoryPolicy())
+        coordinator.isRecording = true
+        let retainedCount = SmallHistoryPolicy().maxLiveHistoryEntries
+
+        await coordinator.sessionManager.setOnBatchReady { [weak coordinator] batch, generation in
+            guard let coordinator else {
+                return
+            }
+            Task { @MainActor in
+                coordinator.processBatch(batch, generation: generation)
+            }
+        }
+        await coordinator.sessionManager.setMaxBufferSize(retainedCount)
+
+        let evictionObserver = NotificationCenter.default.addObserver(
+            forName: .bufferEvictionRequested, object: nil, queue: .main
+        ) { [weak coordinator] notification in
+            guard let coordinator else {
+                return
+            }
+            let count = notification.userInfo?["count"] as? Int ?? 0
+            coordinator.evictOldestTransactions(count: count)
+        }
+        defer { NotificationCenter.default.removeObserver(evictionObserver) }
+
+        for index in 0 ..< 50 {
+            await coordinator.sessionManager.addTransaction(
+                TestFixtures.makeTransaction(url: "https://drift-check.com/\(index)")
+            )
+        }
+
+        for _ in 0 ..< 500 {
+            if coordinator.transactions.count == retainedCount {
+                break
+            }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+
+        #expect(coordinator.transactions.count == retainedCount)
+    }
+
+    @Test("Overlapping clearSession attempts are safely coalesced")
+    @MainActor
+    func overlappingClearSessionCoalesced() async {
+        let coordinator = MainContentCoordinator(policy: SmallHistoryPolicy())
+        coordinator.isRecording = true
+
+        for index in 0 ..< 3 {
+            coordinator.transactions.append(
+                TestFixtures.makeTransaction(url: "https://reentry.com/\(index)")
+            )
+        }
+        let preClearGen = coordinator.sessionGeneration
+
+        async let first: Void = coordinator.clearSession()
+        async let second: Void = coordinator.clearSession()
+        _ = await (first, second)
+
+        // Exactly one clear succeeded; the other returned early without bumping generation again.
+        #expect(coordinator.sessionGeneration == preClearGen &+ 1)
+        #expect(coordinator.transactions.isEmpty)
+
+        let actorGen = await coordinator.sessionManager.currentGeneration
+        #expect(actorGen == coordinator.sessionGeneration)
     }
 
     @Test("Paused recording does not consume live-history budget")
@@ -257,6 +325,21 @@ struct HistoryRetentionTests {
                 coordinator.processBatch(batch, generation: generation)
             }
         }
+        // Align the actor-side cap with the coordinator policy so the eviction
+        // notification (the single source of truth now that processBatch no
+        // longer trims locally) fires when the overflow crosses the cap.
+        await coordinator.sessionManager.setMaxBufferSize(retainedCount)
+
+        let evictionObserver = NotificationCenter.default.addObserver(
+            forName: .bufferEvictionRequested, object: nil, queue: .main
+        ) { [weak coordinator] notification in
+            guard let coordinator else {
+                return
+            }
+            let count = notification.userInfo?["count"] as? Int ?? 0
+            coordinator.evictOldestTransactions(count: count)
+        }
+        defer { NotificationCenter.default.removeObserver(evictionObserver) }
 
         for index in 0 ..< 49 {
             await coordinator.sessionManager.addTransaction(

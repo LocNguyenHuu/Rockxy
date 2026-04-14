@@ -40,4 +40,12 @@ enum TestIdentity {
     static let rulesPathComponent = "rules.json"
     static let rootCAKeyFilename = "rootCA-key.pem"
     static let rootCABackupFilename = "rootCA-key.pem.bak"
+
+    /// Bundle identifiers the XPC caller validator must accept. Drives cross-file
+    /// assertions in `ConnectionValidatorTests`, `CallerValidationTests`, and
+    /// `RockxyIdentityTests` so a change to the allowlist contract only updates one place.
+    static let expectedAllowedCallerIdentifiers = [
+        communityBundleIdentifier,
+        familyNamespace,
+    ]
 }

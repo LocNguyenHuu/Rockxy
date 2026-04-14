@@ -105,8 +105,9 @@ struct CallerValidationTests {
     @Test("Configured allowlist contains expected Rockxy identifiers")
     func allowlistContainsExpectedIdentifiers() {
         let ids = RockxyIdentity.current.allowedCallerIdentifiers
-        #expect(ids.contains("com.amunx.rockxy.community"))
-        #expect(ids.contains("com.amunx.rockxy"))
+        for expected in TestIdentity.expectedAllowedCallerIdentifiers {
+            #expect(ids.contains(expected))
+        }
     }
 
     @Test("Live certificate chain extraction produces non-empty data")

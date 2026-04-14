@@ -241,9 +241,20 @@ struct ScriptQuotaTests {
     @Test("Default-init VMs propagate enable transition through PluginManager.shared.scriptManager")
     @MainActor
     func defaultInitVMsEnableTransitionThroughSharedSingleton() async throws {
-        // This plugin lives in the real app-support directory so that
-        // PluginManager.shared.scriptManager (the production singleton) discovers it.
-        // Cleanup is unconditional via defer — no developer state is left behind.
+        // This test intentionally writes to the REAL app-support Plugins directory
+        // so `PluginManager.shared.scriptManager` (the production singleton) can
+        // discover the plugin — an isolated directory cannot exercise that path.
+        //
+        // Cleanup:
+        //   - `defer` runs unconditionally, removing the bundle and clearing the
+        //     plugin-enabled key in `UserDefaults.standard`.
+        //   - The plugin is toggled off before teardown so no enabled plugin state
+        //     is restored across the cleanup boundary.
+        //
+        // Residual risk:
+        //   - If the test crashes before the defer fires, the plugin bundle and its
+        //     `UserDefaults.standard` enabled key will leak into the developer's
+        //     real environment until manually cleaned up.
         let id = "default-transition-\(UUID().uuidString.prefix(8))"
         let pluginDir = try TestFixtures.createTempPlugin(id: id, enabled: false)
         defer { TestFixtures.cleanupTempPlugin(id: id, bundlePath: pluginDir) }

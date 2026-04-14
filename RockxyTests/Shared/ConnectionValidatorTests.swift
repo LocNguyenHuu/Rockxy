@@ -17,8 +17,9 @@ struct ConnectionValidatorTests {
     @Test("ConnectionValidator reads the expected allowlist from RockxyIdentity")
     func allowlistMatchesIdentityConfig() {
         let ids = RockxyIdentity.current.allowedCallerIdentifiers
-        #expect(ids.contains("com.amunx.rockxy.community"))
-        #expect(ids.contains("com.amunx.rockxy"))
+        for expected in TestIdentity.expectedAllowedCallerIdentifiers {
+            #expect(ids.contains(expected))
+        }
     }
 
     // MARK: - isValidCaller(_:) Accept Path
@@ -82,12 +83,7 @@ struct ConnectionValidatorTests {
         }
 
         // Wrap the real token bytes in NSValue to exercise the NSValue → Data → SecCode path.
-        let nsValue = realToken.withUnsafeBytes { buffer -> NSValue in
-            guard let base = buffer.baseAddress else {
-                preconditionFailure("Empty audit token data")
-            }
-            return NSValue(bytes: base, objCType: "{audit_token_t=[8I]}")
-        }
+        let nsValue = makeAuditTokenNSValue(bytes: realToken)
         let connection = TestXPCConnection(fakePID: pid, auditTokenValue: nsValue)
         defer { connection.invalidate() }
 
@@ -224,12 +220,25 @@ struct ConnectionValidatorTests {
 
 // MARK: - Helpers
 
-/// Creates an NSValue wrapping a zero-initialized `audit_token_t` with the correct
-/// size so `getValue(&token, size:)` in `extractAuditTokenData` reads valid memory.
-private func makeAuditTokenNSValue() -> NSValue {
-    var token = audit_token_t()
-    return withUnsafePointer(to: &token) { ptr in
-        NSValue(bytes: ptr, objCType: "{audit_token_t=[8I]}")
+/// Creates an NSValue that round-trips through `NSValue.getValue(_:size:)` with
+/// exactly `MemoryLayout<audit_token_t>.size` bytes. The ObjC type encoding is a
+/// generic fixed-size byte array (`[<size>C]`) rather than the struct-specific
+/// `"{audit_token_t=[8I]}"` layout so the test is not coupled to `audit_token_t`'s
+/// internal composition.
+///
+/// Pass real audit-token bytes via `bytes:` when the test needs the token to
+/// resolve through `secCodeFromAuditToken`; omit it for the zero-filled variant,
+/// which still satisfies the size contract but returns nil from that resolver.
+private func makeAuditTokenNSValue(bytes: Data? = nil) -> NSValue {
+    let expectedSize = MemoryLayout<audit_token_t>.size
+    let source = bytes ?? Data(repeating: 0, count: expectedSize)
+    precondition(source.count == expectedSize, "audit token size mismatch")
+    let objCType = "[\(expectedSize)C]"
+    return source.withUnsafeBytes { buffer -> NSValue in
+        guard let base = buffer.baseAddress else {
+            preconditionFailure("Empty audit token buffer")
+        }
+        return NSValue(bytes: base, objCType: objCType)
     }
 }
 

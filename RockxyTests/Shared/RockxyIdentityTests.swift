@@ -112,8 +112,9 @@ struct RockxyIdentityTests {
     @Test("Live allowedCallerIdentifiers contains both expected IDs")
     func liveAllowedCallerIdentifiers() {
         let ids = RockxyIdentity.current.allowedCallerIdentifiers
-        #expect(ids.contains("com.amunx.rockxy.community"))
-        #expect(ids.contains("com.amunx.rockxy"))
+        for expected in TestIdentity.expectedAllowedCallerIdentifiers {
+            #expect(ids.contains(expected))
+        }
     }
 
     @Test("Live appBundleIdentifier is non-empty")

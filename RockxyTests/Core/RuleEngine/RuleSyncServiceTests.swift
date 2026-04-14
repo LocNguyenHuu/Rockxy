@@ -10,67 +10,58 @@ struct RuleSyncServiceTests {
 
     @Test("addRule adds to RuleEngine.shared")
     func addRuleSync() async {
-        await RuleTestLock.shared.acquire()
-        let backup = await backupRules()
+        // Swift's `defer` cannot await, so cleanup is handled through a wrapper that
+        // always restores shared state and releases the lock after the body — including
+        // if the body records an `Issue` or future revisions add throwing paths.
+        await withRuleTestLock { [self] in
+            await RuleSyncService.replaceAllRules([])
 
-        await RuleSyncService.replaceAllRules([])
+            let rule = ProxyRule(
+                name: "Test Rule",
+                matchCondition: RuleMatchCondition(urlPattern: ".*test.*"),
+                action: .block(statusCode: 403)
+            )
+            await RuleSyncService.addRule(rule)
 
-        let rule = ProxyRule(
-            name: "Test Rule",
-            matchCondition: RuleMatchCondition(urlPattern: ".*test.*"),
-            action: .block(statusCode: 403)
-        )
-        await RuleSyncService.addRule(rule)
-
-        let allRules = await RuleEngine.shared.allRules
-        #expect(allRules.contains(where: { $0.id == rule.id }))
-
-        await restoreRules(backup)
-        await RuleTestLock.shared.release()
+            let allRules = await RuleEngine.shared.allRules
+            #expect(allRules.contains(where: { $0.id == rule.id }))
+        }
     }
 
     @Test("removeRule removes from RuleEngine.shared")
     func removeRuleSync() async {
-        await RuleTestLock.shared.acquire()
-        let backup = await backupRules()
+        await withRuleTestLock { [self] in
+            let rule = ProxyRule(
+                name: "Temp",
+                matchCondition: RuleMatchCondition(urlPattern: ".*"),
+                action: .block(statusCode: 403)
+            )
+            await RuleSyncService.replaceAllRules([rule])
 
-        let rule = ProxyRule(
-            name: "Temp",
-            matchCondition: RuleMatchCondition(urlPattern: ".*"),
-            action: .block(statusCode: 403)
-        )
-        await RuleSyncService.replaceAllRules([rule])
+            await RuleSyncService.removeRule(id: rule.id)
 
-        await RuleSyncService.removeRule(id: rule.id)
-
-        let allRules = await RuleEngine.shared.allRules
-        #expect(!allRules.contains(where: { $0.id == rule.id }))
-
-        await restoreRules(backup)
-        await RuleTestLock.shared.release()
+            let allRules = await RuleEngine.shared.allRules
+            #expect(!allRules.contains(where: { $0.id == rule.id }))
+        }
     }
 
     @Test("updateRule updates in RuleEngine.shared")
     func updateRuleSync() async {
-        await RuleTestLock.shared.acquire()
-        let backup = await backupRules()
+        await withRuleTestLock { [self] in
+            var rule = ProxyRule(
+                name: "Original",
+                matchCondition: RuleMatchCondition(urlPattern: ".*"),
+                action: .block(statusCode: 403)
+            )
+            await RuleSyncService.replaceAllRules([rule])
 
-        var rule = ProxyRule(
-            name: "Original",
-            matchCondition: RuleMatchCondition(urlPattern: ".*"),
-            action: .block(statusCode: 403)
-        )
-        await RuleSyncService.replaceAllRules([rule])
+            rule.name = "Updated"
+            await RuleSyncService.updateRule(rule)
 
-        rule.name = "Updated"
-        await RuleSyncService.updateRule(rule)
-
-        let allRules = await RuleEngine.shared.allRules
-        let found = allRules.first(where: { $0.id == rule.id })
-        #expect(found?.name == "Updated")
-
-        await restoreRules(backup)
-        await RuleTestLock.shared.release()
+            let allRules = await RuleEngine.shared.allRules
+            let found = allRules.first(where: { $0.id == rule.id })
+            #expect(found?.name == "Updated")
+        }
     }
 
     // MARK: Private
@@ -103,5 +94,16 @@ struct RuleSyncServiceTests {
             try? FileManager.default.removeItem(at: Self.rulesPath)
         }
         await RuleEngine.shared.replaceAll(backup.engineRules)
+    }
+
+    /// Runs `body` between `RuleTestLock` acquire/release with shared rule state
+    /// backed up and restored afterwards. Swift's `defer` cannot await, so the
+    /// cleanup is inlined here and executed unconditionally after the body returns.
+    private func withRuleTestLock(_ body: () async -> Void) async {
+        await RuleTestLock.shared.acquire()
+        let backup = await backupRules()
+        await body()
+        await restoreRules(backup)
+        await RuleTestLock.shared.release()
     }
 }
