@@ -221,6 +221,23 @@ struct ScriptQuotaTests {
         #expect(scripting.pluginManagerIdentity == expected)
     }
 
+    @Test("Default-init VMs load consistent state through PluginManager.shared.scriptManager")
+    @MainActor
+    func defaultInitVMsLoadConsistentState() async {
+        let settings = PluginSettingsViewModel()
+        let scripting = ScriptingViewModel()
+
+        // Both VMs load through their real default init — PluginManager.shared.scriptManager.
+        // Whatever plugins exist in the real directory, both must discover the same set.
+        await settings.loadPlugins()
+        await scripting.loadPlugins()
+
+        #expect(settings.plugins.count == scripting.plugins.count)
+        let settingsIDs = Set(settings.plugins.map(\.id))
+        let scriptingIDs = Set(scripting.plugins.map(\.id))
+        #expect(settingsIDs == scriptingIDs)
+    }
+
     @Test("Default-init VMs observe shared enable transition through real runtime")
     @MainActor
     func defaultInitVMsObserveSharedTransition() async throws {
