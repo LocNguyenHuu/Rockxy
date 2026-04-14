@@ -123,18 +123,12 @@ actor TrafficSessionManager {
         Self.logger.info("Buffer exceeded \(self.maxBufferSize), evicting \(evictionCount) oldest transactions")
 
         Task {
-            do {
-                let store = try SessionStore()
-                let evictedTransactions = await MainActor.run {
-                    NotificationCenter.default.post(
-                        name: .bufferEvictionRequested,
-                        object: nil,
-                        userInfo: ["count": evictionCount]
-                    )
-                }
-                _ = evictedTransactions
-            } catch {
-                Self.logger.error("Failed to create SessionStore for eviction: \(error.localizedDescription)")
+            await MainActor.run {
+                NotificationCenter.default.post(
+                    name: .bufferEvictionRequested,
+                    object: nil,
+                    userInfo: ["count": evictionCount]
+                )
             }
         }
 

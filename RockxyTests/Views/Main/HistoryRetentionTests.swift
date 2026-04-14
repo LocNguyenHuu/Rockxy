@@ -32,6 +32,24 @@ struct HistoryRetentionTests {
         #expect(policy.maxLiveHistoryEntries == 1_000)
     }
 
+    @Test("Eviction path does not initialize SessionStore")
+    @MainActor
+    func evictionPathDoesNotInitializeSessionStore() {
+        let policy = SmallHistoryPolicy()
+        let coordinator = MainContentCoordinator(policy: policy)
+
+        for i in 0 ..< 15 {
+            let tx = TestFixtures.makeTransaction(url: "https://example.com/evict-\(i)")
+            coordinator.transactions.append(tx)
+        }
+
+        let overflow = coordinator.transactions.count - policy.maxLiveHistoryEntries
+        coordinator.evictOldestTransactions(count: overflow)
+
+        #expect(coordinator.transactions.count == policy.maxLiveHistoryEntries)
+        #expect(coordinator.cachedSessionStore == nil)
+    }
+
     @Test("Pinned/saved transactions are independent of live buffer")
     @MainActor
     func pinnedSavedIndependent() {
