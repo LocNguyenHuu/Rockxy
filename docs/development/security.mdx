@@ -43,7 +43,7 @@ The helper runs as a launchd daemon (`com.amunx.Rockxy.HelperTool`) registered v
 Defense-in-depth includes:
 
 - App-side privileged XPC connection setup
-- Helper-side caller validation in `ConnectionValidator` with hardcoded bundle identifier
+- Caller validation in `Shared/ConnectionValidator.swift` checks the caller against the configured set of allowed bundle identifiers (loaded from `RockxyIdentity.current.allowedCallerIdentifiers`)
 - Code-signing requirement enforcement (`anchor apple generic`)
 - Certificate-chain comparison — trust is not based only on bundle ID or team ID strings
 - Helper-side rate limiting for state-changing operations (proxy changes, certificate installs)

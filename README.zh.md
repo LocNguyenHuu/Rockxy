@@ -25,8 +25,8 @@
 
 <p align="center">
   <a href="https://github.com/LocNguyenHuu/Rockxy/releases"><img src="https://img.shields.io/github/v/release/LocNguyenHuu/Rockxy?label=release&color=blue" alt="版本" /></a>
-  <a href="#"><img src="https://img.shields.io/badge/macOS-14%2B-blue" alt="平台" /></a>
-  <a href="#"><img src="https://img.shields.io/badge/Swift-5.9-orange" alt="Swift" /></a>
+  <img src="https://img.shields.io/badge/macOS-14%2B-blue" alt="平台" />
+  <img src="https://img.shields.io/badge/Swift-5.9-orange" alt="Swift" />
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-green" alt="许可证" /></a>
   <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen" alt="欢迎 PR" /></a>
   <a href="https://github.com/sponsors/LocNguyenHuu"><img src="https://img.shields.io/badge/sponsor-GitHub%20Sponsors-ea4aaa" alt="赞助" /></a>

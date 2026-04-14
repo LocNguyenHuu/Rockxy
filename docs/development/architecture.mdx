@@ -49,8 +49,9 @@ flowchart TB
         Storage["SessionStore + InMemory Buffers"]
     end
 
+    HelperClient["HelperConnection (@MainActor)"]
+
     subgraph Privileged["Privileged Domain"]
-        HelperClient["HelperConnection (@MainActor)"]
         Helper["RockxyHelperTool (launchd daemon)"]
         System["macOS Network / Keychain / Trust Settings"]
     end
@@ -215,6 +216,7 @@ sequenceDiagram
         Plugins-->>HTTP: modified request
         HTTP->>Upstream: forward cleartext HTTP
         Upstream-->>HTTP: response
+        HTTP-->>Traffic: completed transaction
     else HTTPS via CONNECT
         HTTP->>Client: 200 Connection Established
         HTTP->>TLS: hand off channel
@@ -227,10 +229,9 @@ sequenceDiagram
         Plugins-->>HTTPS: modified request
         HTTPS->>Upstream: TLS client connection to real host
         Upstream-->>HTTPS: decrypted response
+        HTTPS-->>Traffic: completed transaction
     end
 
-    HTTP-->>Traffic: completed transaction
-    HTTPS-->>Traffic: completed transaction
     Traffic-->>UI: batched updates
 ```
 

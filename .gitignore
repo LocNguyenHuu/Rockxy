@@ -35,10 +35,12 @@ Icon
 Thumbs.db
 
 # Local workspace metadata
-.?????/
-.??????/
-?LAUDE.md
-?GENTS.md
+.claude/
+.codex/
+.agents/
+.cursor/
+CLAUDE.md
+AGENTS.md
 
 # IDE
 .idea/
@@ -72,7 +74,7 @@ build/
 *.xcarchive
 
 
-# Local automation artifacts
+# Internal-use-only automation scripts (not shipped or published)
 scripts/
 
 # Design
