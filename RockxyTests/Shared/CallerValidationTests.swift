@@ -143,4 +143,40 @@ struct CallerValidationTests {
         // Self-comparison must match
         #expect(CallerValidation.certificateDataChainsMatch(derData, derData))
     }
+
+    // MARK: - Full Two-Layer Validation (Same Path as ConnectionValidator)
+
+    @Test("Full validateCaller accepts the test host by its own PID")
+    func fullValidationAcceptsTestHost() {
+        let pid = ProcessInfo.processInfo.processIdentifier
+        let allowed = RockxyIdentity.current.allowedCallerIdentifiers
+
+        let accepted = CallerValidation.validateCaller(pid: pid, allowedIdentifiers: allowed)
+        #expect(accepted)
+    }
+
+    @Test("Full validateCaller rejects the test host with unknown allowlist")
+    func fullValidationRejectsUnknownAllowlist() {
+        let pid = ProcessInfo.processInfo.processIdentifier
+
+        let rejected = CallerValidation.validateCaller(pid: pid, allowedIdentifiers: ["com.evil.app"])
+        #expect(!rejected)
+    }
+
+    @Test("Full validateCaller rejects empty allowlist")
+    func fullValidationRejectsEmptyAllowlist() {
+        let pid = ProcessInfo.processInfo.processIdentifier
+
+        let rejected = CallerValidation.validateCaller(pid: pid, allowedIdentifiers: [])
+        #expect(!rejected)
+    }
+
+    @Test("Full validateCaller rejects invalid PID")
+    func fullValidationRejectsInvalidPID() {
+        let allowed = RockxyIdentity.current.allowedCallerIdentifiers
+
+        // PID 0 is the kernel — will fail certificate extraction
+        let rejected = CallerValidation.validateCaller(pid: 0, allowedIdentifiers: allowed)
+        #expect(!rejected)
+    }
 }

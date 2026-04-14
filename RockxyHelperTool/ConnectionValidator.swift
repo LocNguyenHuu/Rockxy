@@ -30,30 +30,32 @@ enum ConnectionValidator {
     static func isValidCaller(_ connection: NSXPCConnection) -> Bool {
         let pid = connection.processIdentifier
 
-        // Layer 1: Certificate chain comparison (same-developer check)
-        guard let selfCertificates = certificatesForSelf() else {
-            logger.error("SECURITY: Unable to extract helper's own signing certificates")
-            return false
+        // Primary path: delegate both layers to the shared CallerValidation primitive.
+        // This uses PID-based SecCode lookup (equivalent to the audit-token fallback path).
+        let pidValid = CallerValidation.validateCaller(
+            pid: pid,
+            allowedIdentifiers: allowedCallerIdentifiers
+        )
+
+        if pidValid {
+            // If PID-based validation passed, also try audit-token-based SecCode for
+            // defense-in-depth (audit tokens are immune to PID recycling attacks).
+            if let auditCode = codeFromAuditToken(connection: connection) {
+                let auditSatisfied = CallerValidation.callerSatisfiesAnyIdentifier(
+                    callerCode: auditCode,
+                    allowedIdentifiers: allowedCallerIdentifiers
+                )
+                if !auditSatisfied {
+                    logger.error("SECURITY: PID validation passed but audit token check failed for pid \(pid)")
+                    return false
+                }
+            }
+            logger.info("SECURITY: Two-layer validation passed for pid \(pid)")
+            return true
         }
 
-        guard let callerCertificates = certificatesForProcess(pid: pid) else {
-            logger.error("SECURITY: Unable to extract caller signing certificates for pid \(pid)")
-            return false
-        }
-
-        guard certificateChainsMatch(selfCertificates, callerCertificates) else {
-            logger.error("SECURITY: Certificate chain mismatch for pid \(pid) — rejecting connection")
-            return false
-        }
-
-        // Layer 2: Bundle identity requirement (narrower identity check)
-        guard validateCallerIdentity(connection: connection) else {
-            logger.error("SECURITY: Bundle identity validation failed for pid \(pid) — rejecting connection")
-            return false
-        }
-
-        logger.info("SECURITY: Two-layer validation passed for pid \(pid)")
-        return true
+        logger.error("SECURITY: Caller validation failed for pid \(pid)")
+        return false
     }
 
     // MARK: Private
@@ -64,62 +66,6 @@ enum ConnectionValidator {
     )
 
     private static let allowedCallerIdentifiers = RockxyIdentity.current.allowedCallerIdentifiers
-
-    // MARK: - Bundle Identity Validation
-
-    /// Validates that the caller satisfies the configured bundle identity requirement.
-    ///
-    /// Uses the connection's audit token (via PID fallback, since `NSXPCConnection.auditToken`
-    /// is not public API) to obtain a `SecCode` reference, then checks it against a
-    /// `SecRequirement` that pins both the bundle identifier and Apple certificate anchor.
-    ///
-    /// This is narrower than certificate-chain comparison: even if another app is signed
-    /// with the same developer certificate, it will be rejected unless its bundle identifier
-    /// matches one of the configured allowlist entries.
-    private static func validateCallerIdentity(connection: NSXPCConnection) -> Bool {
-        let pid = connection.processIdentifier
-
-        // Obtain SecCode for the caller process.
-        // Prefer audit token (race-resistant) over PID when available.
-        guard let callerCode = codeForConnection(connection) else {
-            logger.error("SECURITY: Failed to obtain SecCode for pid \(pid)")
-            return false
-        }
-
-        guard !allowedCallerIdentifiers.isEmpty else {
-            logger.error("SECURITY: No allowed caller identifiers configured")
-            return false
-        }
-
-        let satisfied = CallerValidation.callerSatisfiesAnyIdentifier(
-            callerCode: callerCode,
-            allowedIdentifiers: allowedCallerIdentifiers
-        )
-        if satisfied {
-            logger.debug("SECURITY: Bundle identity requirement satisfied for pid \(pid)")
-        } else {
-            logger.error("SECURITY: Caller pid \(pid) does not satisfy any allowed bundle identifier")
-        }
-        return satisfied
-    }
-
-    /// Obtains a `SecCode` reference for the XPC connection's caller.
-    ///
-    /// Attempts audit-token-based lookup first (immune to PID recycling attacks),
-    /// falling back to PID-based lookup if the audit token is unavailable.
-    private static func codeForConnection(_ connection: NSXPCConnection) -> SecCode? {
-        // Try audit token first — more secure than PID because it is unique per process
-        // lifetime and cannot be recycled. Accessed via KVC since the public property
-        // is only available in macOS 15+ SDK. Falls back to PID if KVC fails.
-        if let code = codeFromAuditToken(connection: connection) {
-            return code
-        }
-
-        // Fallback: PID-based lookup. Less secure (PID recycling possible in theory)
-        // but still validated by the certificate chain check in layer 1.
-        logger.debug("SECURITY: Audit token unavailable, falling back to PID-based code lookup")
-        return codeFromPID(connection.processIdentifier)
-    }
 
     /// Attempts to obtain a `SecCode` using the connection's audit token.
     ///
@@ -169,122 +115,5 @@ enum ConnectionValidator {
         }
 
         return code
-    }
-
-    /// Obtains a `SecCode` using the caller's PID.
-    private static func codeFromPID(_ pid: pid_t) -> SecCode? {
-        let attributes = [kSecGuestAttributePid: pid] as CFDictionary
-        var code: SecCode?
-        let status = SecCodeCopyGuestWithAttributes(nil, attributes, [], &code)
-
-        guard status == errSecSuccess, let code else {
-            logger.debug("SecCodeCopyGuestWithAttributes (PID) failed for pid \(pid): \(status)")
-            return nil
-        }
-
-        return code
-    }
-
-    // MARK: - Certificate Extraction
-
-    private static func certificatesForSelf() -> [SecCertificate]? {
-        var code: SecCode?
-        let status = SecCodeCopySelf([], &code)
-
-        guard status == errSecSuccess, let selfCode = code else {
-            logger.error("SecCodeCopySelf failed: \(status)")
-            return nil
-        }
-
-        var staticCode: SecStaticCode?
-        let staticStatus = SecCodeCopyStaticCode(selfCode, [], &staticCode)
-
-        guard staticStatus == errSecSuccess, let selfStaticCode = staticCode else {
-            logger.error("SecCodeCopyStaticCode failed for self: \(staticStatus)")
-            return nil
-        }
-
-        return extractCertificates(from: selfStaticCode, label: "self")
-    }
-
-    private static func certificatesForProcess(pid: pid_t) -> [SecCertificate]? {
-        var code: SecCode?
-        let attributes = [kSecGuestAttributePid: pid] as CFDictionary
-        let status = SecCodeCopyGuestWithAttributes(nil, attributes, [], &code)
-
-        guard status == errSecSuccess, let guestCode = code else {
-            logger.error("SecCodeCopyGuestWithAttributes failed for pid \(pid): \(status)")
-            return nil
-        }
-
-        var staticCode: SecStaticCode?
-        let staticStatus = SecCodeCopyStaticCode(guestCode, [], &staticCode)
-
-        guard staticStatus == errSecSuccess, let guestStaticCode = staticCode else {
-            logger.error("SecCodeCopyStaticCode failed for pid \(pid): \(staticStatus)")
-            return nil
-        }
-
-        return extractCertificates(from: guestStaticCode, label: "pid \(pid)")
-    }
-
-    private static func extractCertificates(
-        from staticCode: SecStaticCode,
-        label: String
-    )
-        -> [SecCertificate]?
-    {
-        let validityStatus = SecStaticCodeCheckValidity(
-            staticCode,
-            SecCSFlags([]),
-            nil
-        )
-
-        guard validityStatus == errSecSuccess else {
-            let statusDesc = SecCopyErrorMessageString(validityStatus, nil) as String? ?? "unknown"
-            logger.error(
-                "SecStaticCodeCheckValidity failed for \(label): OSStatus \(validityStatus) (\(statusDesc))"
-            )
-            return nil
-        }
-
-        var information: CFDictionary?
-        let infoStatus = SecCodeCopySigningInformation(
-            staticCode,
-            SecCSFlags(rawValue: kSecCSSigningInformation),
-            &information
-        )
-
-        guard infoStatus == errSecSuccess, let info = information as? [String: Any] else {
-            logger.error("SecCodeCopySigningInformation failed for \(label): \(infoStatus)")
-            return nil
-        }
-
-        guard let certificates = info[kSecCodeInfoCertificates as String] as? [SecCertificate],
-              !certificates.isEmpty else
-        {
-            logger.error("No certificates found in signing information for \(label)")
-            return nil
-        }
-
-        return certificates
-    }
-
-    // MARK: - Certificate Comparison
-
-    private static func certificateChainsMatch(
-        _ lhs: [SecCertificate],
-        _ rhs: [SecCertificate]
-    )
-        -> Bool
-    {
-        let lhsData = CallerValidation.certificateDERData(from: lhs)
-        let rhsData = CallerValidation.certificateDERData(from: rhs)
-        let matches = CallerValidation.certificateDataChainsMatch(lhsData, rhsData)
-        if !matches {
-            let count = "chain lengths: \(lhs.count) vs \(rhs.count)"
-            logger.debug("Certificate chain mismatch (\(count))")
-        }
-        return matches
     }
 }

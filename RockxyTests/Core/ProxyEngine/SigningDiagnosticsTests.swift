@@ -165,10 +165,8 @@ struct SigningDiagnosticsClassifyTests {
 
 /// Tests against `LiveEnvironment` running in the signed test host.
 /// These verify identity-derived paths and the real classify contract.
-///
-/// NOTE: `ConnectionValidator` lives in `RockxyHelperTool/` (separate Xcode target).
-/// It cannot be imported into `RockxyTests` — helper caller-policy validation
-/// tests require a dedicated helper test target, which is deferred to a separate PR.
+/// Full caller-validation logic is tested in `CallerValidationTests` via the
+/// shared `CallerValidation.validateCaller(pid:allowedIdentifiers:)` primitive.
 struct SigningDiagnosticsLiveTests {
     @Test("LiveEnvironment validates test host app signature successfully")
     func liveAppSignatureValid() {

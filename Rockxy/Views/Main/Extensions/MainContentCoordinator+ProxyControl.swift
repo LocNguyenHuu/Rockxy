@@ -160,6 +160,10 @@ extension MainContentCoordinator {
     }
 
     func clearSession() {
+        // Increment generation FIRST so any in-flight batch arriving after
+        // this point is rejected by processBatch's generation check.
+        sessionGeneration &+= 1
+
         transactions.removeAll()
         selectedTransactionIDs.removeAll()
         logEntries.removeAll()
@@ -172,8 +176,7 @@ extension MainContentCoordinator {
         clearAllWorkspaces()
         resetTrafficMetrics()
 
-        // Flush stale pending transactions and reset the actor-side buffer counter
-        // so cleared sessions cannot be repopulated by a pending batch timer flush.
+        // Also reset the actor-side buffer counter and pending updates.
         Task { await sessionManager.resetBufferState() }
 
         // Advance nextSequenceNumber past highest assigned to any remaining persisted favorite
@@ -215,12 +218,12 @@ extension MainContentCoordinator {
             }
         )
 
-        await sessionManager.setOnBatchReady { [weak self] batch in
+        await sessionManager.setOnBatchReady { [weak self] batch, generation in
             guard let self else {
                 return
             }
             Task { @MainActor in
-                self.processBatch(batch)
+                self.processBatch(batch, generation: generation)
             }
         }
         await sessionManager.setOnClientAppEnriched { [weak self] enrichedIDs in
@@ -241,7 +244,11 @@ extension MainContentCoordinator {
 
     // MARK: - Transaction Processing
 
-    private func processBatch(_ batch: [HTTPTransaction]) {
+    private func processBatch(_ batch: [HTTPTransaction], generation: UInt) {
+        guard generation == sessionGeneration else {
+            Self.logger.debug("Batch of \(batch.count) dropped — stale session generation")
+            return
+        }
         guard isRecording else {
             Self.logger.debug("Batch of \(batch.count) dropped — recording paused")
             return

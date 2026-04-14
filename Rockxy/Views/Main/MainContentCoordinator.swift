@@ -56,6 +56,7 @@ final class MainContentCoordinator {
     var isProxyRunning = false
     var activeProxyPort = AppSettingsManager.shared.settings.proxyPort
     var isRecording = true
+    var sessionGeneration: UInt = 0
     var proxyError: String?
     var isSystemProxyConfigured = false
 

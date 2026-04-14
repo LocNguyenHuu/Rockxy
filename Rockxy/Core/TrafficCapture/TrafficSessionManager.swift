@@ -8,12 +8,16 @@ import os
 actor TrafficSessionManager {
     // MARK: Internal
 
-    var onBatchReady: (@Sendable ([HTTPTransaction]) -> Void)?
+    var onBatchReady: (@Sendable ([HTTPTransaction], _ generation: UInt) -> Void)?
     var onClientAppEnriched: (@Sendable ([UUID]) -> Void)?
+
+    var currentGeneration: UInt {
+        generation
+    }
 
     // MARK: - Configuration
 
-    func setOnBatchReady(_ callback: @escaping @Sendable ([HTTPTransaction]) -> Void) {
+    func setOnBatchReady(_ callback: @escaping @Sendable ([HTTPTransaction], _ generation: UInt) -> Void) {
         onBatchReady = callback
     }
 
@@ -70,6 +74,7 @@ actor TrafficSessionManager {
     func resetBufferState() {
         pendingUpdates.removeAll()
         totalBuffered = 0
+        generation &+= 1
     }
 
     func reportAcceptedCount(_ count: Int) {
@@ -91,6 +96,7 @@ actor TrafficSessionManager {
     private let batchInterval: TimeInterval = 0.1
     private var maxBufferSize: Int = 50_000
     private var totalBuffered: Int = 0
+    private var generation: UInt = 0
     private var proxyPort: Int = 9_090
     private var batchTimerTask: Task<Void, Never>?
 
@@ -102,9 +108,10 @@ actor TrafficSessionManager {
         }
 
         let batch = pendingUpdates
+        let batchGeneration = generation
         pendingUpdates.removeAll()
 
-        onBatchReady?(batch)
+        onBatchReady?(batch, batchGeneration)
 
         let port = proxyPort
         let enrichCallback = onClientAppEnriched

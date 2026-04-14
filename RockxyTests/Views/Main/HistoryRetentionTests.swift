@@ -103,7 +103,7 @@ struct HistoryRetentionTests {
         await manager.setMaxBufferSize(20)
 
         var batchDelivered = false
-        await manager.setOnBatchReady { _ in batchDelivered = true }
+        await manager.setOnBatchReady { _, _ in batchDelivered = true }
 
         // Add 50 transactions — flushAndDeliver fires, delivering the batch
         for i in 0 ..< 50 {
