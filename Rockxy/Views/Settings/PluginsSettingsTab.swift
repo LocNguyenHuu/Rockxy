@@ -29,6 +29,21 @@ struct PluginsSettingsTab: View {
             bottomBar
         }
         .task { await viewModel.loadPlugins() }
+        .alert(
+            String(localized: "Plugin Error"),
+            isPresented: Binding(
+                get: { viewModel.lastEnableError != nil },
+                set: { newValue in
+                    if !newValue {
+                        viewModel.lastEnableError = nil
+                    }
+                }
+            )
+        ) {
+            Button(String(localized: "OK")) { viewModel.lastEnableError = nil }
+        } message: {
+            Text(viewModel.lastEnableError ?? "")
+        }
     }
 
     // MARK: Private

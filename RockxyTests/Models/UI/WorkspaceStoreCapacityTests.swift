@@ -45,6 +45,22 @@ struct WorkspaceStoreCapacityTests {
         let coordinator = MainContentCoordinator(policy: policy)
         #expect(coordinator.workspaceStore.maxWorkspaces == 3)
     }
+
+    @Test("maxWorkspaces zero clamps to 1")
+    @MainActor
+    func zeroClamps() {
+        let store = WorkspaceStore(maxWorkspaces: 0)
+        #expect(store.maxWorkspaces == 1)
+        #expect(store.workspaces.count == 1)
+    }
+
+    @Test("maxWorkspaces negative clamps to 1")
+    @MainActor
+    func negativeClamps() {
+        let store = WorkspaceStore(maxWorkspaces: -5)
+        #expect(store.maxWorkspaces == 1)
+        #expect(store.workspaces.count == 1)
+    }
 }
 
 // MARK: - SmallPolicy

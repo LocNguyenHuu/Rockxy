@@ -8,7 +8,7 @@ final class WorkspaceStore {
     // MARK: Lifecycle
 
     init(maxWorkspaces: Int = 8) {
-        self.maxWorkspaces = maxWorkspaces
+        self.maxWorkspaces = max(maxWorkspaces, 1)
         let defaultWorkspace = WorkspaceState(
             title: String(localized: "All Traffic"),
             isClosable: false

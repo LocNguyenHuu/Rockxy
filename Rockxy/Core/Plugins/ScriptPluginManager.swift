@@ -40,11 +40,19 @@ actor ScriptPluginManager {
         for snapshot in enabledSnapshots {
             do {
                 try await runtime.loadPlugin(snapshot.info)
-                if let j = plugins.firstIndex(where: { $0.id == snapshot.id }) {
-                    plugins[j].status = .active
+                // Re-resolve after await — plugin may have been removed or disabled while suspended
+                guard let j = plugins.firstIndex(where: { $0.id == snapshot.id }),
+                      plugins[j].isEnabled else
+                {
+                    await runtime.unloadPlugin(id: snapshot.id)
+                    Self.logger.info("Plugin \(snapshot.id) removed or disabled during load — unloaded")
+                    continue
                 }
+                plugins[j].status = .active
             } catch {
-                if let j = plugins.firstIndex(where: { $0.id == snapshot.id }) {
+                if let j = plugins.firstIndex(where: { $0.id == snapshot.id }),
+                   plugins[j].isEnabled
+                {
                     plugins[j].status = .error(error.localizedDescription)
                 }
                 Self.logger.error("Failed to load plugin \(snapshot.id): \(error.localizedDescription)")
@@ -79,10 +87,15 @@ actor ScriptPluginManager {
 
         do {
             try await runtime.loadPlugin(plugins[index])
-            // Re-resolve after await
-            if let j = plugins.firstIndex(where: { $0.id == id }) {
-                plugins[j].status = .active
+            // Re-resolve after await — plugin may have been removed or disabled while suspended
+            guard let j = plugins.firstIndex(where: { $0.id == id }),
+                  plugins[j].isEnabled else
+            {
+                await runtime.unloadPlugin(id: id)
+                Self.logger.info("Plugin \(id) removed or disabled during enable — unloaded")
+                return false
             }
+            plugins[j].status = .active
             UserDefaults.standard.set(true, forKey: RockxyIdentity.current.pluginEnabledKey(pluginID: id))
             Self.logger.info("Enabled plugin: \(id)")
             return true

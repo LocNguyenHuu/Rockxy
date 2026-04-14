@@ -63,7 +63,6 @@ final class MapRemoteWindowViewModel {
                 updated[index].isEnabled = true
             }
         }
-        allRules = updated
         Task {
             await RulePolicyGate.shared.replaceAllRules(updated)
             allRules = await RuleEngine.shared.allRules

@@ -4,6 +4,8 @@ import Testing
 
 // MARK: - ScriptQuotaTests
 
+/// Serialized: mutates shared plugin directory and UserDefaults plugin-enabled keys.
+@Suite(.serialized)
 struct ScriptQuotaTests {
     // MARK: Internal
 
@@ -61,23 +63,41 @@ struct ScriptQuotaTests {
     // MARK: - Concurrent Enables
 
     @Test("Concurrent enables against shared manager are serialized by actor")
-    func concurrentEnablesAreSerialized() async {
+    func concurrentEnablesAreSerialized() async throws {
+        // Seed 5 real disabled plugins
+        var pluginIDs: [String] = []
+        var pluginDirs: [URL] = []
+        for i in 0 ..< 5 {
+            let id = "concurrent-\(i)-\(UUID().uuidString.prefix(8))"
+            let dir = try Self.createTempPlugin(id: id, enabled: false)
+            pluginIDs.append(id)
+            pluginDirs.append(dir)
+        }
+        defer {
+            for (id, dir) in zip(pluginIDs, pluginDirs) {
+                Self.cleanupPlugin(id: id, bundlePath: dir)
+            }
+        }
+
         let manager = ScriptPluginManager()
+        await manager.loadAllPlugins()
+
+        // Try to enable all 5 concurrently with maxEnabled = 2
         await withTaskGroup(of: Bool.self) { group in
-            for _ in 0 ..< 10 {
+            for id in pluginIDs {
                 group.addTask {
                     do {
-                        return try await manager.enablePluginIfAllowed(id: "test", maxEnabled: 2)
+                        return try await manager.enablePluginIfAllowed(id: id, maxEnabled: 2)
                     } catch {
                         return false
                     }
                 }
             }
-            var results: [Bool] = []
-            for await result in group {
-                results.append(result)
+            var successes = 0
+            for await result in group where result {
+                successes += 1
             }
-            #expect(results.allSatisfy { !$0 })
+            #expect(successes == 2)
         }
     }
 

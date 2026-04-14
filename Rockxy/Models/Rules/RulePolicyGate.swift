@@ -34,13 +34,10 @@ final class RulePolicyGate {
     {
         let baselineEnabled = enabledIDsByCategory(in: baseline)
         let newCounts = enabledCounts(in: rules)
-        let baselineCounts = enabledCounts(in: baseline)
 
         var categoriesToCap: Set<String> = []
         for (cat, count) in newCounts where count > limit {
-            if count > baselineCounts[cat, default: 0] {
-                categoriesToCap.insert(cat)
-            }
+            categoriesToCap.insert(cat)
         }
 
         guard !categoriesToCap.isEmpty else {
@@ -50,21 +47,19 @@ final class RulePolicyGate {
         var result = rules
         var running: [String: Int] = [:]
 
-        // First pass: count already-enabled rules from baseline (they get priority)
+        // First pass: count baseline-enabled rules, disable excess beyond limit
         for index in result.indices where result[index].isEnabled {
             let cat = result[index].action.toolCategory
             guard categoriesToCap.contains(cat) else {
                 continue
             }
             if baselineEnabled[cat]?.contains(result[index].id) == true {
-                running[cat, default: 0] += 1
-            }
-        }
-
-        // Cap running counts at limit (baseline might already exceed)
-        for cat in categoriesToCap {
-            if let count = running[cat], count > limit {
-                running[cat] = limit
+                let count = running[cat, default: 0]
+                if count >= limit {
+                    result[index].isEnabled = false
+                } else {
+                    running[cat] = count + 1
+                }
             }
         }
 

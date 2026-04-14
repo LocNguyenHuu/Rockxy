@@ -40,8 +40,12 @@ extension MainContentCoordinator {
                 }
 
                 if !rulesLoaded {
-                    await RuleSyncService.loadFromDisk()
-                    rulesLoaded = true
+                    if let existing = rulesLoadingTask {
+                        await existing.value
+                    } else {
+                        loadInitialRules()
+                        await rulesLoadingTask?.value
+                    }
                 }
                 Self.logger.info("Rules loaded")
 

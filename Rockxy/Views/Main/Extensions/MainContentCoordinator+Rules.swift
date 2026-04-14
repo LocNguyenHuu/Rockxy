@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 // Extends `MainContentCoordinator` with rules behavior for the main workspace.
 
@@ -11,7 +12,16 @@ extension MainContentCoordinator {
     // MARK: - Rule Management
 
     func addRule(_ rule: ProxyRule) {
-        Task { await RulePolicyGate.shared.addRule(rule) }
+        Task {
+            let accepted = await RulePolicyGate.shared.addRule(rule)
+            if !accepted {
+                Self.logger.info("Rule add rejected — quota reached for \(rule.action.toolCategory)")
+                activeToast = ToastMessage(
+                    style: .error,
+                    text: String(localized: "Rule limit reached for this category")
+                )
+            }
+        }
     }
 
     func removeRule(id: UUID) {
@@ -19,7 +29,16 @@ extension MainContentCoordinator {
     }
 
     func toggleRule(id: UUID) {
-        Task { await RulePolicyGate.shared.toggleRule(id: id) }
+        Task {
+            let accepted = await RulePolicyGate.shared.toggleRule(id: id)
+            if !accepted {
+                Self.logger.info("Rule toggle rejected — quota reached")
+                activeToast = ToastMessage(
+                    style: .error,
+                    text: String(localized: "Rule limit reached for this category")
+                )
+            }
+        }
     }
 
     func createBreakpointRule(for transaction: HTTPTransaction) {

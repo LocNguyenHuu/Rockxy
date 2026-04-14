@@ -106,6 +106,8 @@ final class MainContentCoordinator {
     var sessionProvenance: SessionProvenance?
     var activeToast: ToastMessage?
 
+    private(set) var rulesLoadingTask: Task<Void, Never>?
+
     var systemProxyWarning: SystemProxyWarning? {
         guard let warning = readiness.activeWarning else {
             return nil
@@ -260,12 +262,13 @@ final class MainContentCoordinator {
     }
 
     func loadInitialRules() {
-        guard !rulesLoaded else {
+        guard !rulesLoaded, rulesLoadingTask == nil else {
             return
         }
-        Task {
+        rulesLoadingTask = Task {
             await RuleSyncService.loadFromDisk()
             rulesLoaded = true
+            rulesLoadingTask = nil
         }
     }
 

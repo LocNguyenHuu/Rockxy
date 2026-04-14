@@ -181,6 +181,10 @@ actor RuleEngine {
             rules[index].isEnabled = false
             return true
         }
+        // Already enabled — no-op success
+        if rules[index].isEnabled {
+            return true
+        }
         let category = rules[index].action.toolCategory
         let activeCount = rules.filter { $0.isEnabled && $0.action.toolCategory == category }.count
         guard activeCount < maxPerCategory else {
@@ -191,9 +195,9 @@ actor RuleEngine {
     }
 
     func addNetworkConditionExclusiveIfAllowed(_ rule: ProxyRule, maxPerCategory: Int) -> Bool {
-        let category = rule.action.toolCategory
-        let activeCount = rules.filter { $0.isEnabled && $0.action.toolCategory == category }.count
-        guard activeCount < maxPerCategory else {
+        // addNetworkConditionExclusive disables all existing network conditions
+        // then adds the new one enabled, so post-switch count is always 1.
+        guard maxPerCategory >= 1 else {
             return false
         }
         addNetworkConditionExclusive(rule)

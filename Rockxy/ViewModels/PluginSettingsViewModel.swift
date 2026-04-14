@@ -20,6 +20,7 @@ final class PluginSettingsViewModel {
     var selectedPluginID: String?
     var searchText = ""
     var selectedCategory: PluginType?
+    var lastEnableError: String?
 
     var filteredPlugins: [PluginInfo] {
         var result = plugins
@@ -53,12 +54,15 @@ final class PluginSettingsViewModel {
         if shouldEnable {
             do {
                 try await ScriptPolicyGate.shared.enablePlugin(id: id, using: pluginManager)
+                lastEnableError = nil
+                plugins = await pluginManager.plugins
             } catch {
                 Self.logger.warning("Cannot enable plugin \(id): \(error.localizedDescription)")
+                lastEnableError = error.localizedDescription
             }
-            plugins = await pluginManager.plugins
         } else {
             await pluginManager.disablePlugin(id: id)
+            lastEnableError = nil
             plugins = await pluginManager.plugins
         }
     }

@@ -240,6 +240,76 @@ struct RuleQuotaTests {
         await RuleEngine.shared.removeRule(id: ruleB.id)
     }
 
+    // MARK: - setEnabledIfAllowed No-Op Success
+
+    @Test("Enabling an already-enabled rule is a no-op success")
+    func setEnabledAlreadyEnabledIsNoOp() async {
+        let baseline = await activeCount(for: "throttle")
+        let ids = await seedThrottleRules(count: 1)
+        let limit = baseline + 1
+
+        // Rule is already enabled; setEnabledIfAllowed(enabled: true) must succeed
+        let accepted = await RuleEngine.shared.setEnabledIfAllowed(
+            id: ids[0],
+            enabled: true,
+            maxPerCategory: limit
+        )
+        #expect(accepted)
+
+        await removeRules(ids)
+    }
+
+    // MARK: - addNetworkConditionExclusiveIfAllowed Regression
+
+    @Test("Adding enabled network condition with one already active at limit 1 succeeds")
+    func addNetworkConditionExclusiveReplacesAtLimit() async {
+        let ruleA = ProxyRule(
+            name: "NetCondA",
+            isEnabled: true,
+            matchCondition: RuleMatchCondition(urlPattern: ".*a.*"),
+            action: .networkCondition(preset: .custom, delayMs: 100)
+        )
+        await RuleEngine.shared.addRule(ruleA)
+
+        let ruleB = ProxyRule(
+            name: "NetCondB",
+            isEnabled: true,
+            matchCondition: RuleMatchCondition(urlPattern: ".*b.*"),
+            action: .networkCondition(preset: .custom, delayMs: 200)
+        )
+
+        let accepted = await RuleEngine.shared.addNetworkConditionExclusiveIfAllowed(
+            ruleB,
+            maxPerCategory: 1
+        )
+        #expect(accepted)
+
+        let allRules = await RuleEngine.shared.allRules
+        let activeA = allRules.first { $0.id == ruleA.id }
+        let activeB = allRules.first { $0.id == ruleB.id }
+        #expect(activeA?.isEnabled == false)
+        #expect(activeB?.isEnabled == true)
+
+        await RuleEngine.shared.removeRule(id: ruleA.id)
+        await RuleEngine.shared.removeRule(id: ruleB.id)
+    }
+
+    // MARK: - capEnabledPerCategory Baseline-Over-Limit Regression
+
+    @Test("capEnabledPerCategory caps when baseline already exceeds limit")
+    func capWhenBaselineAlreadyOverLimit() {
+        // Baseline has 3 enabled mapLocal rules, limit is 2
+        let ruleA = makeNamedRule(name: "A", action: .mapLocal(filePath: "/a"), enabled: true)
+        let ruleB = makeNamedRule(name: "B", action: .mapLocal(filePath: "/b"), enabled: true)
+        let ruleC = makeNamedRule(name: "C", action: .mapLocal(filePath: "/c"), enabled: true)
+        let baseline: [ProxyRule] = [ruleA, ruleB, ruleC]
+
+        // New set is same as baseline (still 3 enabled, still over limit of 2)
+        let capped = RulePolicyGate.capEnabledPerCategory(baseline, limit: 2, baseline: baseline)
+        let enabledCount = capped.filter { $0.isEnabled && $0.action.toolCategory == "mapLocal" }.count
+        #expect(enabledCount == 2)
+    }
+
     // MARK: - Rule Loading Race Regression
 
     @Test("rulesLoaded is false until loadFromDisk completes")

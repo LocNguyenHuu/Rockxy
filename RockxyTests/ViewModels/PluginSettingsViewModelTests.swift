@@ -4,6 +4,8 @@ import Testing
 
 // Regression tests for `PluginSettingsViewModel` in the view models layer.
 
+/// Serialized: mutates shared plugin directory and UserDefaults plugin-enabled keys.
+@Suite(.serialized)
 @MainActor
 struct PluginSettingsViewModelTests {
     // MARK: Internal
@@ -110,39 +112,72 @@ struct PluginSettingsViewModelTests {
 
     // MARK: - Runtime-Backed Toggle Tests
 
-    @Test("togglePlugin disable refreshes from shared manager")
-    func toggleDisableRefreshes() async {
+    @Test("togglePlugin disable with real plugin refreshes correctly")
+    func toggleDisableRefreshes() async throws {
+        let id = "toggle-disable-\(UUID().uuidString.prefix(8))"
+        let pluginDir = try createTempPlugin(id: id, enabled: true)
+        defer { cleanupTempPlugin(id: id, bundlePath: pluginDir) }
+
         let manager = ScriptPluginManager()
+        await manager.loadAllPlugins()
+
         let viewModel = PluginSettingsViewModel(pluginManager: manager)
-        viewModel.plugins = [
-            makePlugin(id: "test-toggle", name: "Toggle", types: [.script], enabled: true),
-        ]
+        viewModel.plugins = await manager.plugins
+        #expect(viewModel.plugins.first { $0.id == id }?.isEnabled == true)
 
-        // Disable a plugin not in the real manager — manager's disable is a
-        // no-op for unknown IDs, and the VM refreshes from the manager state.
-        await viewModel.togglePlugin(id: "test-toggle")
+        await viewModel.togglePlugin(id: id)
 
-        // After refresh, viewModel.plugins reflects the manager's actual list
-        // (which is empty since we never loaded real plugins).
+        #expect(viewModel.plugins.first { $0.id == id }?.isEnabled == false)
         let managerPlugins = await manager.plugins
-        #expect(viewModel.plugins.count == managerPlugins.count)
+        #expect(managerPlugins.first { $0.id == id }?.isEnabled == false)
     }
 
-    @Test("togglePlugin enable for missing plugin refreshes on error")
-    func toggleEnableMissingPluginRefreshes() async {
+    @Test("togglePlugin enable for unloadable plugin surfaces error")
+    func toggleEnableUnloadablePluginSurfacesError() async throws {
+        let id = "broken-\(UUID().uuidString.prefix(8))"
+        let pluginDir = try createBrokenPlugin(id: id)
+        defer { cleanupTempPlugin(id: id, bundlePath: pluginDir) }
+
         let manager = ScriptPluginManager()
+        await manager.loadAllPlugins()
+
+        let plugins = await manager.plugins
+        #expect(plugins.contains { $0.id == id })
+        #expect(plugins.first { $0.id == id }?.isEnabled == false)
+
+        // Delete the script file after discovery so runtime.loadPlugin will fail
+        try FileManager.default.removeItem(at: pluginDir.appendingPathComponent("index.js"))
+
         let viewModel = PluginSettingsViewModel(pluginManager: manager)
-        viewModel.plugins = [
-            makePlugin(id: "gone", name: "Gone", types: [.script], enabled: false),
-        ]
+        viewModel.plugins = plugins
 
-        // Enabling a plugin that doesn't exist in the manager throws
-        // ScriptPluginError.pluginNotFound — the VM catches and refreshes.
-        await viewModel.togglePlugin(id: "gone")
+        await viewModel.togglePlugin(id: id)
 
-        // plugins refreshed from the manager (which has no plugins loaded)
+        // Error should be surfaced to the UI
+        #expect(viewModel.lastEnableError != nil)
+
+        // Manager state is authoritative — plugin should be rolled back to disabled
         let managerPlugins = await manager.plugins
-        #expect(viewModel.plugins.count == managerPlugins.count)
+        #expect(managerPlugins.first { $0.id == id }?.isEnabled == false)
+    }
+
+    @Test("togglePlugin enable with real plugin updates state")
+    func toggleEnableRefreshes() async throws {
+        let id = "toggle-enable-\(UUID().uuidString.prefix(8))"
+        let pluginDir = try createTempPlugin(id: id, enabled: false)
+        defer { cleanupTempPlugin(id: id, bundlePath: pluginDir) }
+
+        let manager = ScriptPluginManager()
+        await manager.loadAllPlugins()
+
+        let viewModel = PluginSettingsViewModel(pluginManager: manager)
+        viewModel.plugins = await manager.plugins
+        #expect(viewModel.plugins.first { $0.id == id }?.isEnabled == false)
+
+        await viewModel.togglePlugin(id: id)
+
+        #expect(viewModel.plugins.first { $0.id == id }?.isEnabled == true)
+        #expect(viewModel.lastEnableError == nil)
     }
 
     @Test("Both ViewModels share same ScriptPluginManager instance")
@@ -157,6 +192,62 @@ struct PluginSettingsViewModelTests {
     }
 
     // MARK: Private
+
+    /// Creates a valid plugin that passes discovery, then deletes the script
+    /// file so that `runtime.loadPlugin` will fail when attempting to enable.
+    /// The plugin is created disabled so `loadAllPlugins()` skips the load phase.
+    private func createBrokenPlugin(id: String) throws -> URL {
+        try createTempPlugin(id: id, enabled: false)
+        // Remove the script file AFTER creation — discovery has already validated it
+        // during the caller's `loadAllPlugins()` the file must exist for validation,
+        // so we return the path and the caller deletes it after discovery.
+    }
+
+    private func createTempPlugin(id: String, enabled: Bool) throws -> URL {
+        let pluginsDir = RockxyIdentity.current.appSupportPath("Plugins")
+        try FileManager.default.createDirectory(at: pluginsDir, withIntermediateDirectories: true)
+
+        let bundlePath = pluginsDir.appendingPathComponent(id, isDirectory: true)
+        try FileManager.default.createDirectory(at: bundlePath, withIntermediateDirectories: true)
+
+        let manifest = """
+        {
+            "id": "\(id)",
+            "name": "Test Plugin \(id)",
+            "version": "1.0.0",
+            "author": { "name": "Test" },
+            "description": "Test plugin",
+            "types": ["script"],
+            "entryPoints": { "script": "index.js" },
+            "capabilities": []
+        }
+        """
+        try manifest.write(
+            to: bundlePath.appendingPathComponent("plugin.json"),
+            atomically: true,
+            encoding: .utf8
+        )
+
+        let script = "module.exports = {};"
+        try script.write(
+            to: bundlePath.appendingPathComponent("index.js"),
+            atomically: true,
+            encoding: .utf8
+        )
+
+        if enabled {
+            UserDefaults.standard.set(true, forKey: RockxyIdentity.current.pluginEnabledKey(pluginID: id))
+        } else {
+            UserDefaults.standard.removeObject(forKey: RockxyIdentity.current.pluginEnabledKey(pluginID: id))
+        }
+
+        return bundlePath
+    }
+
+    private func cleanupTempPlugin(id: String, bundlePath: URL) {
+        try? FileManager.default.removeItem(at: bundlePath)
+        UserDefaults.standard.removeObject(forKey: RockxyIdentity.current.pluginEnabledKey(pluginID: id))
+    }
 
     private func makePlugin(
         id: String,
