@@ -217,6 +217,37 @@ struct HistoryRetentionTests {
         #expect(!evictionFired) // 5 < 100, no eviction
     }
 
+    @Test("Coordinator clearSession rejects pre-clear and accepts post-clear traffic")
+    @MainActor
+    func coordinatorClearSessionGeneration() async {
+        let coordinator = MainContentCoordinator(policy: SmallHistoryPolicy())
+        coordinator.isRecording = true
+
+        // Seed some transactions
+        for i in 0 ..< 5 {
+            coordinator.transactions.append(
+                TestFixtures.makeTransaction(url: "https://pre-clear.com/\(i)")
+            )
+        }
+        #expect(coordinator.transactions.count == 5)
+
+        let preClearGen = coordinator.sessionGeneration
+
+        // Clear session
+        coordinator.clearSession()
+
+        // sessionGeneration incremented synchronously
+        #expect(coordinator.sessionGeneration == preClearGen &+ 1)
+        #expect(coordinator.transactions.isEmpty)
+
+        // Wait for actor reset to complete
+        try? await Task.sleep(for: .milliseconds(50))
+
+        // Actor generation should now match coordinator
+        let actorGen = await coordinator.sessionManager.currentGeneration
+        #expect(actorGen == coordinator.sessionGeneration)
+    }
+
     @Test("Pinned/saved transactions are independent of live buffer")
     @MainActor
     func pinnedSavedIndependent() {

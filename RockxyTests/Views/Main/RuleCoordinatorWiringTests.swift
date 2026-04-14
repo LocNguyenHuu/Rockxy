@@ -7,10 +7,9 @@ import Testing
 @Suite(.serialized)
 @MainActor
 struct RuleCoordinatorWiringTests {
-    // MARK: - Add Rule
-
     @Test("addRule success fires notification and sets no toast")
     func addRuleSuccess() async {
+        await RuleTestLock.shared.acquire()
         let savedGate = RulePolicyGate.shared
         let engineSnapshot = await RuleEngine.shared.allRules
         RulePolicyGate.shared = RulePolicyGate(policy: LargePolicy())
@@ -18,9 +17,8 @@ struct RuleCoordinatorWiringTests {
 
         let coordinator = MainContentCoordinator()
         let rule = TestFixtures.makeRule(name: "WiringAdd", action: .block(statusCode: 403))
-
         coordinator.addRule(rule)
-        // Poll for engine to contain the rule (deterministic, no fixed sleep)
+
         for _ in 0 ..< 500 {
             let rules = await RuleEngine.shared.allRules
             if rules.contains(where: { $0.id == rule.id }) {
@@ -33,13 +31,14 @@ struct RuleCoordinatorWiringTests {
         let engineRules = await RuleEngine.shared.allRules
         #expect(engineRules.contains { $0.id == rule.id })
 
-        // Awaited cleanup — no fire-and-forget
         RulePolicyGate.shared = savedGate
         await RuleEngine.shared.replaceAll(engineSnapshot)
+        await RuleTestLock.shared.release()
     }
 
     @Test("addRule at quota sets error toast")
     func addRuleAtQuota() async {
+        await RuleTestLock.shared.acquire()
         let savedGate = RulePolicyGate.shared
         let engineSnapshot = await RuleEngine.shared.allRules
         await RuleEngine.shared.replaceAll([])
@@ -66,12 +65,12 @@ struct RuleCoordinatorWiringTests {
 
         RulePolicyGate.shared = savedGate
         await RuleEngine.shared.replaceAll(engineSnapshot)
+        await RuleTestLock.shared.release()
     }
-
-    // MARK: - Toggle Rule
 
     @Test("toggleRule disable fires notification and sets no toast")
     func toggleRuleDisable() async {
+        await RuleTestLock.shared.acquire()
         let savedGate = RulePolicyGate.shared
         let engineSnapshot = await RuleEngine.shared.allRules
         RulePolicyGate.shared = RulePolicyGate(policy: LargePolicy())
@@ -96,10 +95,12 @@ struct RuleCoordinatorWiringTests {
 
         RulePolicyGate.shared = savedGate
         await RuleEngine.shared.replaceAll(engineSnapshot)
+        await RuleTestLock.shared.release()
     }
 
     @Test("toggleRule enable at quota sets error toast")
     func toggleRuleEnableAtQuota() async {
+        await RuleTestLock.shared.acquire()
         let savedGate = RulePolicyGate.shared
         let engineSnapshot = await RuleEngine.shared.allRules
         await RuleEngine.shared.replaceAll([])
@@ -127,6 +128,7 @@ struct RuleCoordinatorWiringTests {
 
         RulePolicyGate.shared = savedGate
         await RuleEngine.shared.replaceAll(engineSnapshot)
+        await RuleTestLock.shared.release()
     }
 }
 

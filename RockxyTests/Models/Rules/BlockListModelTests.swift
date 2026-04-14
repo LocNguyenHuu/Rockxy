@@ -433,6 +433,7 @@ struct BlockListViewModelTests {
     @Test("addBlockRule at quota rolls back optimistic append")
     @MainActor
     func addBlockRuleQuotaRollback() async {
+        await RuleTestLock.shared.acquire()
         let savedGate = RulePolicyGate.shared
         let engineSnapshot = await RuleEngine.shared.allRules
         await RuleEngine.shared.replaceAll([])
@@ -466,14 +467,15 @@ struct BlockListViewModelTests {
 
         #expect(vm.blockRules.count == beforeCount)
 
-        // Awaited cleanup
         RulePolicyGate.shared = savedGate
         await RuleEngine.shared.replaceAll(engineSnapshot)
+        await RuleTestLock.shared.release()
     }
 
     @Test("toggleRule enable at quota rolls back optimistic toggle")
     @MainActor
     func toggleRuleEnableAtQuotaRollback() async {
+        await RuleTestLock.shared.acquire()
         let savedGate = RulePolicyGate.shared
         let engineSnapshot = await RuleEngine.shared.allRules
         await RuleEngine.shared.replaceAll([])
@@ -504,9 +506,9 @@ struct BlockListViewModelTests {
 
         #expect(vm.allRules.first { $0.id == disabled.id }?.isEnabled == false)
 
-        // Awaited cleanup
         RulePolicyGate.shared = savedGate
         await RuleEngine.shared.replaceAll(engineSnapshot)
+        await RuleTestLock.shared.release()
     }
 }
 

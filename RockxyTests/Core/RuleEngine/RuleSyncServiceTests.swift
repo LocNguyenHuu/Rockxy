@@ -10,6 +10,7 @@ struct RuleSyncServiceTests {
 
     @Test("addRule adds to RuleEngine.shared")
     func addRuleSync() async {
+        await RuleTestLock.shared.acquire()
         let backup = await backupRules()
 
         await RuleSyncService.replaceAllRules([])
@@ -25,10 +26,12 @@ struct RuleSyncServiceTests {
         #expect(allRules.contains(where: { $0.id == rule.id }))
 
         await restoreRules(backup)
+        await RuleTestLock.shared.release()
     }
 
     @Test("removeRule removes from RuleEngine.shared")
     func removeRuleSync() async {
+        await RuleTestLock.shared.acquire()
         let backup = await backupRules()
 
         let rule = ProxyRule(
@@ -44,10 +47,12 @@ struct RuleSyncServiceTests {
         #expect(!allRules.contains(where: { $0.id == rule.id }))
 
         await restoreRules(backup)
+        await RuleTestLock.shared.release()
     }
 
     @Test("updateRule updates in RuleEngine.shared")
     func updateRuleSync() async {
+        await RuleTestLock.shared.acquire()
         let backup = await backupRules()
 
         var rule = ProxyRule(
@@ -65,6 +70,7 @@ struct RuleSyncServiceTests {
         #expect(found?.name == "Updated")
 
         await restoreRules(backup)
+        await RuleTestLock.shared.release()
     }
 
     // MARK: Private
