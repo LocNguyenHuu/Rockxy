@@ -458,10 +458,8 @@ struct BlockListViewModelTests {
         // Optimistic append happened
         #expect(vm.blockRules.count == beforeCount + 1)
 
-        // Wait for async rollback
-        for _ in 0 ..< 50 where vm.blockRules.count != beforeCount {
-            await Task.yield()
-        }
+        // Wait for async rollback — same cooperative yield convention as RuleCoordinatorWiringTests
+        try? await Task.sleep(for: .milliseconds(200))
 
         #expect(vm.blockRules.count == beforeCount)
 
