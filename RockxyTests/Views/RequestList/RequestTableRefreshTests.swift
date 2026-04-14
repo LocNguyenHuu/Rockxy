@@ -91,7 +91,7 @@ struct RequestTableRefreshTests {
     }
 
     @Test("Clear session: token changes, sort descriptors preserved")
-    func clearPreservesSort() {
+    func clearPreservesSort() async {
         let coordinator = MainContentCoordinator()
         coordinator.transactions = [TestFixtures.makeTransaction()]
         coordinator.activeSortDescriptors = [NSSortDescriptor(key: "url", ascending: true)]
@@ -99,7 +99,7 @@ struct RequestTableRefreshTests {
 
         let sortBefore = coordinator.activeSortDescriptors
 
-        coordinator.clearSession()
+        await coordinator.clearSession()
 
         #expect(coordinator.filteredRows.isEmpty)
         #expect(!coordinator.activeSortDescriptors.isEmpty)

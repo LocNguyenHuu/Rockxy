@@ -1,6 +1,6 @@
 // CommunityProduction.xcconfig — Public production release channel.
 
-#include "RockxyBase.xcconfig"
+#include "CommunityBase.xcconfig"
 
 ROCKXY_RELEASE_CHANNEL = community-prod
 ROCKXY_UPDATES_ENABLED = YES

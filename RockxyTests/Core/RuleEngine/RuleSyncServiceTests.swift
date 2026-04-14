@@ -5,14 +5,13 @@ import Testing
 // Regression tests for `RuleSyncService` in the core rule engine layer.
 
 @Suite(.serialized)
-@MainActor
 struct RuleSyncServiceTests {
     // MARK: Internal
 
     @Test("addRule adds to RuleEngine.shared")
     func addRuleSync() async {
-        let backup = backupRules()
-        defer { restoreRules(backup) }
+        await RuleTestLock.shared.acquire()
+        let backup = await backupRules()
 
         await RuleSyncService.replaceAllRules([])
 
@@ -25,12 +24,15 @@ struct RuleSyncServiceTests {
 
         let allRules = await RuleEngine.shared.allRules
         #expect(allRules.contains(where: { $0.id == rule.id }))
+
+        await restoreRules(backup)
+        await RuleTestLock.shared.release()
     }
 
     @Test("removeRule removes from RuleEngine.shared")
     func removeRuleSync() async {
-        let backup = backupRules()
-        defer { restoreRules(backup) }
+        await RuleTestLock.shared.acquire()
+        let backup = await backupRules()
 
         let rule = ProxyRule(
             name: "Temp",
@@ -43,12 +45,15 @@ struct RuleSyncServiceTests {
 
         let allRules = await RuleEngine.shared.allRules
         #expect(!allRules.contains(where: { $0.id == rule.id }))
+
+        await restoreRules(backup)
+        await RuleTestLock.shared.release()
     }
 
     @Test("updateRule updates in RuleEngine.shared")
     func updateRuleSync() async {
-        let backup = backupRules()
-        defer { restoreRules(backup) }
+        await RuleTestLock.shared.acquire()
+        let backup = await backupRules()
 
         var rule = ProxyRule(
             name: "Original",
@@ -63,9 +68,17 @@ struct RuleSyncServiceTests {
         let allRules = await RuleEngine.shared.allRules
         let found = allRules.first(where: { $0.id == rule.id })
         #expect(found?.name == "Updated")
+
+        await restoreRules(backup)
+        await RuleTestLock.shared.release()
     }
 
     // MARK: Private
+
+    private struct RulesBackup {
+        let diskData: Data?
+        let engineRules: [ProxyRule]
+    }
 
     private static let rulesPath: URL = {
         let appSupport = FileManager.default.urls(
@@ -77,15 +90,18 @@ struct RuleSyncServiceTests {
             .appendingPathComponent(TestIdentity.rulesPathComponent)
     }()
 
-    private func backupRules() -> Data? {
-        try? Data(contentsOf: Self.rulesPath)
+    private func backupRules() async -> RulesBackup {
+        let diskData = try? Data(contentsOf: Self.rulesPath)
+        let engineRules = await RuleEngine.shared.allRules
+        return RulesBackup(diskData: diskData, engineRules: engineRules)
     }
 
-    private func restoreRules(_ data: Data?) {
-        if let data {
+    private func restoreRules(_ backup: RulesBackup) async {
+        if let data = backup.diskData {
             try? data.write(to: Self.rulesPath)
         } else {
             try? FileManager.default.removeItem(at: Self.rulesPath)
         }
+        await RuleEngine.shared.replaceAll(backup.engineRules)
     }
 }

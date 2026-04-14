@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-/// Lightweight smoke check that policy and tier logic has not leaked into
+/// Lightweight smoke check that product-specific logic has not leaked into
 /// the helper, shared, or core layers. This is a sanity check, not a
 /// strong architecture guarantee — the real rule is enforced by code
 /// review and architecture docs.

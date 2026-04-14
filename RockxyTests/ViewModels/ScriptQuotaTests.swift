@@ -7,8 +7,6 @@ import Testing
 /// Serialized: mutates shared plugin directory and UserDefaults plugin-enabled keys.
 @Suite(.serialized)
 struct ScriptQuotaTests {
-    // MARK: Internal
-
     @Test("ScriptPolicyGate reads limit from AppPolicy")
     @MainActor
     func gateLimitFromPolicy() {
@@ -64,30 +62,24 @@ struct ScriptQuotaTests {
 
     @Test("Concurrent enables against shared manager are serialized by actor")
     func concurrentEnablesAreSerialized() async throws {
-        // Seed 5 real disabled plugins
+        let env = TestFixtures.makeIsolatedPluginEnv()
+        defer { env.cleanup() }
+
         var pluginIDs: [String] = []
-        var pluginDirs: [URL] = []
         for i in 0 ..< 5 {
             let id = "concurrent-\(i)-\(UUID().uuidString.prefix(8))"
-            let dir = try Self.createTempPlugin(id: id, enabled: false)
+            _ = try TestFixtures.createTempPlugin(id: id, enabled: false, in: env.pluginsDir, defaults: env.defaults)
             pluginIDs.append(id)
-            pluginDirs.append(dir)
-        }
-        defer {
-            for (id, dir) in zip(pluginIDs, pluginDirs) {
-                Self.cleanupPlugin(id: id, bundlePath: dir)
-            }
         }
 
-        let manager = ScriptPluginManager()
-        await manager.loadAllPlugins()
+        await env.manager.loadAllPlugins()
 
         // Try to enable all 5 concurrently with maxEnabled = 2
         await withTaskGroup(of: Bool.self) { group in
             for id in pluginIDs {
                 group.addTask {
                     do {
-                        return try await manager.enablePluginIfAllowed(id: id, maxEnabled: 2)
+                        return try await env.manager.enablePluginIfAllowed(id: id, maxEnabled: 2)
                     } catch {
                         return false
                     }
@@ -105,11 +97,13 @@ struct ScriptQuotaTests {
 
     @Test("Enable and disable through shared manager round-trips correctly")
     func enableDisableRoundTrip() async throws {
-        let id = "roundtrip-test-\(UUID().uuidString.prefix(8))"
-        let pluginDir = try Self.createTempPlugin(id: id, enabled: false)
-        defer { Self.cleanupPlugin(id: id, bundlePath: pluginDir) }
+        let env = TestFixtures.makeIsolatedPluginEnv()
+        defer { env.cleanup() }
 
-        let manager = ScriptPluginManager()
+        let id = "roundtrip-test-\(UUID().uuidString.prefix(8))"
+        _ = try TestFixtures.createTempPlugin(id: id, enabled: false, in: env.pluginsDir, defaults: env.defaults)
+
+        let manager = env.manager
         await manager.loadAllPlugins()
         let initial = await manager.plugins
         #expect(initial.contains { $0.id == id })
@@ -130,11 +124,13 @@ struct ScriptQuotaTests {
     @Test("Both ViewModels observe shared manager enable/disable")
     @MainActor
     func sharedManagerObservation() async throws {
-        let id = "shared-obs-\(UUID().uuidString.prefix(8))"
-        let pluginDir = try Self.createTempPlugin(id: id, enabled: false)
-        defer { Self.cleanupPlugin(id: id, bundlePath: pluginDir) }
+        let env = TestFixtures.makeIsolatedPluginEnv()
+        defer { env.cleanup() }
 
-        let manager = ScriptPluginManager()
+        let id = "shared-obs-\(UUID().uuidString.prefix(8))"
+        _ = try TestFixtures.createTempPlugin(id: id, enabled: false, in: env.pluginsDir, defaults: env.defaults)
+
+        let manager = env.manager
         let settings = PluginSettingsViewModel(pluginManager: manager)
         let scripting = ScriptingViewModel(pluginManager: manager)
 
@@ -159,11 +155,13 @@ struct ScriptQuotaTests {
 
     @Test("Re-enabling an already-enabled plugin is a no-op success")
     func reEnableIsNoOp() async throws {
-        let id = "reenable-\(UUID().uuidString.prefix(8))"
-        let pluginDir = try Self.createTempPlugin(id: id, enabled: false)
-        defer { Self.cleanupPlugin(id: id, bundlePath: pluginDir) }
+        let env = TestFixtures.makeIsolatedPluginEnv()
+        defer { env.cleanup() }
 
-        let manager = ScriptPluginManager()
+        let id = "reenable-\(UUID().uuidString.prefix(8))"
+        _ = try TestFixtures.createTempPlugin(id: id, enabled: false, in: env.pluginsDir, defaults: env.defaults)
+
+        let manager = env.manager
         await manager.loadAllPlugins()
 
         // First window enables the plugin
@@ -210,48 +208,156 @@ struct ScriptQuotaTests {
         #expect(ScriptPolicyGate.shared.policy.maxEnabledScripts == 2)
     }
 
-    // MARK: Private
+    // MARK: - Default Wiring
 
-    // MARK: - Helpers
+    @Test("Default-init VMs share PluginManager.shared.scriptManager identity")
+    @MainActor
+    func defaultInitVMsShareManager() {
+        let settings = PluginSettingsViewModel()
+        let scripting = ScriptingViewModel()
 
-    /// Creates a minimal valid plugin on disk in the app's plugin directory.
-    /// Returns the plugin bundle path. Caller is responsible for cleanup.
-    private static func createTempPlugin(id: String, enabled: Bool) throws -> URL {
-        let pluginsDir = RockxyIdentity.current.appSupportPath("Plugins")
-        try FileManager.default.createDirectory(at: pluginsDir, withIntermediateDirectories: true)
-
-        let bundlePath = pluginsDir.appendingPathComponent(id, isDirectory: true)
-        try FileManager.default.createDirectory(at: bundlePath, withIntermediateDirectories: true)
-
-        let manifest = """
-        {
-            "id": "\(id)",
-            "name": "Test Plugin \(id)",
-            "version": "1.0.0",
-            "author": { "name": "Test" },
-            "description": "Test plugin",
-            "types": ["script"],
-            "entryPoints": { "script": "index.js" },
-            "capabilities": []
-        }
-        """
-        try manifest.write(to: bundlePath.appendingPathComponent("plugin.json"), atomically: true, encoding: .utf8)
-
-        let script = "module.exports = {};"
-        try script.write(to: bundlePath.appendingPathComponent("index.js"), atomically: true, encoding: .utf8)
-
-        if enabled {
-            UserDefaults.standard.set(true, forKey: RockxyIdentity.current.pluginEnabledKey(pluginID: id))
-        } else {
-            UserDefaults.standard.removeObject(forKey: RockxyIdentity.current.pluginEnabledKey(pluginID: id))
-        }
-
-        return bundlePath
+        let expected = PluginManager.shared.scriptManager.identity
+        #expect(settings.pluginManagerIdentity == expected)
+        #expect(scripting.pluginManagerIdentity == expected)
     }
 
-    private static func cleanupPlugin(id: String, bundlePath: URL) {
-        try? FileManager.default.removeItem(at: bundlePath)
-        UserDefaults.standard.removeObject(forKey: RockxyIdentity.current.pluginEnabledKey(pluginID: id))
+    @Test("Default-init VMs load consistent state through PluginManager.shared.scriptManager")
+    @MainActor
+    func defaultInitVMsLoadConsistentState() async {
+        let settings = PluginSettingsViewModel()
+        let scripting = ScriptingViewModel()
+
+        // Both VMs load through their real default init — PluginManager.shared.scriptManager.
+        // Whatever plugins exist in the real directory, both must discover the same set.
+        await settings.loadPlugins()
+        await scripting.loadPlugins()
+
+        #expect(settings.plugins.count == scripting.plugins.count)
+        let settingsIDs = Set(settings.plugins.map(\.id))
+        let scriptingIDs = Set(scripting.plugins.map(\.id))
+        #expect(settingsIDs == scriptingIDs)
+    }
+
+    @Test("Default-init VMs propagate enable transition through PluginManager.shared.scriptManager")
+    @MainActor
+    func defaultInitVMsEnableTransitionThroughSharedSingleton() async throws {
+        // This plugin lives in the real app-support directory so that
+        // PluginManager.shared.scriptManager (the production singleton) discovers it.
+        // Cleanup is unconditional via defer — no developer state is left behind.
+        let id = "default-transition-\(UUID().uuidString.prefix(8))"
+        let pluginDir = try TestFixtures.createTempPlugin(id: id, enabled: false)
+        defer { TestFixtures.cleanupTempPlugin(id: id, bundlePath: pluginDir) }
+
+        let settings = PluginSettingsViewModel()
+        let scripting = ScriptingViewModel()
+
+        await settings.loadPlugins()
+        #expect(settings.plugins.contains { $0.id == id })
+        #expect(settings.plugins.first { $0.id == id }?.isEnabled == false)
+
+        // Enable through the settings VM — real production toggle path via shared singleton
+        await settings.togglePlugin(id: id)
+        #expect(settings.plugins.first { $0.id == id }?.isEnabled == true)
+
+        // Scripting VM refreshes from the same shared singleton and sees the transition
+        await scripting.loadPlugins()
+        #expect(scripting.plugins.first { $0.id == id }?.isEnabled == true)
+
+        // Disable to restore clean state before cleanup removes the directory
+        await settings.togglePlugin(id: id)
+    }
+
+    @Test("Default-init VMs observe shared enable transition through injected runtime")
+    @MainActor
+    func defaultInitVMsObserveSharedTransition() async throws {
+        let env = TestFixtures.makeIsolatedPluginEnv()
+        defer { env.cleanup() }
+
+        let id = "shared-transition-\(UUID().uuidString.prefix(8))"
+        _ = try TestFixtures.createTempPlugin(id: id, enabled: false, in: env.pluginsDir, defaults: env.defaults)
+
+        // Use the same isolated manager for both VMs.
+        // Identity is already proven by defaultInitVMsShareManager;
+        // this test proves a real state transition propagates through the shared runtime.
+        let settings = PluginSettingsViewModel(pluginManager: env.manager)
+        let scripting = ScriptingViewModel(pluginManager: env.manager)
+
+        await settings.loadPlugins()
+        #expect(settings.plugins.first { $0.id == id }?.isEnabled == false)
+
+        // Enable through the settings VM (real production toggle path)
+        await settings.togglePlugin(id: id)
+        #expect(settings.plugins.first { $0.id == id }?.isEnabled == true)
+
+        // Scripting VM refreshes from the same manager and observes the transition
+        scripting.plugins = await env.manager.plugins
+        #expect(scripting.plugins.first { $0.id == id }?.isEnabled == true)
+    }
+
+    @Test("Settings and scripting VMs backed by same manager discover same plugin")
+    @MainActor
+    func sharedManagerBothVMsDiscover() async throws {
+        let env = TestFixtures.makeIsolatedPluginEnv()
+        defer { env.cleanup() }
+
+        let id = "default-wiring-\(UUID().uuidString.prefix(8))"
+        _ = try TestFixtures.createTempPlugin(id: id, enabled: false, in: env.pluginsDir, defaults: env.defaults)
+
+        let settings = PluginSettingsViewModel(pluginManager: env.manager)
+        let scripting = ScriptingViewModel(pluginManager: env.manager)
+
+        await settings.loadPlugins()
+        await scripting.loadPlugins()
+
+        #expect(settings.plugins.contains { $0.id == id })
+        #expect(scripting.plugins.contains { $0.id == id })
+        #expect(settings.plugins.count == scripting.plugins.count)
+    }
+
+    @Test("PluginManager.shared returns same instance")
+    func pluginManagerSingletonIdentity() {
+        let first = PluginManager.shared
+        let second = PluginManager.shared
+        #expect(first === second)
+    }
+
+    @Test("Concurrent enable of 2 real plugins both succeed at high limit")
+    func concurrentRealPluginSuccess() async throws {
+        let env = TestFixtures.makeIsolatedPluginEnv()
+        defer { env.cleanup() }
+
+        var pluginIDs: [String] = []
+        for i in 0 ..< 2 {
+            let id = "concurrent-real-\(i)-\(UUID().uuidString.prefix(8))"
+            _ = try TestFixtures.createTempPlugin(id: id, enabled: false, in: env.pluginsDir, defaults: env.defaults)
+            pluginIDs.append(id)
+        }
+
+        await env.manager.loadAllPlugins()
+
+        await withTaskGroup(of: Bool.self) { group in
+            for id in pluginIDs {
+                group.addTask {
+                    do {
+                        return try await env.manager.enablePluginIfAllowed(id: id, maxEnabled: 10)
+                    } catch {
+                        return false
+                    }
+                }
+            }
+            var successes = 0
+            for await result in group where result {
+                successes += 1
+            }
+            #expect(successes == 2)
+        }
+
+        // Verify postcondition: both plugins are actually enabled in the shared manager
+        let finalPlugins = await env.manager.plugins
+        for id in pluginIDs {
+            let plugin = finalPlugins.first { $0.id == id }
+            #expect(plugin?.isEnabled == true)
+        }
     }
 }
 

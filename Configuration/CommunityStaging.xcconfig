@@ -1,7 +1,7 @@
 // CommunityStaging.xcconfig — Staging/beta channel for release candidates.
 // Same release identity as production — promotes the same build without rebuilding.
 
-#include "RockxyBase.xcconfig"
+#include "CommunityBase.xcconfig"
 
 ROCKXY_RELEASE_CHANNEL = community-stag
 ROCKXY_UPDATES_ENABLED = YES

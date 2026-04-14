@@ -17,6 +17,7 @@ struct RuleQuotaTests {
 
     @Test("Adding rule at quota is rejected")
     func addAtQuotaRejected() async {
+        await RuleTestLock.shared.acquire()
         let baseline = await activeCount(for: "throttle")
         let gate = RulePolicyGate(policy: PolicyWithLimit(baseline + 2))
 
@@ -26,10 +27,12 @@ struct RuleQuotaTests {
         #expect(!rejected)
 
         await removeRules(ids)
+        await RuleTestLock.shared.release()
     }
 
     @Test("Toggle-enable at quota is rejected")
     func toggleEnableAtQuota() async {
+        await RuleTestLock.shared.acquire()
         let baseline = await activeCount(for: "throttle")
         let gate = RulePolicyGate(policy: PolicyWithLimit(baseline + 2))
 
@@ -44,10 +47,12 @@ struct RuleQuotaTests {
 
         await RuleEngine.shared.removeRule(id: disabled.id)
         await removeRules(ids)
+        await RuleTestLock.shared.release()
     }
 
     @Test("Disabled rules do not count toward quota")
     func disabledRulesExcluded() async {
+        await RuleTestLock.shared.acquire()
         let baseline = await activeCount(for: "throttle")
         let ids = await seedThrottleRules(count: 2)
 
@@ -61,6 +66,7 @@ struct RuleQuotaTests {
 
         await RuleEngine.shared.removeRule(id: disabled.id)
         await removeRules(ids)
+        await RuleTestLock.shared.release()
     }
 
     @Test("toolCategory mapping")
@@ -78,6 +84,7 @@ struct RuleQuotaTests {
 
     @Test("Concurrent rule enables through engine are serialized")
     func concurrentRuleEnablesAreSerialized() async {
+        await RuleTestLock.shared.acquire()
         let baseline = await activeCount(for: "throttle")
         let ids = await seedThrottleRules(count: 2)
         let limit = baseline + 3
@@ -109,6 +116,7 @@ struct RuleQuotaTests {
             await RuleEngine.shared.removeRule(id: id)
         }
         await removeRules(ids)
+        await RuleTestLock.shared.release()
     }
 
     // MARK: - Bulk Replace
@@ -157,6 +165,7 @@ struct RuleQuotaTests {
     // MARK: - Policy Injection (no cross-test pollution)
 
     @Test("Custom policy takes effect through .shared assignment")
+
     func customPolicyInjectable() {
         let saved = RulePolicyGate.shared
         defer { RulePolicyGate.shared = saved }
@@ -169,6 +178,7 @@ struct RuleQuotaTests {
     }
 
     @Test("Coordinator construction does not pollute shared gate")
+    @MainActor
     func coordinatorDoesNotPolluteGate() {
         let saved = RulePolicyGate.shared
         defer { RulePolicyGate.shared = saved }
@@ -184,6 +194,7 @@ struct RuleQuotaTests {
 
     @Test("Exclusive network-condition enable respects injected quota")
     func exclusiveNetworkConditionRespectsQuota() async {
+        await RuleTestLock.shared.acquire()
         // Create a gate with limit = 0 — no rules should be enableable
         let gate = RulePolicyGate(policy: PolicyWithLimit(0))
 
@@ -204,10 +215,12 @@ struct RuleQuotaTests {
         #expect(found?.isEnabled == false)
 
         await RuleEngine.shared.removeRule(id: rule.id)
+        await RuleTestLock.shared.release()
     }
 
     @Test("Switching exclusive network conditions succeeds at limit = 1")
     func exclusiveNetworkConditionSwitchAtLimitOne() async {
+        await RuleTestLock.shared.acquire()
         let gate = RulePolicyGate(policy: PolicyWithLimit(1))
 
         let ruleA = ProxyRule(
@@ -238,12 +251,14 @@ struct RuleQuotaTests {
 
         await RuleEngine.shared.removeRule(id: ruleA.id)
         await RuleEngine.shared.removeRule(id: ruleB.id)
+        await RuleTestLock.shared.release()
     }
 
     // MARK: - setEnabledIfAllowed No-Op Success
 
     @Test("Enabling an already-enabled rule is a no-op success")
     func setEnabledAlreadyEnabledIsNoOp() async {
+        await RuleTestLock.shared.acquire()
         let baseline = await activeCount(for: "throttle")
         let ids = await seedThrottleRules(count: 1)
         let limit = baseline + 1
@@ -257,12 +272,14 @@ struct RuleQuotaTests {
         #expect(accepted)
 
         await removeRules(ids)
+        await RuleTestLock.shared.release()
     }
 
     // MARK: - addNetworkConditionExclusiveIfAllowed Regression
 
     @Test("Adding enabled network condition with one already active at limit 1 succeeds")
     func addNetworkConditionExclusiveReplacesAtLimit() async {
+        await RuleTestLock.shared.acquire()
         let ruleA = ProxyRule(
             name: "NetCondA",
             isEnabled: true,
@@ -292,6 +309,7 @@ struct RuleQuotaTests {
 
         await RuleEngine.shared.removeRule(id: ruleA.id)
         await RuleEngine.shared.removeRule(id: ruleB.id)
+        await RuleTestLock.shared.release()
     }
 
     // MARK: - capEnabledPerCategory Baseline-Over-Limit Regression
@@ -312,16 +330,28 @@ struct RuleQuotaTests {
 
     // MARK: - Rule Loading Race Regression
 
-    @Test("rulesLoaded is false until loadFromDisk completes")
-    func rulesLoadedAfterCompletion() {
+    @Test("ruleLoadTask is nil on fresh coordinator")
+    @MainActor
+    func ruleLoadTaskInitialState() {
         let coordinator = MainContentCoordinator()
+        #expect(coordinator.ruleLoadTask == nil)
         #expect(!coordinator.rulesLoaded)
-        // loadInitialRules fires the async load but does NOT
-        // set rulesLoaded = true synchronously
+    }
+
+    @Test("loadInitialRules fires async load without blocking")
+    @MainActor
+    func loadInitialRulesIsAsync() async {
+        await RuleTestLock.shared.acquire()
+        let engineSnapshot = await RuleEngine.shared.allRules
+        let coordinator = MainContentCoordinator()
         coordinator.loadInitialRules()
-        // rulesLoaded is still false immediately after the call
-        // (the Task hasn't completed yet)
+        #expect(coordinator.ruleLoadTask != nil)
         #expect(!coordinator.rulesLoaded)
+
+        // Await completion so the background Task doesn't contend with later tests
+        await coordinator.ruleLoadTask?.value
+        await RuleEngine.shared.replaceAll(engineSnapshot)
+        await RuleTestLock.shared.release()
     }
 
     // MARK: Private

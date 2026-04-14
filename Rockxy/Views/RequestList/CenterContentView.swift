@@ -104,7 +104,11 @@ struct CenterContentView: View {
                     "\($0.request.method) \($0.request.path)"
                 },
                 sessionProvenance: coordinator.sessionProvenance,
-                onClear: { coordinator.clearSession() },
+                onClear: {
+                    Task { @MainActor in
+                        await coordinator.clearSession()
+                    }
+                },
                 onFilter: {
                     coordinator.isFilterBarVisible.toggle()
                     coordinator.recomputeFilteredTransactions()

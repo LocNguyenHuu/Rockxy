@@ -6,22 +6,24 @@ struct RockxyIdentity {
 
     init(bundle: Bundle) {
         let info = bundle.infoDictionary ?? [:]
+        let fallbackFamilyNamespace = Self.string(
+            named: "RockxyFamilyNamespace",
+            in: info,
+            fallback: "com.amunx.rockxy"
+        )
+        let fallbackAppBundleIdentifier = Self.string(
+            named: "CFBundleIdentifier",
+            in: info,
+            fallback: fallbackFamilyNamespace
+        )
 
         displayName = Self.string(
             named: "CFBundleDisplayName",
             in: info,
             fallback: Self.string(named: "CFBundleName", in: info, fallback: "Rockxy")
         )
-        familyNamespace = Self.string(
-            named: "RockxyFamilyNamespace",
-            in: info,
-            fallback: "com.amunx.rockxy"
-        )
-        appBundleIdentifier = Self.string(
-            named: "CFBundleIdentifier",
-            in: info,
-            fallback: "com.amunx.rockxy.community"
-        )
+        familyNamespace = fallbackFamilyNamespace
+        appBundleIdentifier = fallbackAppBundleIdentifier
         helperBundleIdentifier = Self.string(
             named: "RockxyHelperBundleIdentifier",
             in: info,
@@ -40,7 +42,7 @@ struct RockxyIdentity {
         defaultsPrefix = Self.string(
             named: "RockxyDefaultsPrefix",
             in: info,
-            fallback: "com.amunx.rockxy.community"
+            fallback: fallbackAppBundleIdentifier
         )
         notificationPrefix = Self.string(
             named: "RockxyNotificationPrefix",
@@ -55,7 +57,7 @@ struct RockxyIdentity {
         appSupportDirectoryName = Self.string(
             named: "RockxyAppSupportDirectoryName",
             in: info,
-            fallback: "com.amunx.rockxy.community"
+            fallback: fallbackAppBundleIdentifier
         )
         sharedSupportDirectoryName = Self.string(
             named: "RockxySharedSupportDirectoryName",
@@ -84,21 +86,24 @@ struct RockxyIdentity {
     }
 
     init(infoDictionary info: [String: Any]) {
+        let fallbackFamilyNamespace = Self.string(
+            named: "RockxyFamilyNamespace",
+            in: info,
+            fallback: "com.amunx.rockxy"
+        )
+        let fallbackAppBundleIdentifier = Self.string(
+            named: "CFBundleIdentifier",
+            in: info,
+            fallback: fallbackFamilyNamespace
+        )
+
         displayName = Self.string(
             named: "CFBundleDisplayName",
             in: info,
             fallback: Self.string(named: "CFBundleName", in: info, fallback: "Rockxy")
         )
-        familyNamespace = Self.string(
-            named: "RockxyFamilyNamespace",
-            in: info,
-            fallback: "com.amunx.rockxy"
-        )
-        appBundleIdentifier = Self.string(
-            named: "CFBundleIdentifier",
-            in: info,
-            fallback: "com.amunx.rockxy.community"
-        )
+        familyNamespace = fallbackFamilyNamespace
+        appBundleIdentifier = fallbackAppBundleIdentifier
         helperBundleIdentifier = Self.string(
             named: "RockxyHelperBundleIdentifier",
             in: info,
@@ -117,7 +122,7 @@ struct RockxyIdentity {
         defaultsPrefix = Self.string(
             named: "RockxyDefaultsPrefix",
             in: info,
-            fallback: "com.amunx.rockxy.community"
+            fallback: fallbackAppBundleIdentifier
         )
         notificationPrefix = Self.string(
             named: "RockxyNotificationPrefix",
@@ -132,7 +137,7 @@ struct RockxyIdentity {
         appSupportDirectoryName = Self.string(
             named: "RockxyAppSupportDirectoryName",
             in: info,
-            fallback: "com.amunx.rockxy.community"
+            fallback: fallbackAppBundleIdentifier
         )
         sharedSupportDirectoryName = Self.string(
             named: "RockxySharedSupportDirectoryName",

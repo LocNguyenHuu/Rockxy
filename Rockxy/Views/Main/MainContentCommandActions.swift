@@ -35,7 +35,9 @@ struct MainContentCommandActions {
     }
 
     func clearSession() {
-        coordinator.clearSession()
+        Task { @MainActor in
+            await coordinator.clearSession()
+        }
     }
 
     func toggleRecording() {
@@ -94,7 +96,9 @@ struct MainContentCommandActions {
     }
 
     func deleteAll() {
-        coordinator.clearSession()
+        Task { @MainActor in
+            await coordinator.clearSession()
+        }
     }
 
     // MARK: - View

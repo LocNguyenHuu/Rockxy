@@ -3,14 +3,7 @@
 // Copy this file to Developer.xcconfig and fill in your values.
 // Developer.xcconfig is .gitignore'd to keep secrets out of version control.
 
-#include "Base.xcconfig"
-
-ROCKXY_APP_BUNDLE_ID = com.amunx.rockxy.community
-ROCKXY_APP_NAMESPACE = $(ROCKXY_APP_BUNDLE_ID)
-ROCKXY_LOG_SUBSYSTEM = $(ROCKXY_APP_NAMESPACE)
-ROCKXY_DEFAULTS_PREFIX = $(ROCKXY_APP_NAMESPACE)
-ROCKXY_NOTIFICATION_PREFIX = $(ROCKXY_APP_NAMESPACE)
-ROCKXY_APP_SUPPORT_DIRECTORY_NAME = $(ROCKXY_APP_NAMESPACE)
+#include "CommunityBase.xcconfig"
 
 // Your Apple Developer Team ID (10-character alphanumeric string)
 // Find it at: https://developer.apple.com/account → Membership Details

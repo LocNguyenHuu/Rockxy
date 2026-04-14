@@ -281,7 +281,6 @@ final class SSLProxyingManager {
             "*.googleapis.com",
             "*.github.com",
             "*.githubusercontent.com",
-            "*.api.openai.com",
             "*.stripe.com",
             "*.sentry.io",
             "*.firebase.io",

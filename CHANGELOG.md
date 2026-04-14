@@ -191,7 +191,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Import error dialogs now show specific titles and messages per failure type (size exceeded, invalid format, deserialization error) instead of a generic "Import Failed"
 - README roadmap updated: `.rockxy format` corrected to `.rockxysession format`
-- Removed iOS Simulator Certificate step from Welcome screen — Rockxy Community ships with 4 setup steps (Install Cert, Trust Cert, Install Helper, Enable Proxy)
+- Removed iOS Simulator Certificate step from Welcome screen — Rockxy ships with 4 setup steps (Install Cert, Trust Cert, Install Helper, Enable Proxy)
 - Removed Platform settings tab
 - Removed "Restore previous proxy settings on quit" toggle from Advanced Settings — restore-on-quit is now mandatory and always-on via persistent backup
 - `stopProxy()` no longer gates `disableSystemProxy()` behind `isSystemProxyConfigured` flag — the ownership-aware disable handles all cases internally
@@ -321,7 +321,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Rule import rejects files larger than 5 MB to prevent memory exhaustion
 - Plugin install validates source is a directory containing `plugin.json` and sanitizes directory names
 - Fix crash after long running (`HTTPServerProtocolErrorHandler` precondition failure) — guard all HTTP response writes with `channel.isActive` checks in UpstreamResponseHandler timeout, TLSInterceptHandler sendBlockResponse, sendErrorResponse, and HTTPProxyHandler sendErrorResponse
-- Auto-passthrough for strict TLS clients — hosts that reject Rockxy's intercepted certificate (e.g., ChatGPT, certificate-pinned apps) are automatically routed through raw tunnel on subsequent connections, with 5-minute TTL before retrying interception
+- Auto-passthrough for strict TLS clients — hosts that reject Rockxy's intercepted certificate (e.g., certificate-pinned apps) are automatically routed through raw tunnel on subsequent connections, with 5-minute TTL before retrying interception
 - Fall back to raw tunnel when certificate generation fails instead of closing the channel and breaking traffic
 - Fix proxy blocking all internet traffic after ~5 minutes — close client channel after error responses (`Connection: close` header + explicit channel close), close leaked NIO channels on all error paths, add connection limiter to raw tunnel paths
 - Revert harmful `Connection: close` on successful responses — restore HTTP/1.1 keep-alive semantics so browsers reuse connections instead of opening one per request

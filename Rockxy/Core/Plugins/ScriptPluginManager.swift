@@ -22,9 +22,23 @@ enum ScriptPluginError: Error, LocalizedError {
 // MARK: - ScriptPluginManager
 
 actor ScriptPluginManager {
+    // MARK: Lifecycle
+
+    init(discovery: PluginDiscovery = PluginDiscovery(), defaults: UserDefaults = .standard) {
+        self.discovery = discovery
+        self.defaults = defaults
+        self.runtime = ScriptRuntime(defaults: defaults)
+    }
+
     // MARK: Internal
 
     private(set) var plugins: [PluginInfo] = []
+
+    nonisolated let defaults: UserDefaults
+
+    nonisolated var identity: ObjectIdentifier {
+        ObjectIdentifier(self)
+    }
 
     var pluginsDirectoryURL: URL {
         get async { await discovery.pluginsDirectoryURL }
@@ -96,7 +110,7 @@ actor ScriptPluginManager {
                 return false
             }
             plugins[j].status = .active
-            UserDefaults.standard.set(true, forKey: RockxyIdentity.current.pluginEnabledKey(pluginID: id))
+            defaults.set(true, forKey: RockxyIdentity.current.pluginEnabledKey(pluginID: id))
             Self.logger.info("Enabled plugin: \(id)")
             return true
         } catch {
@@ -119,7 +133,7 @@ actor ScriptPluginManager {
             plugins[index].isEnabled = false
             plugins[index].status = .disabled
         }
-        UserDefaults.standard.set(false, forKey: RockxyIdentity.current.pluginEnabledKey(pluginID: id))
+        defaults.set(false, forKey: RockxyIdentity.current.pluginEnabledKey(pluginID: id))
         Self.logger.info("Disabled plugin: \(id)")
     }
 
@@ -151,13 +165,22 @@ actor ScriptPluginManager {
         if let j = plugins.firstIndex(where: { $0.id == id }) {
             plugins.remove(at: j)
         }
-        UserDefaults.standard.removeObject(forKey: RockxyIdentity.current.pluginEnabledKey(pluginID: id))
+        defaults.removeObject(forKey: RockxyIdentity.current.pluginEnabledKey(pluginID: id))
         Self.logger.info("Uninstalled plugin: \(id)")
+    }
+
+    func installPlugin(from sourceURL: URL) async throws {
+        try await discovery.installPlugin(from: sourceURL)
     }
 
     func updateConfig(pluginID: String, key: String, value: Any) async {
         let configKey = RockxyIdentity.current.pluginConfigPrefix(pluginID: pluginID) + key
-        UserDefaults.standard.set(value, forKey: configKey)
+        defaults.set(value, forKey: configKey)
+    }
+
+    func configValue(pluginID: String, key: String) async -> Any? {
+        let configKey = RockxyIdentity.current.pluginConfigPrefix(pluginID: pluginID) + key
+        return defaults.object(forKey: configKey)
     }
 
     // MARK: - Pipeline Hooks
@@ -197,6 +220,6 @@ actor ScriptPluginManager {
 
     private static let logger = Logger(subsystem: RockxyIdentity.current.logSubsystem, category: "ScriptPluginManager")
 
-    private let discovery = PluginDiscovery()
-    private let runtime = ScriptRuntime()
+    private let discovery: PluginDiscovery
+    private let runtime: ScriptRuntime
 }

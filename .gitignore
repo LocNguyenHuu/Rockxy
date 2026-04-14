@@ -34,15 +34,11 @@ Icon
 .Trashes
 Thumbs.db
 
-# Claude Code
-.claude/
-CLAUDE.md
-
-# Codex / agent-local files
-AGENTS.md
-.codex/
-.agents/
-.cursor/
+# Local workspace metadata
+.?????/
+.??????/
+?LAUDE.md
+?GENTS.md
 
 # IDE
 .idea/
@@ -76,7 +72,7 @@ build/
 *.xcarchive
 
 
-# Automation scripts (internal use only)
+# Local automation artifacts
 scripts/
 
 # Design

@@ -55,10 +55,19 @@ struct RockxyIdentityTests {
         #expect(!identity.allowedCallerIdentifiers.contains("com.evil.app"))
     }
 
+    @Test("Single-ID allowlist contains only that identifier")
+    func singleIdAllowlist() {
+        let identity = RockxyIdentity(infoDictionary: [
+            "RockxyAllowedCallerIdentifiers": "com.solo.app",
+        ])
+        #expect(identity.allowedCallerIdentifiers == ["com.solo.app"])
+        #expect(!identity.allowedCallerIdentifiers.contains("com.amunx.rockxy"))
+    }
+
     @Test("Missing allowlist key falls back to app bundle identifier")
     func allowlistFallbackToAppBundleId() {
         let identity = RockxyIdentity(infoDictionary: [:])
-        #expect(identity.allowedCallerIdentifiers == ["com.amunx.rockxy.community"])
+        #expect(identity.allowedCallerIdentifiers == ["com.amunx.rockxy"])
     }
 
     // MARK: - Namespace Defaults
@@ -67,7 +76,7 @@ struct RockxyIdentityTests {
     func defaultValues() {
         let identity = RockxyIdentity(infoDictionary: [:])
         #expect(identity.familyNamespace == "com.amunx.rockxy")
-        #expect(identity.appBundleIdentifier == "com.amunx.rockxy.community")
+        #expect(identity.appBundleIdentifier == "com.amunx.rockxy")
         #expect(identity.helperBundleIdentifier == "com.amunx.rockxy.helper")
         #expect(identity.helperMachServiceName == "com.amunx.rockxy.helper")
         #expect(identity.sharedCertificateLabelPrefix == "com.amunx.rockxy.rootCA")
@@ -81,6 +90,35 @@ struct RockxyIdentityTests {
         ])
         #expect(identity.familyNamespace == "com.test.custom")
         #expect(identity.appBundleIdentifier == "com.test.custom.app")
+    }
+
+    // MARK: - Live Config (TEST_HOST = real app process)
+
+    @Test("Live displayName resolves to Rockxy")
+    func liveDisplayName() {
+        #expect(RockxyIdentity.current.displayName == "Rockxy")
+    }
+
+    @Test("Live familyNamespace resolves to com.amunx.rockxy")
+    func liveFamilyNamespace() {
+        #expect(RockxyIdentity.current.familyNamespace == "com.amunx.rockxy")
+    }
+
+    @Test("Live helperBundleIdentifier resolves to com.amunx.rockxy.helper")
+    func liveHelperBundleIdentifier() {
+        #expect(RockxyIdentity.current.helperBundleIdentifier == "com.amunx.rockxy.helper")
+    }
+
+    @Test("Live allowedCallerIdentifiers contains both expected IDs")
+    func liveAllowedCallerIdentifiers() {
+        let ids = RockxyIdentity.current.allowedCallerIdentifiers
+        #expect(ids.contains("com.amunx.rockxy.community"))
+        #expect(ids.contains("com.amunx.rockxy"))
+    }
+
+    @Test("Live appBundleIdentifier is non-empty")
+    func liveAppBundleIdentifier() {
+        #expect(!RockxyIdentity.current.appBundleIdentifier.isEmpty)
     }
 
     // MARK: - Derived Properties

@@ -8,8 +8,7 @@ import os
 /// Quota-checked operations use atomic methods on ``RuleEngine`` (actor)
 /// that count + mutate in a single synchronous block, preventing
 /// concurrent enables from both passing.
-@MainActor
-final class RulePolicyGate {
+final class RulePolicyGate: @unchecked Sendable {
     // MARK: Lifecycle
 
     init(policy: any AppPolicy = DefaultAppPolicy()) {

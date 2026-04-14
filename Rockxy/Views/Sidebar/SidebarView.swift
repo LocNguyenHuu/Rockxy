@@ -39,7 +39,6 @@ private struct AppIconView: View {
         "Firefox": "org.mozilla.firefox",
         "Slack": "com.tinyspeck.slackmacgap",
         "Xcode": "com.apple.dt.Xcode",
-        "ChatGPT": "com.openai.chat",
         "Spotify": "com.spotify.client",
         "Discord": "com.hnc.Discord",
         "Arc": "company.thebrowser.Browser",

@@ -804,7 +804,6 @@ extension RequestTableView {
         ]
 
         private static let knownAppColors: [String: NSColor] = [
-            "ChatGPT": colorFromHex(0x10A37F),
             "Chrome": colorFromHex(0x4285F4),
             "Safari": colorFromHex(0x007AFF),
             "Firefox": colorFromHex(0xFF7300),
@@ -825,7 +824,6 @@ extension RequestTableView {
             "Firefox": "org.mozilla.firefox",
             "Slack": "com.tinyspeck.slackmacgap",
             "Xcode": "com.apple.dt.Xcode",
-            "ChatGPT": "com.openai.chat",
             "Google Drive": "com.google.drivefs",
             "Code Helper": "com.microsoft.VSCode",
             "Spotify": "com.spotify.client",

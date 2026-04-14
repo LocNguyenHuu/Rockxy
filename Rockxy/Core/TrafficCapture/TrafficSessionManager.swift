@@ -8,17 +8,26 @@ import os
 actor TrafficSessionManager {
     // MARK: Internal
 
-    var onBatchReady: (@Sendable ([HTTPTransaction]) -> Void)?
+    var onBatchReady: (@Sendable ([HTTPTransaction], _ generation: UInt) -> Void)?
     var onClientAppEnriched: (@Sendable ([UUID]) -> Void)?
+    var onBeginNewSession: (@Sendable (_ generation: UInt) async -> Void)?
+
+    var currentGeneration: UInt {
+        generation
+    }
 
     // MARK: - Configuration
 
-    func setOnBatchReady(_ callback: @escaping @Sendable ([HTTPTransaction]) -> Void) {
+    func setOnBatchReady(_ callback: @escaping @Sendable ([HTTPTransaction], _ generation: UInt) -> Void) {
         onBatchReady = callback
     }
 
     func setOnClientAppEnriched(_ callback: @escaping @Sendable ([UUID]) -> Void) {
         onClientAppEnriched = callback
+    }
+
+    func setOnBeginNewSession(_ callback: (@Sendable (_ generation: UInt) async -> Void)?) {
+        onBeginNewSession = callback
     }
 
     func setMaxBufferSize(_ size: Int) {
@@ -67,6 +76,32 @@ actor TrafficSessionManager {
         batchTimerTask = nil
     }
 
+    func resetBufferState() {
+        pendingUpdates.removeAll()
+        totalBuffered = 0
+        generation &+= 1
+    }
+
+    func beginNewSession() async -> UInt {
+        pendingUpdates.removeAll()
+        totalBuffered = 0
+        generation &+= 1
+        if let onBeginNewSession {
+            await onBeginNewSession(generation)
+        }
+        return generation
+    }
+
+    func reportAcceptedCount(_ count: Int, generation: UInt) {
+        guard generation == self.generation else {
+            return
+        }
+        totalBuffered += count
+        if totalBuffered > maxBufferSize {
+            evictOldest()
+        }
+    }
+
     // MARK: Private
 
     private static let logger = Logger(
@@ -79,6 +114,7 @@ actor TrafficSessionManager {
     private let batchInterval: TimeInterval = 0.1
     private var maxBufferSize: Int = 50_000
     private var totalBuffered: Int = 0
+    private var generation: UInt = 0
     private var proxyPort: Int = 9_090
     private var batchTimerTask: Task<Void, Never>?
 
@@ -90,14 +126,10 @@ actor TrafficSessionManager {
         }
 
         let batch = pendingUpdates
+        let batchGeneration = generation
         pendingUpdates.removeAll()
-        totalBuffered += batch.count
 
-        if totalBuffered > maxBufferSize {
-            evictOldest()
-        }
-
-        onBatchReady?(batch)
+        onBatchReady?(batch, batchGeneration)
 
         let port = proxyPort
         let enrichCallback = onClientAppEnriched
@@ -119,22 +151,16 @@ actor TrafficSessionManager {
     // MARK: - Eviction
 
     private func evictOldest() {
-        let evictionCount = maxBufferSize / 10
+        let evictionCount = max(maxBufferSize / 10, 1)
         Self.logger.info("Buffer exceeded \(self.maxBufferSize), evicting \(evictionCount) oldest transactions")
 
         Task {
-            do {
-                let store = try SessionStore()
-                let evictedTransactions = await MainActor.run {
-                    NotificationCenter.default.post(
-                        name: .bufferEvictionRequested,
-                        object: nil,
-                        userInfo: ["count": evictionCount]
-                    )
-                }
-                _ = evictedTransactions
-            } catch {
-                Self.logger.error("Failed to create SessionStore for eviction: \(error.localizedDescription)")
+            await MainActor.run {
+                NotificationCenter.default.post(
+                    name: .bufferEvictionRequested,
+                    object: nil,
+                    userInfo: ["count": evictionCount]
+                )
             }
         }
 

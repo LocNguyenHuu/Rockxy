@@ -161,6 +161,51 @@ struct SigningDiagnosticsClassifyTests {
     }
 }
 
+// MARK: - SigningDiagnosticsLiveTests
+
+/// Tests against `LiveEnvironment` running in the signed test host.
+/// These verify identity-derived paths and the real classify contract.
+/// Full caller-validation logic is tested in `CallerValidationTests` and
+/// `ConnectionValidatorTests` via the shared validation primitives.
+struct SigningDiagnosticsLiveTests {
+    @Test("LiveEnvironment validates test host app signature successfully")
+    func liveAppSignatureValid() {
+        let env = SigningDiagnostics.LiveEnvironment()
+        let error = env.validateAppSignature()
+        #expect(error == nil)
+    }
+
+    @Test("LiveEnvironment can extract app certificate chain from test host")
+    func liveAppCertificateChainExtractable() {
+        let env = SigningDiagnostics.LiveEnvironment()
+        let chain = env.appCertificateChain()
+        #expect(chain != nil)
+        #expect((chain?.count ?? 0) > 0)
+    }
+
+    @Test("Live classify returns healthy or helperBinaryNotFound depending on helper install state")
+    func liveClassifyContract() {
+        let env = SigningDiagnostics.LiveEnvironment()
+        let result = SigningDiagnostics.classify(env)
+
+        // The test host is validly signed (liveAppSignatureValid proves this).
+        // Therefore classify must return either:
+        // - .healthy (helper installed + chains match)
+        // - .helperBinaryNotFound (helper not installed in dev)
+        // - .signingIdentityMismatch (helper installed but stale/mismatched signing)
+        // It must NOT return .appSignatureInvalid or .diagnosticError.
+        switch result {
+        case .healthy,
+             .helperBinaryNotFound,
+             .signingIdentityMismatch:
+            break
+        case .appSignatureInvalid,
+             .diagnosticError:
+            Issue.record("Live classify returned unexpected result: \(result)")
+        }
+    }
+}
+
 // MARK: - SigningPreflightCacheTests
 
 struct SigningPreflightCacheTests {

@@ -12,6 +12,11 @@ import os
 /// each file focused and within SwiftLint size limits.
 @MainActor @Observable
 final class MainContentCoordinator {
+    struct DeferredBatch {
+        let transactions: [HTTPTransaction]
+        let generation: UInt
+    }
+
     // MARK: Lifecycle
 
     init(policy: any AppPolicy = DefaultAppPolicy()) {
@@ -56,6 +61,10 @@ final class MainContentCoordinator {
     var isProxyRunning = false
     var activeProxyPort = AppSettingsManager.shared.settings.proxyPort
     var isRecording = true
+    var sessionGeneration: UInt = 0
+    var isClearingSession = false
+    var clearingTargetGeneration: UInt?
+    var deferredSessionBatches: [DeferredBatch] = []
     var proxyError: String?
     var isSystemProxyConfigured = false
 
@@ -106,7 +115,7 @@ final class MainContentCoordinator {
     var sessionProvenance: SessionProvenance?
     var activeToast: ToastMessage?
 
-    private(set) var rulesLoadingTask: Task<Void, Never>?
+    private(set) var ruleLoadTask: Task<Void, Never>?
 
     var systemProxyWarning: SystemProxyWarning? {
         guard let warning = readiness.activeWarning else {
@@ -251,7 +260,7 @@ final class MainContentCoordinator {
             return
         }
         rulesObserver = NotificationCenter.default.addObserver(
-            forName: .rulesDidChange, object: nil, queue: .main
+            forName: .rulesDidChange, object: nil, queue: nil
         ) { [weak self] notification in
             if let allRules = notification.object as? [ProxyRule] {
                 Task { @MainActor in
@@ -262,14 +271,26 @@ final class MainContentCoordinator {
     }
 
     func loadInitialRules() {
-        guard !rulesLoaded, rulesLoadingTask == nil else {
+        guard ruleLoadTask == nil else {
             return
         }
-        rulesLoadingTask = Task {
+        ruleLoadTask = Task {
             await RuleSyncService.loadFromDisk()
             rulesLoaded = true
-            rulesLoadingTask = nil
         }
+    }
+
+    func ensureRulesLoaded() async {
+        if let existing = ruleLoadTask {
+            await existing.value
+            return
+        }
+        let task = Task {
+            await RuleSyncService.loadFromDisk()
+            rulesLoaded = true
+        }
+        ruleLoadTask = task
+        await task.value
     }
 
     func resolveSessionStore() throws -> SessionStore {

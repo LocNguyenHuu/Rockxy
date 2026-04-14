@@ -2,7 +2,7 @@
 // Uses release identity so dev builds can communicate with the helper
 // without full identity isolation.
 
-#include "RockxyBase.xcconfig"
+#include "CommunityBase.xcconfig"
 
 ROCKXY_RELEASE_CHANNEL = local-dev
 ROCKXY_UPDATES_ENABLED = NO
