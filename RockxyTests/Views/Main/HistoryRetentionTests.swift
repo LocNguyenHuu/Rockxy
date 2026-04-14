@@ -4,6 +4,7 @@ import Testing
 
 // MARK: - HistoryRetentionTests
 
+@Suite(.serialized)
 struct HistoryRetentionTests {
     @Test("Live buffer caps at policy limit during capture")
     @MainActor
@@ -78,6 +79,33 @@ struct HistoryRetentionTests {
         try? await Task.sleep(for: .milliseconds(100))
 
         #expect(evictionCount == 2) // maxBufferSize / 10 = 20 / 10
+    }
+
+    @Test("Eviction count is at least 1 even for buffer sizes below 10")
+    @MainActor
+    func smallBufferEvictionNotZero() async {
+        let manager = TrafficSessionManager()
+        await manager.setMaxBufferSize(5)
+        await manager.setOnBatchReady { _ in }
+
+        var evictionCount: Int?
+        let observer = NotificationCenter.default.addObserver(
+            forName: .bufferEvictionRequested, object: nil, queue: .main
+        ) { notification in
+            evictionCount = notification.userInfo?["count"] as? Int
+        }
+        defer { NotificationCenter.default.removeObserver(observer) }
+
+        for i in 0 ..< 50 {
+            await manager.addTransaction(
+                TestFixtures.makeTransaction(url: "https://small-buffer.com/\(i)")
+            )
+        }
+
+        try? await Task.sleep(for: .milliseconds(100))
+
+        // max(5 / 10, 1) = max(0, 1) = 1
+        #expect(evictionCount == 1)
     }
 
     @Test("Pinned/saved transactions are independent of live buffer")

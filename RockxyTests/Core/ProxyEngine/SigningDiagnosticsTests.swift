@@ -163,8 +163,8 @@ struct SigningDiagnosticsClassifyTests {
 
 // MARK: - SigningDiagnosticsLiveTests
 
-/// Smoke tests against `LiveEnvironment` running in the signed test host.
-/// These verify identity-derived paths flow through to the diagnostics layer.
+/// Tests against `LiveEnvironment` running in the signed test host.
+/// These verify identity-derived paths and the real classify contract.
 ///
 /// NOTE: `ConnectionValidator` lives in `RockxyHelperTool/` (separate Xcode target).
 /// It cannot be imported into `RockxyTests` — helper caller-policy validation
@@ -177,35 +177,33 @@ struct SigningDiagnosticsLiveTests {
         #expect(error == nil)
     }
 
-    @Test("LiveEnvironment helper path derives from RockxyIdentity")
-    func liveHelperPathFromIdentity() {
+    @Test("LiveEnvironment can extract app certificate chain from test host")
+    func liveAppCertificateChainExtractable() {
         let env = SigningDiagnostics.LiveEnvironment()
-        // In the dev/test environment the helper is typically not installed,
-        // so helperBinaryExists returns false. This proves the live environment
-        // checks the real identity-derived path, not a hardcoded stub.
-        let exists = env.helperBinaryExists()
-        // Either true (helper installed) or false (not installed) is valid —
-        // what matters is no crash and the path derives from identity.
-        #expect(exists == true || exists == false)
-
-        // The identity the live environment reads from must match the test host.
-        let expectedID = RockxyIdentity.current.helperBundleIdentifier
-        #expect(expectedID == "com.amunx.rockxy.helper")
+        let chain = env.appCertificateChain()
+        #expect(chain != nil)
+        #expect((chain?.count ?? 0) > 0)
     }
 
-    @Test("Full classify with LiveEnvironment does not crash")
-    func liveClassifySmoke() {
-        let result = SigningDiagnostics.classify(SigningDiagnostics.LiveEnvironment())
-        // Result depends on whether the helper is installed and signing matches.
-        // In dev builds without the helper installed, expect .helperBinaryNotFound.
-        // The assertion is that classify completes without crash for any state.
+    @Test("Live classify returns healthy or helperBinaryNotFound depending on helper install state")
+    func liveClassifyContract() {
+        let env = SigningDiagnostics.LiveEnvironment()
+        let result = SigningDiagnostics.classify(env)
+
+        // The test host is validly signed (liveAppSignatureValid proves this).
+        // Therefore classify must return either:
+        // - .healthy (helper installed + chains match)
+        // - .helperBinaryNotFound (helper not installed in dev)
+        // - .signingIdentityMismatch (helper installed but stale/mismatched signing)
+        // It must NOT return .appSignatureInvalid or .diagnosticError.
         switch result {
         case .healthy,
              .helperBinaryNotFound,
-             .appSignatureInvalid,
-             .signingIdentityMismatch,
+             .signingIdentityMismatch:
+            break
+        case .appSignatureInvalid,
              .diagnosticError:
-            break // All valid — no crash is the test
+            Issue.record("Live classify returned unexpected result: \(result)")
         }
     }
 }

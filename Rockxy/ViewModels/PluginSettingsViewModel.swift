@@ -59,6 +59,7 @@ final class PluginSettingsViewModel {
             } catch {
                 Self.logger.warning("Cannot enable plugin \(id): \(error.localizedDescription)")
                 lastEnableError = error.localizedDescription
+                plugins = await pluginManager.plugins
             }
         } else {
             await pluginManager.disablePlugin(id: id)

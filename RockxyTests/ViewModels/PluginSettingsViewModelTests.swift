@@ -114,11 +114,13 @@ struct PluginSettingsViewModelTests {
 
     @Test("togglePlugin disable with real plugin refreshes correctly")
     func toggleDisableRefreshes() async throws {
-        let id = "toggle-disable-\(UUID().uuidString.prefix(8))"
-        let pluginDir = try TestFixtures.createTempPlugin(id: id, enabled: true)
-        defer { TestFixtures.cleanupTempPlugin(id: id, bundlePath: pluginDir) }
+        let pluginsDir = TestFixtures.makeIsolatedPluginDir()
+        defer { TestFixtures.cleanupIsolatedPluginDir(pluginsDir) }
 
-        let manager = ScriptPluginManager()
+        let id = "toggle-disable-\(UUID().uuidString.prefix(8))"
+        _ = try TestFixtures.createTempPlugin(id: id, enabled: true, in: pluginsDir)
+
+        let manager = TestFixtures.makeIsolatedPluginManager(pluginsDir: pluginsDir)
         await manager.loadAllPlugins()
 
         let viewModel = PluginSettingsViewModel(pluginManager: manager)
@@ -134,11 +136,13 @@ struct PluginSettingsViewModelTests {
 
     @Test("togglePlugin enable for unloadable plugin surfaces error")
     func toggleEnableUnloadablePluginSurfacesError() async throws {
-        let id = "broken-\(UUID().uuidString.prefix(8))"
-        let pluginDir = try createBrokenPlugin(id: id)
-        defer { TestFixtures.cleanupTempPlugin(id: id, bundlePath: pluginDir) }
+        let pluginsDir = TestFixtures.makeIsolatedPluginDir()
+        defer { TestFixtures.cleanupIsolatedPluginDir(pluginsDir) }
 
-        let manager = ScriptPluginManager()
+        let id = "broken-\(UUID().uuidString.prefix(8))"
+        let pluginDir = try TestFixtures.createTempPlugin(id: id, enabled: false, in: pluginsDir)
+
+        let manager = TestFixtures.makeIsolatedPluginManager(pluginsDir: pluginsDir)
         await manager.loadAllPlugins()
 
         let plugins = await manager.plugins
@@ -159,15 +163,20 @@ struct PluginSettingsViewModelTests {
         // Manager state is authoritative — plugin should be rolled back to disabled
         let managerPlugins = await manager.plugins
         #expect(managerPlugins.first { $0.id == id }?.isEnabled == false)
+
+        // VM plugins must also reflect the rolled-back manager state (not stale UI)
+        #expect(viewModel.plugins.first { $0.id == id }?.isEnabled == false)
     }
 
     @Test("togglePlugin enable with real plugin updates state")
     func toggleEnableRefreshes() async throws {
-        let id = "toggle-enable-\(UUID().uuidString.prefix(8))"
-        let pluginDir = try TestFixtures.createTempPlugin(id: id, enabled: false)
-        defer { TestFixtures.cleanupTempPlugin(id: id, bundlePath: pluginDir) }
+        let pluginsDir = TestFixtures.makeIsolatedPluginDir()
+        defer { TestFixtures.cleanupIsolatedPluginDir(pluginsDir) }
 
-        let manager = ScriptPluginManager()
+        let id = "toggle-enable-\(UUID().uuidString.prefix(8))"
+        _ = try TestFixtures.createTempPlugin(id: id, enabled: false, in: pluginsDir)
+
+        let manager = TestFixtures.makeIsolatedPluginManager(pluginsDir: pluginsDir)
         await manager.loadAllPlugins()
 
         let viewModel = PluginSettingsViewModel(pluginManager: manager)
@@ -192,10 +201,6 @@ struct PluginSettingsViewModelTests {
     }
 
     // MARK: Private
-
-    private func createBrokenPlugin(id: String) throws -> URL {
-        try TestFixtures.createTempPlugin(id: id, enabled: false)
-    }
 
     private func makePlugin(
         id: String,

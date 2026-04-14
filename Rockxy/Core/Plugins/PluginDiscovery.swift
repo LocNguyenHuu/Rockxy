@@ -6,6 +6,12 @@ import os
 // MARK: - PluginDiscovery
 
 actor PluginDiscovery {
+    // MARK: Lifecycle
+
+    init(pluginsDirectory: URL? = nil) {
+        customPluginsDirectory = pluginsDirectory
+    }
+
     // MARK: Internal
 
     enum PluginInstallError: LocalizedError {
@@ -28,7 +34,8 @@ actor PluginDiscovery {
     }
 
     var pluginsDirectoryURL: URL {
-        let pluginsDir = RockxyIdentity.current.appSupportPath("Plugins", fileManager: .default)
+        let pluginsDir = customPluginsDirectory
+            ?? RockxyIdentity.current.appSupportPath("Plugins", fileManager: .default)
 
         if !FileManager.default.fileExists(atPath: pluginsDir.path) {
             do {
@@ -129,6 +136,8 @@ actor PluginDiscovery {
     // MARK: Private
 
     private static let logger = Logger(subsystem: RockxyIdentity.current.logSubsystem, category: "PluginDiscovery")
+
+    private let customPluginsDirectory: URL?
 
     private func validateManifest(_ manifest: PluginManifest, bundlePath: URL) -> Bool {
         guard !manifest.id.isEmpty, !manifest.name.isEmpty, !manifest.version.isEmpty else {

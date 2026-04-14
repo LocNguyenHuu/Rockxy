@@ -375,8 +375,10 @@ enum TestFixtures {
 
     // MARK: - Plugin Helpers
 
-    static func createTempPlugin(id: String, enabled: Bool) throws -> URL {
-        let pluginsDir = RockxyIdentity.current.appSupportPath("Plugins")
+    /// Creates a temp plugin inside the given directory (isolated from real app-support).
+    /// Use `makeIsolatedPluginDir()` to get an isolated directory, and
+    /// `makeIsolatedPluginManager(pluginsDir:)` to get a manager that scans only that directory.
+    static func createTempPlugin(id: String, enabled: Bool, in pluginsDir: URL) throws -> URL {
         try FileManager.default.createDirectory(at: pluginsDir, withIntermediateDirectories: true)
 
         let bundlePath = pluginsDir.appendingPathComponent(id, isDirectory: true)
@@ -416,8 +418,34 @@ enum TestFixtures {
         return bundlePath
     }
 
+    /// Convenience overload that writes into the real app-support Plugins directory.
+    /// Prefer the `in:` variant with `makeIsolatedPluginDir()` for isolated tests.
+    static func createTempPlugin(id: String, enabled: Bool) throws -> URL {
+        try createTempPlugin(
+            id: id,
+            enabled: enabled,
+            in: RockxyIdentity.current.appSupportPath("Plugins")
+        )
+    }
+
     static func cleanupTempPlugin(id: String, bundlePath: URL) {
         try? FileManager.default.removeItem(at: bundlePath)
         UserDefaults.standard.removeObject(forKey: RockxyIdentity.current.pluginEnabledKey(pluginID: id))
+    }
+
+    /// Returns a fresh temp directory for isolated plugin tests.
+    static func makeIsolatedPluginDir() -> URL {
+        FileManager.default.temporaryDirectory
+            .appendingPathComponent("RockxyPluginTests-\(UUID().uuidString)", isDirectory: true)
+    }
+
+    /// Creates a `ScriptPluginManager` that only scans the given directory.
+    static func makeIsolatedPluginManager(pluginsDir: URL) -> ScriptPluginManager {
+        ScriptPluginManager(discovery: PluginDiscovery(pluginsDirectory: pluginsDir))
+    }
+
+    /// Removes an isolated plugin test directory entirely.
+    static func cleanupIsolatedPluginDir(_ dir: URL) {
+        try? FileManager.default.removeItem(at: dir)
     }
 }

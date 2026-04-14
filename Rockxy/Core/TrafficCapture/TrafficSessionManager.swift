@@ -119,7 +119,7 @@ actor TrafficSessionManager {
     // MARK: - Eviction
 
     private func evictOldest() {
-        let evictionCount = maxBufferSize / 10
+        let evictionCount = max(maxBufferSize / 10, 1)
         Self.logger.info("Buffer exceeded \(self.maxBufferSize), evicting \(evictionCount) oldest transactions")
 
         Task {

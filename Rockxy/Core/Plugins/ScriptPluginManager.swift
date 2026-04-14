@@ -22,6 +22,12 @@ enum ScriptPluginError: Error, LocalizedError {
 // MARK: - ScriptPluginManager
 
 actor ScriptPluginManager {
+    // MARK: Lifecycle
+
+    init(discovery: PluginDiscovery = PluginDiscovery()) {
+        self.discovery = discovery
+    }
+
     // MARK: Internal
 
     private(set) var plugins: [PluginInfo] = []
@@ -197,6 +203,6 @@ actor ScriptPluginManager {
 
     private static let logger = Logger(subsystem: RockxyIdentity.current.logSubsystem, category: "ScriptPluginManager")
 
-    private let discovery = PluginDiscovery()
+    private let discovery: PluginDiscovery
     private let runtime = ScriptRuntime()
 }
