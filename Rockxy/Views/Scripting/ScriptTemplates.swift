@@ -1,9 +1,9 @@
 import Foundation
 
-/// Shipped script templates and the "new script" default source. Mirrors the
-/// exact default Proxyman-style template Stephen approved — multi-arg JS API
-/// (`onRequest(context, url, request)` / `onResponse(context, url, request, response)`)
-/// with the full comment scaffolding so users can discover what's editable.
+/// Shipped script templates and the "new script" default source. Uses the
+/// multi-arg JS API (`onRequest(context, url, request)` /
+/// `onResponse(context, url, request, response)`) with the full comment
+/// scaffolding so users can discover what's editable.
 enum ScriptTemplates {
     /// The default source used when the user creates a new script via `+`.
     /// Uses the multi-arg JS API which the runtime dispatches automatically

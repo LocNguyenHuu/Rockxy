@@ -3,8 +3,8 @@ import SwiftUI
 // MARK: - ScriptConsolePanel
 
 /// Right-side console panel in the Script Editor window. Shows user `console.log`
-/// output filtered by the eye-icon menu. Empty state mirrors the Proxyman default:
-/// an "Empty Console" header and the hint "Use console.log() to log events".
+/// output filtered by the eye-icon menu. Empty state shows an "Empty Console"
+/// header with a hint to call `console.log()` to log events.
 struct ScriptConsolePanel: View {
     // MARK: Internal
 

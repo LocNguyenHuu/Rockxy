@@ -3,9 +3,8 @@ import JavaScriptCore
 import os
 
 /// Builds the JS-side `(context, url, request)` and `(context, url, request, response)`
-/// argument shapes used by the Proxyman-style multi-arg scripting API, and
-/// reads the mutated objects back into Swift after `onRequest` / `onResponse`
-/// returns.
+/// argument shapes used by the multi-arg scripting API, and reads the mutated
+/// objects back into Swift after `onRequest` / `onResponse` returns.
 ///
 /// The single-arg `onRequest(ctx)` / `onResponse(ctx)` path lives in
 /// `ScriptRuntime` directly. Arity is detected at runtime via JS function `length`.
@@ -77,7 +76,7 @@ enum ScriptMultiArgBridge {
 
     /// Read mutations from the JS-side `request` object back into a new HTTPRequestData.
     /// The `returnedValue` is the raw return of `onRequest(...)`. If non-null/undefined,
-    /// it takes precedence over the in-place `requestArg` mutations (mirrors Proxyman).
+    /// it takes precedence over the in-place `requestArg` mutations.
     static func readRequestMutations(
         original: HTTPRequestData,
         requestArg: JSValue,
@@ -304,7 +303,7 @@ enum ScriptMultiArgBridge {
     )
         -> Data?
     {
-        // bodyFilePath wins over body if both are set (Proxyman behavior).
+        // bodyFilePath wins over body if both are set.
         if let pathVal = source.objectForKeyedSubscript("bodyFilePath"),
            !pathVal.isUndefined, !pathVal.isNull,
            let path = pathVal.toString(), !path.isEmpty

@@ -3,7 +3,7 @@ import Foundation
 import Testing
 
 // Verifies the runtime dispatches by JS function arity:
-// - 3-arg `onRequest(context, url, request)` (Proxyman-style)
+// - 3-arg `onRequest(context, url, request)`
 // - 4-arg `onResponse(context, url, request, response)` with bodyFilePath support
 // while keeping the single-arg `onRequest(ctx)` / `onResponse(ctx)` path working.
 

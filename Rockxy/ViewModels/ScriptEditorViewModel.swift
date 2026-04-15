@@ -3,7 +3,7 @@ import os
 
 // MARK: - ScriptConsoleLogLevel
 
-/// Console log level for editor-side filtering. Mirrors the Proxyman eye-icon filter.
+/// Console log level for editor-side filtering, bound to the console eye-icon menu.
 enum ScriptConsoleLogLevel: String, CaseIterable, Identifiable {
     case errors
     case warnings

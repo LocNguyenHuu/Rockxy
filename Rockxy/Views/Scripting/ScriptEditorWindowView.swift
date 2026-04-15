@@ -1,8 +1,7 @@
 import SwiftUI
 
 /// The Script Editor window. Matching rule header + run-on row + code editor +
-/// console + footer, matching the Proxyman-style layout Stephen approved in
-/// Figma.
+/// console + footer.
 struct ScriptEditorWindowView: View {
     // MARK: Internal
 

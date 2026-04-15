@@ -176,8 +176,8 @@ actor ScriptRuntime {
             let resumed = OSAllocatedUnfairLock(initialState: false)
 
             let workItem = DispatchWorkItem {
-                // Arity dispatch: 1 => single-arg legacy `onRequest(ctx)`, 3 => multi-arg
-                // `onRequest(context, url, request)` (Proxyman-style).
+                // Arity dispatch: 1 => single-arg legacy `onRequest(ctx)`,
+                // 3 => multi-arg `onRequest(context, url, request)`.
                 let initialResult: JSValue?
                 let multiArgs: (JSValue, JSValue, JSValue)?
                 if arity >= 3,
