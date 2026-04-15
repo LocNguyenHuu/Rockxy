@@ -53,6 +53,8 @@
         "group": "Development",
         "pages": [
           "development/architecture",
+          "development/security",
+          "development/design-decisions",
           "development/code-style",
           "development/building"
         ]
@@ -87,7 +89,7 @@
     }
   },
   "contextual": {
-    "options": ["copy", "view", "chatgpt", "claude", "perplexity", "cursor", "vscode"]
+    "options": ["copy", "view"]
   },
   "footer": {
     "socials": {

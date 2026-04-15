@@ -5,18 +5,28 @@ struct RockxyIdentity {
     // MARK: Lifecycle
 
     init(bundle: Bundle) {
-        let info = bundle.infoDictionary ?? [:]
+        self.init(infoDictionary: bundle.infoDictionary ?? [:])
+    }
 
-        familyNamespace = Self.string(
+    init(infoDictionary info: [String: Any]) {
+        let fallbackFamilyNamespace = Self.string(
             named: "RockxyFamilyNamespace",
             in: info,
             fallback: "com.amunx.rockxy"
         )
-        appBundleIdentifier = Self.string(
+        let fallbackAppBundleIdentifier = Self.string(
             named: "CFBundleIdentifier",
             in: info,
-            fallback: "com.amunx.rockxy.community"
+            fallback: fallbackFamilyNamespace
         )
+
+        displayName = Self.string(
+            named: "CFBundleDisplayName",
+            in: info,
+            fallback: Self.string(named: "CFBundleName", in: info, fallback: "Rockxy")
+        )
+        familyNamespace = fallbackFamilyNamespace
+        appBundleIdentifier = fallbackAppBundleIdentifier
         helperBundleIdentifier = Self.string(
             named: "RockxyHelperBundleIdentifier",
             in: info,
@@ -35,7 +45,7 @@ struct RockxyIdentity {
         defaultsPrefix = Self.string(
             named: "RockxyDefaultsPrefix",
             in: info,
-            fallback: "com.amunx.rockxy.community"
+            fallback: fallbackAppBundleIdentifier
         )
         notificationPrefix = Self.string(
             named: "RockxyNotificationPrefix",
@@ -50,7 +60,7 @@ struct RockxyIdentity {
         appSupportDirectoryName = Self.string(
             named: "RockxyAppSupportDirectoryName",
             in: info,
-            fallback: "com.amunx.rockxy.community"
+            fallback: fallbackAppBundleIdentifier
         )
         sharedSupportDirectoryName = Self.string(
             named: "RockxySharedSupportDirectoryName",
@@ -82,6 +92,7 @@ struct RockxyIdentity {
 
     static let current = RockxyIdentity(bundle: .main)
 
+    let displayName: String
     let familyNamespace: String
     let appBundleIdentifier: String
     let helperBundleIdentifier: String

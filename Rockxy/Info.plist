@@ -58,7 +58,5 @@
 	<string>$(ROCKXY_SHARED_CERTIFICATE_LABEL_PREFIX)</string>
 	<key>RockxySharedUTTypePrefix</key>
 	<string>$(ROCKXY_SHARED_UTTYPE_PREFIX)</string>
-	<key>RockxyProductEdition</key>
-	<string>$(ROCKXY_PRODUCT_EDITION)</string>
 </dict>
 </plist>

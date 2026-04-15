@@ -1,0 +1,25 @@
+// RockxyBase.xcconfig — Generic Rockxy product identity.
+//
+// Included by product/channel-specific configs.
+// Defines the app-facing product name and neutral defaults. Public
+// Community shipping identity lives in CommunityBase.xcconfig.
+
+#include "Base.xcconfig"
+
+// Product naming
+ROCKXY_PRODUCT_NAME = Rockxy
+ROCKXY_EXECUTABLE_NAME = Rockxy
+ROCKXY_RELEASE_ARTIFACT_BASENAME = Rockxy
+
+// Neutral defaults; product/channel configs can override as needed.
+ROCKXY_APP_BUNDLE_ID = $(ROCKXY_FAMILY_NAMESPACE)
+ROCKXY_APP_NAMESPACE = $(ROCKXY_APP_BUNDLE_ID)
+ROCKXY_LOG_SUBSYSTEM = $(ROCKXY_APP_NAMESPACE)
+ROCKXY_DEFAULTS_PREFIX = $(ROCKXY_APP_NAMESPACE)
+ROCKXY_NOTIFICATION_PREFIX = $(ROCKXY_APP_NAMESPACE)
+ROCKXY_APP_SUPPORT_DIRECTORY_NAME = $(ROCKXY_APP_NAMESPACE)
+
+// Helper trust allowlist — space-separated bundle identifiers of trusted callers.
+// Drives both AssociatedBundleIdentifiers in the generated launchd plist
+// and SecRequirement in ConnectionValidator.swift.
+ROCKXY_ALLOWED_CALLER_IDENTIFIERS = $(ROCKXY_APP_BUNDLE_ID)

@@ -51,8 +51,10 @@ final class MapLocalViewModel {
                     updated[index].isEnabled = newValue
                 }
             }
-            allRules = updated
-            Task { await RuleSyncService.replaceAllRules(updated) }
+            Task {
+                await RulePolicyGate.shared.replaceAllRules(updated)
+                allRules = await RuleEngine.shared.allRules
+            }
         }
     }
 
@@ -71,12 +73,22 @@ final class MapLocalViewModel {
             return
         }
         allRules[index].isEnabled.toggle()
-        Task { await RuleSyncService.toggleRule(id: id) }
+        Task {
+            let accepted = await RulePolicyGate.shared.toggleRule(id: id)
+            if !accepted {
+                allRules = await RuleEngine.shared.allRules
+            }
+        }
     }
 
     func addRule(_ rule: ProxyRule) {
         allRules.append(rule)
-        Task { await RuleSyncService.addRule(rule) }
+        Task {
+            let accepted = await RulePolicyGate.shared.addRule(rule)
+            if !accepted {
+                allRules = await RuleEngine.shared.allRules
+            }
+        }
     }
 
     func updateRule(_ rule: ProxyRule) {
@@ -84,7 +96,7 @@ final class MapLocalViewModel {
             return
         }
         allRules[index] = rule
-        Task { await RuleSyncService.updateRule(rule) }
+        Task { await RulePolicyGate.shared.updateRule(rule) }
     }
 
     func removeSelectedRules() {
@@ -92,13 +104,13 @@ final class MapLocalViewModel {
         allRules.removeAll { idsToRemove.contains($0.id) }
         selectedRuleIDs.removeAll()
         let updated = allRules
-        Task { await RuleSyncService.replaceAllRules(updated) }
+        Task { await RulePolicyGate.shared.replaceAllRules(updated) }
     }
 
     func removeRule(id: UUID) {
         allRules.removeAll { $0.id == id }
         selectedRuleIDs.remove(id)
-        Task { await RuleSyncService.removeRule(id: id) }
+        Task { await RulePolicyGate.shared.removeRule(id: id) }
     }
 
     func beginEditing(_ rule: ProxyRule) {
@@ -119,7 +131,7 @@ final class MapLocalViewModel {
         }
         allRules[index].action = .mapLocal(filePath: newPath, statusCode: statusCode, isDirectory: isDirectory)
         let updatedRule = allRules[index]
-        Task { await RuleSyncService.updateRule(updatedRule) }
+        Task { await RulePolicyGate.shared.updateRule(updatedRule) }
     }
 
     func filePath(for rule: ProxyRule) -> String {

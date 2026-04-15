@@ -85,14 +85,71 @@ struct ScriptBridgeTests {
         #expect(context.exception == nil)
     }
 
+    // MARK: - Isolated Defaults
+
+    @Test("$rockxy.storage with isolated defaults writes only to injected suite")
+    func storageIsolation() {
+        let isolated = TestFixtures.makeIsolatedDefaults()
+        let context = makeContext(defaults: isolated)
+        let testKey = "isolation_\(UUID().uuidString)"
+        let storagePrefix = RockxyIdentity.current.pluginStoragePrefix(pluginID: testPluginID)
+
+        context.evaluateScript("$rockxy.storage.set('\(testKey)', 'isolated_value')")
+
+        // Value should be in the isolated suite
+        let inIsolated = isolated.string(forKey: storagePrefix + testKey)
+        #expect(inIsolated == "isolated_value")
+
+        // Value must NOT be in standard defaults
+        let inStandard = UserDefaults.standard.string(forKey: storagePrefix + testKey)
+        #expect(inStandard == nil)
+
+        // Cleanup
+        isolated.removeObject(forKey: storagePrefix + testKey)
+    }
+
+    @Test("$rockxy.env.get reads from isolated defaults")
+    func envIsolation() {
+        let isolated = TestFixtures.makeIsolatedDefaults()
+        let configPrefix = RockxyIdentity.current.pluginConfigPrefix(pluginID: testPluginID)
+
+        isolated.set("injected_config", forKey: configPrefix + "envKey")
+
+        let context = makeContext(defaults: isolated)
+        let result = context.evaluateScript("$rockxy.env.get('envKey')")
+        #expect(result?.toString() == "injected_config")
+
+        // Standard defaults must not have this value
+        #expect(UserDefaults.standard.string(forKey: configPrefix + "envKey") == nil)
+
+        // Cleanup
+        isolated.removeObject(forKey: configPrefix + "envKey")
+    }
+
+    @Test("$rockxy.storage.delete removes from isolated defaults only")
+    func storageDeleteIsolation() {
+        let isolated = TestFixtures.makeIsolatedDefaults()
+        let context = makeContext(defaults: isolated)
+        let testKey = "del_\(UUID().uuidString)"
+        let storagePrefix = RockxyIdentity.current.pluginStoragePrefix(pluginID: testPluginID)
+
+        context.evaluateScript("$rockxy.storage.set('\(testKey)', 'temp')")
+        #expect(isolated.string(forKey: storagePrefix + testKey) == "temp")
+
+        context.evaluateScript("$rockxy.storage.delete('\(testKey)')")
+        #expect(isolated.object(forKey: storagePrefix + testKey) == nil)
+    }
+
     // MARK: Private
 
     private let testPluginID = "com.test.bridge-test"
     private let logger = Logger(subsystem: TestIdentity.logSubsystem, category: "ScriptBridgeTests")
 
-    private func makeContext() -> JSContext {
-        let context = JSContext()!
-        ScriptBridge.install(in: context, pluginID: testPluginID, logger: logger)
+    private func makeContext(defaults: UserDefaults = .standard) -> JSContext {
+        guard let context = JSContext() else {
+            preconditionFailure("JSContext allocation failed")
+        }
+        ScriptBridge.install(in: context, pluginID: testPluginID, logger: logger, defaults: defaults)
         return context
     }
 }

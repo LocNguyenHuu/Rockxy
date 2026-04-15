@@ -34,6 +34,12 @@ enum ScriptRunStatus: Equatable {
 
 @MainActor @Observable
 final class ScriptingViewModel {
+    // MARK: Lifecycle
+
+    init(pluginManager: ScriptPluginManager = PluginManager.shared.scriptManager) {
+        self.pluginManager = pluginManager
+    }
+
     // MARK: Internal
 
     // MARK: Internal Static
@@ -115,6 +121,10 @@ final class ScriptingViewModel {
             return nil
         }
         return plugins.first { $0.id == id }
+    }
+
+    var pluginManagerIdentity: ObjectIdentifier {
+        pluginManager.identity
     }
 
     func loadPlugins() async {
@@ -270,7 +280,7 @@ final class ScriptingViewModel {
     func togglePlugin(id: String, enabled: Bool) async {
         do {
             if enabled {
-                try await pluginManager.enablePlugin(id: id)
+                try await ScriptPolicyGate.shared.enablePlugin(id: id, using: pluginManager)
                 setRunStatus(.success, message: "Plugin enabled")
                 appendConsole("Plugin enabled.", level: .info)
             } else {
@@ -338,7 +348,7 @@ final class ScriptingViewModel {
 
     private static let logger = Logger(subsystem: RockxyIdentity.current.logSubsystem, category: "ScriptingViewModel")
 
-    private let pluginManager = ScriptPluginManager()
+    private let pluginManager: ScriptPluginManager
 
     private func appendConsole(_ message: String, level: ConsoleLevel) {
         consoleOutput.append(ConsoleEntry(timestamp: .now, message: message, level: level))

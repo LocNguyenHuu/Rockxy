@@ -22,7 +22,7 @@ struct RockxyApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
-        Window("Rockxy Community", id: "main") {
+        Window(RockxyIdentity.current.displayName, id: "main") {
             MainWindowContent(lifecycleState: lifecycleState)
         }
         .commands {
@@ -665,7 +665,7 @@ struct RockxyMenuCommands: Commands {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Unknown"
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "Unknown"
         let osVersion = ProcessInfo.processInfo.operatingSystemVersionString
-        let info = "Rockxy \(version) (\(build)) / macOS \(osVersion)"
+        let info = "\(RockxyIdentity.current.displayName) \(version) (\(build)) / macOS \(osVersion)"
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(info, forType: .string)
     }

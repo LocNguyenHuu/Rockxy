@@ -89,6 +89,7 @@ struct BlockActionTypeTests {
 
 // MARK: - BlockListViewModelTests
 
+@Suite(.serialized)
 struct BlockListViewModelTests {
     @Test("addBlockRule with wildcard creates correct pattern")
     @MainActor
@@ -96,8 +97,8 @@ struct BlockListViewModelTests {
         let vm = BlockListViewModel()
 
         vm.addBlockRule(
-            ruleName: "Block ChatGPT",
-            urlPattern: "*chatgpt.com/*",
+            ruleName: "Block Example API",
+            urlPattern: "*example-api.local/*",
             httpMethod: .any,
             matchType: .wildcard,
             blockAction: .returnForbidden,
@@ -106,7 +107,7 @@ struct BlockListViewModelTests {
 
         #expect(vm.blockRules.count == 1)
         let rule = vm.blockRules.first
-        #expect(rule?.name == "Block ChatGPT")
+        #expect(rule?.name == "Block Example API")
         #expect(rule?.matchCondition.method == nil)
         #expect(rule?.matchCondition.urlPattern?.contains(".*") == true)
     }
@@ -426,4 +427,97 @@ struct BlockListViewModelTests {
         #expect(pattern.contains(".*"))
         #expect(pattern.contains(".page"))
     }
+
+    // MARK: - Quota Rollback
+
+    @Test("addBlockRule at quota rolls back optimistic append")
+    @MainActor
+    func addBlockRuleQuotaRollback() async {
+        await RuleTestLock.shared.acquire()
+        let savedGate = RulePolicyGate.shared
+        let engineSnapshot = await RuleEngine.shared.allRules
+        await RuleEngine.shared.replaceAll([])
+
+        let existing = TestFixtures.makeRule(name: "Existing", action: .block(statusCode: 403))
+        await RuleEngine.shared.addRule(existing)
+
+        RulePolicyGate.shared = RulePolicyGate(policy: BlockQuotaPolicy())
+
+        let vm = BlockListViewModel()
+        await vm.refreshFromEngine()
+        let beforeCount = vm.blockRules.count
+
+        vm.addBlockRule(
+            ruleName: "Overflow",
+            urlPattern: "*.overflow.com",
+            httpMethod: .any,
+            matchType: .wildcard,
+            blockAction: .returnForbidden,
+            includeSubpaths: false
+        )
+
+        #expect(vm.blockRules.count == beforeCount + 1)
+
+        for _ in 0 ..< 500 {
+            if vm.blockRules.count == beforeCount {
+                break
+            }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+
+        #expect(vm.blockRules.count == beforeCount)
+
+        RulePolicyGate.shared = savedGate
+        await RuleEngine.shared.replaceAll(engineSnapshot)
+        await RuleTestLock.shared.release()
+    }
+
+    @Test("toggleRule enable at quota rolls back optimistic toggle")
+    @MainActor
+    func toggleRuleEnableAtQuotaRollback() async {
+        await RuleTestLock.shared.acquire()
+        let savedGate = RulePolicyGate.shared
+        let engineSnapshot = await RuleEngine.shared.allRules
+        await RuleEngine.shared.replaceAll([])
+
+        let active = TestFixtures.makeRule(name: "Active", action: .block(statusCode: 403))
+        await RuleEngine.shared.addRule(active)
+
+        var disabled = TestFixtures.makeRule(name: "Disabled", action: .block(statusCode: 403))
+        disabled.isEnabled = false
+        await RuleEngine.shared.addRule(disabled)
+
+        RulePolicyGate.shared = RulePolicyGate(policy: BlockQuotaPolicy())
+
+        let vm = BlockListViewModel()
+        await vm.refreshFromEngine()
+
+        #expect(vm.allRules.first { $0.id == disabled.id }?.isEnabled == false)
+
+        vm.toggleRule(id: disabled.id)
+        #expect(vm.allRules.first { $0.id == disabled.id }?.isEnabled == true)
+
+        for _ in 0 ..< 500 {
+            if vm.allRules.first(where: { $0.id == disabled.id })?.isEnabled == false {
+                break
+            }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+
+        #expect(vm.allRules.first { $0.id == disabled.id }?.isEnabled == false)
+
+        RulePolicyGate.shared = savedGate
+        await RuleEngine.shared.replaceAll(engineSnapshot)
+        await RuleTestLock.shared.release()
+    }
+}
+
+// MARK: - BlockQuotaPolicy
+
+private struct BlockQuotaPolicy: AppPolicy {
+    let maxWorkspaceTabs = 8
+    let maxDomainFavorites = 5
+    let maxActiveRulesPerTool = 1
+    let maxEnabledScripts = 10
+    let maxLiveHistoryEntries = 1_000
 }

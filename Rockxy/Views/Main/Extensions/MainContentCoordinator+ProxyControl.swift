@@ -39,10 +39,7 @@ extension MainContentCoordinator {
                     }
                 }
 
-                if !rulesLoaded {
-                    rulesLoaded = true
-                    await RuleSyncService.loadFromDisk()
-                }
+                await ensureRulesLoaded()
                 Self.logger.info("Rules loaded")
 
                 let resolution = try ProxyPortResolver.resolve(
@@ -162,7 +159,33 @@ extension MainContentCoordinator {
         }
     }
 
-    func clearSession() {
+    func clearSession() async {
+        // Reentry guard: if a clear is already in flight, skip so the in-flight
+        // clear's deferredSessionBatches and clearingTargetGeneration are not clobbered.
+        guard !isClearingSession else {
+            return
+        }
+
+        // Mark the rollover intent synchronously so batches delivered while the
+        // main actor is suspended can be classified deterministically.
+        let targetGeneration = sessionGeneration &+ 1
+        isClearingSession = true
+        clearingTargetGeneration = targetGeneration
+        deferredSessionBatches.removeAll()
+
+        // Advance the actor-side generation first so any traffic arriving while
+        // the main actor is suspended joins the new session instead of being
+        // stamped with an old generation.
+        let resolvedGeneration = await sessionManager.beginNewSession()
+
+        // Validate that this clear is still the authoritative in-flight clear
+        // after the suspension. A different generation here would mean state
+        // has been reset out from under us; abandon the rest of the clear.
+        guard clearingTargetGeneration == targetGeneration else {
+            return
+        }
+        sessionGeneration = resolvedGeneration
+
         transactions.removeAll()
         selectedTransactionIDs.removeAll()
         logEntries.removeAll()
@@ -181,6 +204,15 @@ extension MainContentCoordinator {
         } else {
             let maxSeq = persistedFavorites.map(\.sequenceNumber).max() ?? 0
             nextSequenceNumber = maxSeq + 1
+        }
+
+        let deferredBatches = deferredSessionBatches
+        deferredSessionBatches.removeAll()
+        clearingTargetGeneration = nil
+        isClearingSession = false
+
+        for deferredBatch in deferredBatches {
+            processBatch(deferredBatch.transactions, generation: deferredBatch.generation)
         }
 
         NotificationCenter.default.post(name: .sessionCleared, object: nil)
@@ -214,12 +246,12 @@ extension MainContentCoordinator {
             }
         )
 
-        await sessionManager.setOnBatchReady { [weak self] batch in
+        await sessionManager.setOnBatchReady { [weak self] batch, generation in
             guard let self else {
                 return
             }
             Task { @MainActor in
-                self.processBatch(batch)
+                self.processBatch(batch, generation: generation)
             }
         }
         await sessionManager.setOnClientAppEnriched { [weak self] enrichedIDs in
@@ -230,7 +262,8 @@ extension MainContentCoordinator {
                 self.handleClientAppEnrichment(enrichedIDs)
             }
         }
-        await sessionManager.setMaxBufferSize(settings.maxBufferSize)
+        let effectiveBufferSize = min(settings.maxBufferSize, policy.maxLiveHistoryEntries)
+        await sessionManager.setMaxBufferSize(effectiveBufferSize)
         await sessionManager.setProxyPort(resolvedPort)
         await sessionManager.startBatchTimer()
 
@@ -239,7 +272,21 @@ extension MainContentCoordinator {
 
     // MARK: - Transaction Processing
 
-    private func processBatch(_ batch: [HTTPTransaction]) {
+    func processBatch(_ batch: [HTTPTransaction], generation: UInt) {
+        if isClearingSession {
+            guard generation == clearingTargetGeneration else {
+                Self.logger.debug("Batch of \(batch.count) dropped — stale clear-session generation")
+                return
+            }
+
+            deferredSessionBatches.append(.init(transactions: batch, generation: generation))
+            return
+        }
+
+        guard generation == sessionGeneration else {
+            Self.logger.debug("Batch of \(batch.count) dropped — stale session generation")
+            return
+        }
         guard isRecording else {
             Self.logger.debug("Batch of \(batch.count) dropped — recording paused")
             return
@@ -255,6 +302,13 @@ extension MainContentCoordinator {
         guard !filteredBatch.isEmpty else {
             return
         }
+
+        // Report only accepted transactions back to the actor for buffer accounting.
+        // This ensures paused/filtered batches do not consume the live-history budget.
+        // The generation tag prevents stale reports from a pre-clear batch affecting
+        // post-clear accounting.
+        let acceptedCount = filteredBatch.count
+        Task { await sessionManager.reportAcceptedCount(acceptedCount, generation: generation) }
 
         recordTrafficMetrics(for: filteredBatch)
 

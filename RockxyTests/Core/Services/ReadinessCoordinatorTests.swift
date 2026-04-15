@@ -361,12 +361,12 @@ struct ReadinessCoordinatorTests {
 
     @Test("clearSession resets selectedTransactionIDs")
     @MainActor
-    func clearSessionResetsSelectedIDs() {
+    func clearSessionResetsSelectedIDs() async {
         let coordinator = MainContentCoordinator()
         coordinator.selectedTransactionIDs.insert(UUID())
         coordinator.selectedTransactionIDs.insert(UUID())
         #expect(coordinator.selectedTransactionIDs.count == 2)
-        coordinator.clearSession()
+        await coordinator.clearSession()
         #expect(coordinator.selectedTransactionIDs.isEmpty)
     }
 }

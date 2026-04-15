@@ -1,6 +1,8 @@
 import Foundation
 import os
 
+// MARK: - RuleSyncService
+
 /// Coordinates rule mutations between the shared `RuleEngine` actor, disk persistence
 /// via `RuleStore`, and UI notification via `NotificationCenter`.
 /// All rule changes should flow through this service.
@@ -52,6 +54,68 @@ enum RuleSyncService {
         await syncAll()
     }
 
+    static func enableExclusiveNetworkConditionIfAllowed(
+        id: UUID,
+        maxPerCategory: Int
+    )
+        async -> Bool
+    {
+        let accepted = await RuleEngine.shared.enableExclusiveNetworkConditionIfAllowed(
+            id: id,
+            maxPerCategory: maxPerCategory
+        )
+        if accepted {
+            await syncAll()
+        }
+        return accepted
+    }
+
+    // MARK: - Atomic Quota-Checked Operations
+
+    static func addRuleIfAllowed(_ rule: ProxyRule, maxPerCategory: Int) async -> Bool {
+        let accepted = await RuleEngine.shared.addRuleIfAllowed(rule, maxPerCategory: maxPerCategory)
+        if accepted {
+            await syncAll()
+        }
+        return accepted
+    }
+
+    static func toggleRuleIfAllowed(id: UUID, maxPerCategory: Int) async -> Bool {
+        let accepted = await RuleEngine.shared.toggleRuleIfAllowed(id: id, maxPerCategory: maxPerCategory)
+        if accepted {
+            await syncAll()
+        }
+        return accepted
+    }
+
+    static func setEnabledIfAllowed(id: UUID, enabled: Bool, maxPerCategory: Int) async -> Bool {
+        let accepted = await RuleEngine.shared.setEnabledIfAllowed(
+            id: id,
+            enabled: enabled,
+            maxPerCategory: maxPerCategory
+        )
+        if accepted {
+            await syncAll()
+        }
+        return accepted
+    }
+
+    static func addNetworkConditionExclusiveIfAllowed(
+        _ rule: ProxyRule,
+        maxPerCategory: Int
+    )
+        async -> Bool
+    {
+        let accepted = await RuleEngine.shared.addNetworkConditionExclusiveIfAllowed(
+            rule,
+            maxPerCategory: maxPerCategory
+        )
+        if accepted {
+            await syncAll()
+        }
+        return accepted
+    }
+
     static func setBreakpointToolEnabled(_ enabled: Bool) async {
         UserDefaults.standard.set(enabled, forKey: "breakpointToolEnabled")
         await RuleEngine.shared.setBreakpointToolEnabled(enabled)
@@ -70,11 +134,20 @@ enum RuleSyncService {
     // MARK: Private
 
     private static let logger = Logger(subsystem: RockxyIdentity.current.logSubsystem, category: "RuleSyncService")
+    private static let persistenceQueue = RulePersistenceQueue()
 
     private static func syncAll() async {
         let allRules = await RuleEngine.shared.allRules
-        try? RuleStore().saveRules(allRules)
+        await persistenceQueue.save(allRules)
         NotificationCenter.default.post(name: .rulesDidChange, object: allRules)
         logger.debug("Rules synced: \(allRules.count) rules")
+    }
+}
+
+// MARK: - RulePersistenceQueue
+
+private actor RulePersistenceQueue {
+    func save(_ rules: [ProxyRule]) {
+        try? RuleStore().saveRules(rules)
     }
 }

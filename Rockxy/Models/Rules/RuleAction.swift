@@ -33,6 +33,18 @@ enum RuleAction {
 }
 
 extension RuleAction {
+    var toolCategory: String {
+        switch self {
+        case .breakpoint: "breakpoint"
+        case .mapLocal: "mapLocal"
+        case .mapRemote: "mapRemote"
+        case .block: "block"
+        case .throttle: "throttle"
+        case .modifyHeader: "modifyHeader"
+        case .networkCondition: "networkCondition"
+        }
+    }
+
     var matchedRuleActionSummary: String {
         switch self {
         case let .breakpoint(phase):

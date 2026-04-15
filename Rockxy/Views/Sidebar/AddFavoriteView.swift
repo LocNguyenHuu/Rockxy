@@ -72,6 +72,16 @@ struct AddFavoriteView: View {
         return domains.filter { $0.domain.lowercased().contains(query) }
     }
 
+    private var isAddDisabledByQuota: Bool {
+        guard let item = selectedItem else {
+            return false
+        }
+        if case .domain = item {
+            return coordinator.domainFavoriteCount >= coordinator.policy.maxDomainFavorites
+        }
+        return false
+    }
+
     private var searchField: some View {
         HStack(spacing: 6) {
             Image(systemName: "magnifyingglass")
@@ -178,7 +188,7 @@ struct AddFavoriteView: View {
                 isPresented = false
             }
             .keyboardShortcut(.defaultAction)
-            .disabled(selectedItem == nil)
+            .disabled(selectedItem == nil || isAddDisabledByQuota)
         }
     }
 

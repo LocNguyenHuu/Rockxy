@@ -1,0 +1,15 @@
+// CommunityBase.xcconfig — Public Community shipping identity.
+//
+// Keeps the current public Rockxy bundle namespace and helper caller
+// allowlist, while leaving RockxyBase.xcconfig free to describe the
+// generic product identity shared by downstream variants.
+
+#include "RockxyBase.xcconfig"
+
+ROCKXY_APP_BUNDLE_ID = $(ROCKXY_FAMILY_NAMESPACE).community
+ROCKXY_APP_NAMESPACE = $(ROCKXY_APP_BUNDLE_ID)
+ROCKXY_LOG_SUBSYSTEM = $(ROCKXY_APP_NAMESPACE)
+ROCKXY_DEFAULTS_PREFIX = $(ROCKXY_APP_NAMESPACE)
+ROCKXY_NOTIFICATION_PREFIX = $(ROCKXY_APP_NAMESPACE)
+ROCKXY_APP_SUPPORT_DIRECTORY_NAME = $(ROCKXY_APP_NAMESPACE)
+ROCKXY_ALLOWED_CALLER_IDENTIFIERS = $(ROCKXY_APP_BUNDLE_ID) $(ROCKXY_FAMILY_NAMESPACE)

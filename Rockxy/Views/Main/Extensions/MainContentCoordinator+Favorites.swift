@@ -12,11 +12,28 @@ extension MainContentCoordinator {
 
     private static let favoritesKey = RockxyIdentity.current.defaultsKey("favorites")
 
+    // MARK: - Counts
+
+    var domainFavoriteCount: Int {
+        favorites.filter {
+            if case .domainNode = $0 {
+                return true
+            }
+            return false
+        }.count
+    }
+
     // MARK: - Favorite Management
 
     func addFavorite(_ item: SidebarItem) {
         guard !favorites.contains(item) else {
             return
+        }
+        if case .domainNode = item {
+            guard domainFavoriteCount < policy.maxDomainFavorites else {
+                Self.logger.info("Domain favorite limit (\(self.policy.maxDomainFavorites)) reached")
+                return
+            }
         }
         favorites.append(item)
         saveFavorites()

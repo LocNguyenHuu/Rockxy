@@ -29,7 +29,9 @@ struct ProxyToolbarContent: ToolbarContent {
             .help(coordinator.isProxyRunning ? "Stop proxy" : "Start proxy")
 
             Button {
-                coordinator.clearSession()
+                Task { @MainActor in
+                    await coordinator.clearSession()
+                }
             } label: {
                 Label(String(localized: "Clear"), systemImage: "trash")
             }

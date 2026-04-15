@@ -12,9 +12,23 @@ import os
 /// each file focused and within SwiftLint size limits.
 @MainActor @Observable
 final class MainContentCoordinator {
+    // MARK: Lifecycle
+
+    init(policy: any AppPolicy = DefaultAppPolicy()) {
+        self.policy = policy
+        self.workspaceStore = WorkspaceStore(maxWorkspaces: policy.maxWorkspaceTabs)
+    }
+
     // MARK: Internal
 
+    struct DeferredBatch {
+        let transactions: [HTTPTransaction]
+        let generation: UInt
+    }
+
     static let logger = Logger(subsystem: RockxyIdentity.current.logSubsystem, category: "MainContentCoordinator")
+
+    let policy: any AppPolicy
 
     // MARK: - Engine References
 
@@ -47,6 +61,10 @@ final class MainContentCoordinator {
     var isProxyRunning = false
     var activeProxyPort = AppSettingsManager.shared.settings.proxyPort
     var isRecording = true
+    var sessionGeneration: UInt = 0
+    var isClearingSession = false
+    var clearingTargetGeneration: UInt?
+    var deferredSessionBatches: [DeferredBatch] = []
     var proxyError: String?
     var isSystemProxyConfigured = false
 
@@ -85,7 +103,7 @@ final class MainContentCoordinator {
 
     // MARK: - Workspace Tabs
 
-    var workspaceStore = WorkspaceStore()
+    var workspaceStore: WorkspaceStore
     var previewTabStore = PreviewTabStore()
     var headerColumnStore = HeaderColumnStore()
 
@@ -96,6 +114,8 @@ final class MainContentCoordinator {
     var exportScopeContext: ExportScopeContext?
     var sessionProvenance: SessionProvenance?
     var activeToast: ToastMessage?
+
+    private(set) var ruleLoadTask: Task<Void, Never>?
 
     var systemProxyWarning: SystemProxyWarning? {
         guard let warning = readiness.activeWarning else {
@@ -218,6 +238,14 @@ final class MainContentCoordinator {
         return live + persisted.filter { !liveIds.contains($0.id) }
     }
 
+    /// Configure shared policy gates. Called once from the app's main
+    /// ContentView after the first coordinator is created. Separated from
+    /// init so test-created coordinators do not overwrite shared gate state.
+    func configureSharedGates() {
+        RulePolicyGate.shared = RulePolicyGate(policy: policy)
+        ScriptPolicyGate.shared = ScriptPolicyGate(policy: policy)
+    }
+
     // MARK: - Transaction Lookup (migration seam — O(n), next issue replaces with indexed/store lookup)
 
     func transaction(for id: UUID) -> HTTPTransaction? {
@@ -232,7 +260,7 @@ final class MainContentCoordinator {
             return
         }
         rulesObserver = NotificationCenter.default.addObserver(
-            forName: .rulesDidChange, object: nil, queue: .main
+            forName: .rulesDidChange, object: nil, queue: nil
         ) { [weak self] notification in
             if let allRules = notification.object as? [ProxyRule] {
                 Task { @MainActor in
@@ -243,11 +271,37 @@ final class MainContentCoordinator {
     }
 
     func loadInitialRules() {
-        guard !rulesLoaded else {
+        guard ruleLoadTask == nil else {
             return
         }
-        rulesLoaded = true
-        Task { await RuleSyncService.loadFromDisk() }
+        ruleLoadTask = Task { [weak self] in
+            await RuleSyncService.loadFromDisk()
+            guard let self else {
+                return
+            }
+            self.rulesLoaded = true
+            self.ruleLoadTask = nil
+        }
+    }
+
+    func ensureRulesLoaded() async {
+        if rulesLoaded {
+            return
+        }
+        if let existing = ruleLoadTask {
+            await existing.value
+            return
+        }
+        let task = Task { [weak self] in
+            await RuleSyncService.loadFromDisk()
+            guard let self else {
+                return
+            }
+            self.rulesLoaded = true
+            self.ruleLoadTask = nil
+        }
+        ruleLoadTask = task
+        await task.value
     }
 
     func resolveSessionStore() throws -> SessionStore {

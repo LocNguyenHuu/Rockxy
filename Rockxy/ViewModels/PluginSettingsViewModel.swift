@@ -8,12 +8,19 @@ import os
 
 @MainActor @Observable
 final class PluginSettingsViewModel {
+    // MARK: Lifecycle
+
+    init(pluginManager: ScriptPluginManager = PluginManager.shared.scriptManager) {
+        self.pluginManager = pluginManager
+    }
+
     // MARK: Internal
 
     internal(set) var plugins: [PluginInfo] = []
     var selectedPluginID: String?
     var searchText = ""
     var selectedCategory: PluginType?
+    var lastEnableError: String?
 
     var filteredPlugins: [PluginInfo] {
         var result = plugins
@@ -34,19 +41,35 @@ final class PluginSettingsViewModel {
         plugins.first { $0.id == selectedPluginID }
     }
 
+    var pluginManagerIdentity: ObjectIdentifier {
+        pluginManager.identity
+    }
+
     func loadPlugins() async {
         await pluginManager.loadAllPlugins()
         plugins = await pluginManager.plugins
     }
 
     func togglePlugin(id: String) async {
-        guard let index = plugins.firstIndex(where: { $0.id == id }) else {
+        guard let plugin = plugins.first(where: { $0.id == id }) else {
             return
         }
-        plugins[index].isEnabled.toggle()
-        let enabled = plugins[index].isEnabled
-        plugins[index].status = enabled ? .active : .disabled
-        UserDefaults.standard.set(enabled, forKey: RockxyIdentity.current.pluginEnabledKey(pluginID: id))
+        let shouldEnable = !plugin.isEnabled
+        if shouldEnable {
+            do {
+                try await ScriptPolicyGate.shared.enablePlugin(id: id, using: pluginManager)
+                lastEnableError = nil
+                plugins = await pluginManager.plugins
+            } catch {
+                Self.logger.warning("Cannot enable plugin \(id): \(error.localizedDescription)")
+                lastEnableError = error.localizedDescription
+                plugins = await pluginManager.plugins
+            }
+        } else {
+            await pluginManager.disablePlugin(id: id)
+            lastEnableError = nil
+            plugins = await pluginManager.plugins
+        }
     }
 
     func reloadPlugin(id: String) async {
@@ -70,7 +93,7 @@ final class PluginSettingsViewModel {
         do {
             try FileManager.default.copyItem(at: plugin.bundlePath, to: tempDir)
             try? await pluginManager.uninstallPlugin(id: id)
-            try await PluginDiscovery().installPlugin(from: tempDir)
+            try await pluginManager.installPlugin(from: tempDir)
             try? FileManager.default.removeItem(at: tempDir)
         } catch {
             Self.logger.error("Failed to reinstall plugin: \(error.localizedDescription)")
@@ -81,11 +104,11 @@ final class PluginSettingsViewModel {
     }
 
     func updateConfig(pluginID: String, key: String, value: Any) {
-        UserDefaults.standard.set(value, forKey: RockxyIdentity.current.pluginConfigPrefix(pluginID: pluginID) + key)
+        pluginManager.defaults.set(value, forKey: RockxyIdentity.current.pluginConfigPrefix(pluginID: pluginID) + key)
     }
 
     func configValue(pluginID: String, key: String) -> Any? {
-        UserDefaults.standard.object(forKey: RockxyIdentity.current.pluginConfigPrefix(pluginID: pluginID) + key)
+        pluginManager.defaults.object(forKey: RockxyIdentity.current.pluginConfigPrefix(pluginID: pluginID) + key)
     }
 
     func revealInFinder(plugin: PluginInfo) {
@@ -108,7 +131,7 @@ final class PluginSettingsViewModel {
         if panel.runModal() == .OK, let url = panel.url {
             Task {
                 do {
-                    try await PluginDiscovery().installPlugin(from: url)
+                    try await pluginManager.installPlugin(from: url)
                     await loadPlugins()
                 } catch {
                     Self.logger.error("Failed to install plugin: \(error.localizedDescription)")
@@ -124,5 +147,5 @@ final class PluginSettingsViewModel {
         category: "PluginSettingsViewModel"
     )
 
-    private let pluginManager = ScriptPluginManager()
+    private let pluginManager: ScriptPluginManager
 }

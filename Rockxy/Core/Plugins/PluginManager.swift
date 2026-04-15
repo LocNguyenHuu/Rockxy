@@ -8,6 +8,8 @@ import os
 final class PluginManager: Sendable {
     // MARK: Internal
 
+    static let shared = PluginManager()
+
     let scriptManager = ScriptPluginManager()
 
     // MARK: - Registration

@@ -81,7 +81,7 @@ final class NetworkConditionsWindowViewModel {
             if let index = allRules.firstIndex(where: { $0.id == id }) {
                 allRules[index].isEnabled = false
             }
-            Task { await RuleSyncService.setRuleEnabled(id: id, enabled: false) }
+            Task { await RulePolicyGate.shared.setRuleEnabled(id: id, enabled: false) }
         } else {
             for index in allRules.indices {
                 if case .networkCondition = allRules[index].action, allRules[index].isEnabled {
@@ -91,7 +91,12 @@ final class NetworkConditionsWindowViewModel {
             if let index = allRules.firstIndex(where: { $0.id == id }) {
                 allRules[index].isEnabled = true
             }
-            Task { await RuleSyncService.enableExclusiveNetworkCondition(id: id) }
+            Task {
+                let accepted = await RulePolicyGate.shared.enableExclusiveNetworkCondition(id: id)
+                if !accepted {
+                    allRules = await RuleEngine.shared.allRules
+                }
+            }
         }
     }
 
@@ -104,9 +109,15 @@ final class NetworkConditionsWindowViewModel {
         allRules.append(rule)
         Task {
             if rule.isEnabled {
-                await RuleSyncService.addNetworkConditionExclusive(rule)
+                let accepted = await RulePolicyGate.shared.addNetworkConditionExclusive(rule)
+                if !accepted {
+                    allRules = await RuleEngine.shared.allRules
+                }
             } else {
-                await RuleSyncService.addRule(rule)
+                let accepted = await RulePolicyGate.shared.addRule(rule)
+                if !accepted {
+                    allRules = await RuleEngine.shared.allRules
+                }
             }
         }
     }
@@ -116,12 +127,12 @@ final class NetworkConditionsWindowViewModel {
             return
         }
         allRules[index] = rule
-        Task { await RuleSyncService.updateRule(rule) }
+        Task { await RulePolicyGate.shared.updateRule(rule) }
     }
 
     func removeRule(id: UUID) {
         allRules.removeAll { $0.id == id }
-        Task { await RuleSyncService.removeRule(id: id) }
+        Task { await RulePolicyGate.shared.removeRule(id: id) }
     }
 
     func disableAll() {
@@ -132,7 +143,7 @@ final class NetworkConditionsWindowViewModel {
             }
         }
         allRules = updated
-        Task { await RuleSyncService.disableAllNetworkConditions() }
+        Task { await RulePolicyGate.shared.disableAllNetworkConditions() }
     }
 
     func presetInfo(for rule: ProxyRule) -> (name: String, latencyMs: Int) {

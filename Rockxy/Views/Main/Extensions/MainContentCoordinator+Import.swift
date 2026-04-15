@@ -135,11 +135,13 @@ extension MainContentCoordinator {
     func executeImport(_ preview: ImportPreview) {
         importPreview = nil
 
-        switch preview.fileType {
-        case .har:
-            executeHARImport(from: preview.sourceURL, fileName: preview.fileName)
-        case .rockxysession:
-            executeSessionImport(from: preview.sourceURL, fileName: preview.fileName)
+        Task { @MainActor in
+            switch preview.fileType {
+            case .har:
+                await executeHARImport(from: preview.sourceURL, fileName: preview.fileName)
+            case .rockxysession:
+                await executeSessionImport(from: preview.sourceURL, fileName: preview.fileName)
+            }
         }
     }
 
@@ -149,13 +151,13 @@ extension MainContentCoordinator {
 
     // MARK: - Private
 
-    private func executeHARImport(from url: URL, fileName: String) {
+    private func executeHARImport(from url: URL, fileName: String) async {
         do {
             let data = try Data(contentsOf: url)
             let importer = HARImporter()
             let importedTransactions = try importer.importData(data)
 
-            clearSession()
+            await clearSession()
 
             for transaction in importedTransactions {
                 transaction.sequenceNumber = nextSequenceNumber
@@ -190,12 +192,12 @@ extension MainContentCoordinator {
         }
     }
 
-    private func executeSessionImport(from url: URL, fileName: String) {
+    private func executeSessionImport(from url: URL, fileName: String) async {
         do {
             let data = try Data(contentsOf: url)
             let session = try SessionSerializer.deserialize(from: data)
 
-            clearSession()
+            await clearSession()
 
             for codableTransaction in session.transactions {
                 let transaction = codableTransaction.toLiveModel()

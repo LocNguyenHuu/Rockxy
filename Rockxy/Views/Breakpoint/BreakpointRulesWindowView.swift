@@ -90,7 +90,15 @@ final class BreakpointRulesViewModel {
         )
         allRules.append(rule)
         selectedRuleID = rule.id
-        Task { await RuleSyncService.addRule(rule) }
+        Task {
+            let accepted = await RulePolicyGate.shared.addRule(rule)
+            if !accepted {
+                allRules = await RuleEngine.shared.allRules
+                if !allRules.contains(where: { $0.id == rule.id }) {
+                    selectedRuleID = nil
+                }
+            }
+        }
     }
 
     func updateRule(
@@ -122,7 +130,7 @@ final class BreakpointRulesViewModel {
         allRules[index] = rule
         selectedRuleID = rule.id
         let snapshot = rule
-        Task { await RuleSyncService.updateRule(snapshot) }
+        Task { await RulePolicyGate.shared.updateRule(snapshot) }
     }
 
     func removeSelected() {
@@ -131,7 +139,7 @@ final class BreakpointRulesViewModel {
         }
         allRules.removeAll { $0.id == id }
         selectedRuleID = nil
-        Task { await RuleSyncService.removeRule(id: id) }
+        Task { await RulePolicyGate.shared.removeRule(id: id) }
     }
 
     func toggleRule(id: UUID) {
@@ -139,7 +147,12 @@ final class BreakpointRulesViewModel {
             return
         }
         allRules[index].isEnabled.toggle()
-        Task { await RuleSyncService.toggleRule(id: id) }
+        Task {
+            let accepted = await RulePolicyGate.shared.toggleRule(id: id)
+            if !accepted {
+                allRules = await RuleEngine.shared.allRules
+            }
+        }
     }
 
     func duplicateRule(id: UUID) {
@@ -155,12 +168,20 @@ final class BreakpointRulesViewModel {
         )
         allRules.append(copy)
         selectedRuleID = copy.id
-        Task { await RuleSyncService.addRule(copy) }
+        Task {
+            let accepted = await RulePolicyGate.shared.addRule(copy)
+            if !accepted {
+                allRules = await RuleEngine.shared.allRules
+                if !allRules.contains(where: { $0.id == copy.id }) {
+                    selectedRuleID = nil
+                }
+            }
+        }
     }
 
     func toggleBreakpointTool() {
         isBreakpointToolEnabled.toggle()
-        Task { await RuleSyncService.setBreakpointToolEnabled(isBreakpointToolEnabled) }
+        Task { await RulePolicyGate.shared.setBreakpointToolEnabled(isBreakpointToolEnabled) }
     }
 
     // MARK: Private

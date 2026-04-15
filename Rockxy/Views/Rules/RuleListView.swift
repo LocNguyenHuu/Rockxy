@@ -129,7 +129,7 @@ struct RuleListView: View {
             ForEach(filteredRules) { rule in
                 RuleGridRow(rule: rule) {
                     if case .networkCondition = rule.action, !rule.isEnabled {
-                        Task { await RuleSyncService.enableExclusiveNetworkCondition(id: rule.id) }
+                        Task { await RulePolicyGate.shared.enableExclusiveNetworkCondition(id: rule.id) }
                     } else {
                         coordinator.toggleRule(id: rule.id)
                     }

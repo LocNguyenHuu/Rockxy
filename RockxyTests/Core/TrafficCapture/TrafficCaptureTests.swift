@@ -97,7 +97,7 @@ struct TrafficSessionManagerTests {
     func batchCallbackReceivesTransactions() async {
         let manager = TrafficSessionManager()
 
-        await manager.setOnBatchReady { _ in }
+        await manager.setOnBatchReady { _, _ in }
         await manager.setMaxBufferSize(50_000)
 
         let transaction = TestFixtures.makeTransaction()
@@ -125,7 +125,7 @@ struct TrafficSessionManagerTests {
             var resumed = false
 
             Task {
-                await manager.setOnBatchReady { batch in
+                await manager.setOnBatchReady { batch, _ in
                     guard !batch.isEmpty, !resumed else {
                         return
                     }

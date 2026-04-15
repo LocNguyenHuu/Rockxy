@@ -96,6 +96,19 @@ actor RuleEngine {
         }
     }
 
+    func enableExclusiveNetworkConditionIfAllowed(id: UUID, maxPerCategory: Int) -> Bool {
+        guard rules.contains(where: { $0.id == id }) else {
+            return false
+        }
+        // Exclusive enable disables all others then enables the target,
+        // so the post-switch count is always exactly 1.
+        guard maxPerCategory >= 1 else {
+            return false
+        }
+        enableExclusiveNetworkCondition(id: id)
+        return true
+    }
+
     func addNetworkConditionExclusive(_ rule: ProxyRule) {
         precondition(
             { if case .networkCondition = rule.action {
@@ -125,6 +138,70 @@ actor RuleEngine {
 
     func setBreakpointToolEnabled(_ enabled: Bool) {
         breakpointToolEnabled = enabled
+    }
+
+    // MARK: - Atomic Quota-Checked Operations
+
+    func addRuleIfAllowed(_ rule: ProxyRule, maxPerCategory: Int) -> Bool {
+        guard rule.isEnabled else {
+            addRule(rule)
+            return true
+        }
+        let category = rule.action.toolCategory
+        let activeCount = rules.filter { $0.isEnabled && $0.action.toolCategory == category }.count
+        guard activeCount < maxPerCategory else {
+            return false
+        }
+        addRule(rule)
+        return true
+    }
+
+    func toggleRuleIfAllowed(id: UUID, maxPerCategory: Int) -> Bool {
+        guard let index = rules.firstIndex(where: { $0.id == id }) else {
+            return false
+        }
+        if rules[index].isEnabled {
+            rules[index].isEnabled = false
+            return true
+        }
+        let category = rules[index].action.toolCategory
+        let activeCount = rules.filter { $0.isEnabled && $0.action.toolCategory == category }.count
+        guard activeCount < maxPerCategory else {
+            return false
+        }
+        rules[index].isEnabled = true
+        return true
+    }
+
+    func setEnabledIfAllowed(id: UUID, enabled: Bool, maxPerCategory: Int) -> Bool {
+        guard let index = rules.firstIndex(where: { $0.id == id }) else {
+            return false
+        }
+        guard enabled else {
+            rules[index].isEnabled = false
+            return true
+        }
+        // Already enabled — no-op success
+        if rules[index].isEnabled {
+            return true
+        }
+        let category = rules[index].action.toolCategory
+        let activeCount = rules.filter { $0.isEnabled && $0.action.toolCategory == category }.count
+        guard activeCount < maxPerCategory else {
+            return false
+        }
+        rules[index].isEnabled = true
+        return true
+    }
+
+    func addNetworkConditionExclusiveIfAllowed(_ rule: ProxyRule, maxPerCategory: Int) -> Bool {
+        // addNetworkConditionExclusive disables all existing network conditions
+        // then adds the new one enabled, so post-switch count is always 1.
+        guard maxPerCategory >= 1 else {
+            return false
+        }
+        addNetworkConditionExclusive(rule)
+        return true
     }
 
     // MARK: Private

@@ -40,14 +40,14 @@ struct WorkspaceStoreTests {
     @Test("Create workspace respects max limit")
     func maxWorkspacesGuard() {
         let store = WorkspaceStore()
-        for i in 1 ..< WorkspaceStore.maxWorkspaces {
+        for i in 1 ..< store.maxWorkspaces {
             store.createWorkspace(title: "Tab \(i)")
         }
-        #expect(store.workspaces.count == WorkspaceStore.maxWorkspaces)
+        #expect(store.workspaces.count == store.maxWorkspaces)
 
         let extra = store.createWorkspace(title: "Over limit")
         // Should return active workspace, not create new one
-        #expect(store.workspaces.count == WorkspaceStore.maxWorkspaces)
+        #expect(store.workspaces.count == store.maxWorkspaces)
         #expect(extra.title != "Over limit")
     }
 
@@ -288,11 +288,11 @@ struct WorkspaceStoreTests {
         #expect(store.activeWorkspaceIndex == 0)
     }
 
-    // MARK: - Edition Capability
+    // MARK: - Default Capacity
 
-    @Test("community edition limits workspace tabs to 8")
-    func communityWorkspaceTabLimit() {
-        #expect(ProductEdition.current == .community)
-        #expect(WorkspaceStore.maxWorkspaces == 8)
+    @Test("default workspace tab limit is 8")
+    func defaultWorkspaceTabLimit() {
+        let store = WorkspaceStore()
+        #expect(store.maxWorkspaces == 8)
     }
 }

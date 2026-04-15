@@ -85,7 +85,7 @@
 		94D100EF398E433CBF214BB5 /* SSLImporterTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SSLImporterTests.swift; path = RockxyTests/Core/ProxyEngine/SSLImporterTests.swift; sourceTree = "<group>"; };
 		B4AB602A25240F8F700239D0 /* SSLProxyingRuleTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SSLProxyingRuleTests.swift; path = RockxyTests/Models/Settings/SSLProxyingRuleTests.swift; sourceTree = "<group>"; };
 		C3468A7E29A7BB264F6895FA /* TrafficDomainSnapshotTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TrafficDomainSnapshotTests.swift; path = RockxyTests/Core/Services/TrafficDomainSnapshotTests.swift; sourceTree = "<group>"; };
-		DCA99FBB2F61ADC9005B1552 /* Rockxy Community.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Rockxy Community.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		DCA99FBB2F61ADC9005B1552 /* Rockxy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Rockxy.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		DCA99FCA2F61ADCC005B1552 /* RockxyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RockxyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DCA99FD42F61ADCC005B1552 /* RockxyUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RockxyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DCA9D0012F700000005B1552 /* RockxyHelperTool */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = RockxyHelperTool; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -349,7 +349,7 @@
 		DCA99FBC2F61ADC9005B1552 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				DCA99FBB2F61ADC9005B1552 /* Rockxy Community.app */,
+				DCA99FBB2F61ADC9005B1552 /* Rockxy.app */,
 				DCA9D0012F700000005B1552 /* RockxyHelperTool */,
 				DCA99FCA2F61ADCC005B1552 /* RockxyTests.xctest */,
 				DCA99FD42F61ADCC005B1552 /* RockxyUITests.xctest */,
@@ -418,7 +418,7 @@
 				DCA9A6462F624B60005B1552 /* NIOWebSocket */,
 			);
 			productName = Rockxy;
-			productReference = DCA99FBB2F61ADC9005B1552 /* Rockxy Community.app */;
+			productReference = DCA99FBB2F61ADC9005B1552 /* Rockxy.app */;
 			productType = "com.apple.product-type.application";
 		};
 		DCA99FC92F61ADCC005B1552 /* RockxyTests */ = {
