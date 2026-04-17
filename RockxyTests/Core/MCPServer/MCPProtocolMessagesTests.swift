@@ -17,6 +17,12 @@ struct MCPProtocolMessagesTests {
         #expect(MCPProtocolVersion.negotiate(clientVersion: "2024-01-01") == nil)
     }
 
+    @Test("Protocol negotiation rejects impossible calendar dates")
+    func protocolNegotiationRejectsImpossibleDate() {
+        #expect(MCPProtocolVersion.negotiate(clientVersion: "2025-99-99") == nil)
+        #expect(MCPProtocolVersion.negotiate(clientVersion: "2025-02-30") == nil)
+    }
+
     @Test("MCPInitializeParams round-trip")
     func initializeParams() throws {
         let params = MCPInitializeParams(

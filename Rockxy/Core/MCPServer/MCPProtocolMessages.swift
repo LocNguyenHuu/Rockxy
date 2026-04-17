@@ -22,16 +22,15 @@ enum MCPProtocolVersion {
     // MARK: Private
 
     private static func isValidVersionString(_ value: String) -> Bool {
-        let parts = value.split(separator: "-")
-        guard parts.count == 3,
-              parts[0].count == 4,
-              parts[1].count == 2,
-              parts[2].count == 2,
-              parts.allSatisfy({ !$0.isEmpty && $0.allSatisfy(\.isNumber) }) else
-        {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+
+        guard let date = formatter.date(from: value) else {
             return false
         }
-        return true
+        return formatter.string(from: date) == value
     }
 }
 
@@ -122,7 +121,7 @@ struct MCPToolCallParams: Codable {
 struct MCPContent: Codable {
     // MARK: Lifecycle
 
-    init(type: String, text: String?) {
+    private init(type: String, text: String?) {
         self.type = type
         self.text = text
     }

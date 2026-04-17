@@ -31,6 +31,15 @@ final class StdioBridge {
             }
             inputBuffer.append(chunk)
 
+            if inputBuffer.count > Self.maxLineSize {
+                writeResponse(makeJSONErrorResponse(
+                    code: -32_700,
+                    message: "input line too large"
+                ))
+                inputBuffer.removeAll(keepingCapacity: false)
+                continue
+            }
+
             while let newlineRange = inputBuffer.range(of: Data("\n".utf8)) {
                 let lineData = inputBuffer.subdata(in: inputBuffer.startIndex ..< newlineRange.lowerBound)
                 inputBuffer.removeSubrange(inputBuffer.startIndex ... newlineRange.lowerBound)
@@ -70,7 +79,13 @@ final class StdioBridge {
         let error: Error?
     }
 
+    private struct ParsedRequest {
+        let methodName: String?
+        let toolName: String?
+    }
+
     private static let fallbackProtocolVersion = "2025-11-25"
+    private static let maxLineSize = 4 * 1_024 * 1_024
 
     private var token: String
     private var port: Int
@@ -90,11 +105,12 @@ final class StdioBridge {
     }
 
     private func sendRequest(body: Data) -> Data? {
-        let methodName = jsonRpcMethod(in: body)
+        let parsedRequest = parseRequest(from: body)
+        let methodName = jsonRpcMethod(from: parsedRequest)
         if methodName == "initialize" {
             lastInitializeRequestBody = body
         }
-        let isIdempotentRequest = isIdempotentMethod(methodName, body: body)
+        let isIdempotentRequest = isIdempotentMethod(methodName, parsedBody: parsedRequest)
 
         var call = performHTTP(body: body, methodName: methodName)
         updateSessionState(from: call, requestMethod: methodName)
@@ -187,13 +203,7 @@ final class StdioBridge {
     }
 
     private func makeErrorResponse(message: String) -> Data {
-        let escaped = message
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"")
-        let json = """
-        {"jsonrpc":"2.0","error":{"code":-32000,"message":"\(escaped)"},"id":null}
-        """
-        return Data(json.utf8)
+        makeJSONErrorResponse(code: -32_000, message: message)
     }
 
     private func updateSessionState(from call: HTTPCallResult, requestMethod: String?) {
@@ -280,24 +290,29 @@ final class StdioBridge {
         return changed
     }
 
-    private func jsonRpcMethod(in body: Data) -> String? {
+    private func parseRequest(from body: Data) -> ParsedRequest? {
         guard let object = try? JSONSerialization.jsonObject(with: body) as? [String: Any] else {
             return nil
         }
-        return object["method"] as? String
+
+        return ParsedRequest(
+            methodName: object["method"] as? String,
+            toolName: (object["params"] as? [String: Any])?["name"] as? String
+        )
     }
 
-    private func isIdempotentMethod(_ methodName: String?, body: Data) -> Bool {
+    private func jsonRpcMethod(from parsedRequest: ParsedRequest?) -> String? {
+        parsedRequest?.methodName
+    }
+
+    private func isIdempotentMethod(_ methodName: String?, parsedBody: ParsedRequest?) -> Bool {
         switch methodName {
         case "notifications/initialized",
              "tools/list",
              "ping":
             return true
         case "tools/call":
-            guard let object = try? JSONSerialization.jsonObject(with: body) as? [String: Any],
-                  let params = object["params"] as? [String: Any],
-                  let toolName = params["name"] as? String else
-            {
+            guard let toolName = parsedBody?.toolName else {
                 return false
             }
 
@@ -317,6 +332,23 @@ final class StdioBridge {
         default:
             return false
         }
+    }
+
+    private func makeJSONErrorResponse(code: Int, message: String) -> Data {
+        let payload: [String: Any] = [
+            "jsonrpc": "2.0",
+            "error": [
+                "code": code,
+                "message": message,
+            ],
+            "id": NSNull(),
+        ]
+
+        if let data = try? JSONSerialization.data(withJSONObject: payload) {
+            return data
+        }
+
+        return Data(#"{"jsonrpc":"2.0","error":{"code":-32000,"message":"Internal bridge error"},"id":null}"#.utf8)
     }
 
     private func protocolVersion(from data: Data?) -> String? {

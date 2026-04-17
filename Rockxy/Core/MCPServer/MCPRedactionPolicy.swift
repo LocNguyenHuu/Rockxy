@@ -83,6 +83,11 @@ struct MCPRedactionPolicy {
         "key",
     ]
 
+    static let sensitiveBodyKeys: Set<String> = sensitiveQueryParams.union([
+        "credentials",
+        "id_token",
+    ])
+
     let state: MCPRedactionState
 
     var isEnabled: Bool {
@@ -154,6 +159,20 @@ struct MCPRedactionPolicy {
         guard isEnabled else {
             return body
         }
+
+        if let data = body.data(using: .utf8),
+           let object = try? JSONSerialization.jsonObject(with: data),
+           JSONSerialization.isValidJSONObject(object)
+        {
+            let redactedObject = redactJSONObject(object)
+            if JSONSerialization.isValidJSONObject(redactedObject),
+               let redactedData = try? JSONSerialization.data(withJSONObject: redactedObject),
+               let redactedBody = String(data: redactedData, encoding: .utf8)
+            {
+                return redactedBody
+            }
+        }
+
         var result = body
         result = applyRegex(bodyTokenPattern, to: result)
         result = applyRegex(bodySecretPattern, to: result)
@@ -227,13 +246,16 @@ struct MCPRedactionPolicy {
     // MARK: Private
 
     // swiftlint:disable force_try
+    private static let jsonScalarPattern =
+        #""(?:\\.|[^"\\])*"|true|false|null|-?\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?"#
+
     private static let bodyTokenPatternRegex: NSRegularExpression = try! NSRegularExpression(
-        pattern: #"("(?:token|access_token|auth_token|refresh_token|id_token|api_key|apikey|api_token)")\s*:\s*"[^"]*""#,
+        pattern: #"("(?:token|access_token|auth_token|refresh_token|id_token|api_key|apikey|api_token)")\s*:\s*\#(jsonScalarPattern)"#,
         options: [.caseInsensitive]
     )
 
     private static let bodySecretPatternRegex: NSRegularExpression = try! NSRegularExpression(
-        pattern: #"("(?:password|passwd|pwd|secret|client_secret|private_key|credentials)")\s*:\s*"[^"]*""#,
+        pattern: #"("(?:password|passwd|pwd|secret|client_secret|private_key|credentials)")\s*:\s*\#(jsonScalarPattern)"#,
         options: [.caseInsensitive]
     )
 
@@ -277,6 +299,25 @@ struct MCPRedactionPolicy {
 
     private var curlHeaderPattern: NSRegularExpression {
         Self.curlHeaderPatternRegex
+    }
+
+    private func redactJSONObject(_ object: Any) -> Any {
+        if let dictionary = object as? [String: Any] {
+            let entries: [(String, Any)] = dictionary.map { element in
+                let (key, value) = element
+                if Self.sensitiveBodyKeys.contains(key.lowercased()) {
+                    return (key, redactedPlaceholder)
+                }
+                return (key, redactJSONObject(value))
+            }
+            return Dictionary(uniqueKeysWithValues: entries)
+        }
+
+        if let array = object as? [Any] {
+            return array.map { redactJSONObject($0) }
+        }
+
+        return object
     }
 
     private func applyRegex(

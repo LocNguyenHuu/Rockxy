@@ -150,6 +150,18 @@ struct MCPRedactionPolicyTests {
         #expect(redacted.contains("admin"))
     }
 
+    @Test("Redacts JSON values with escaped quotes and keeps valid JSON")
+    func redactJSONEscapedQuoteValue() throws {
+        let body = #"{"username":"admin","password":"p\"w\"secret"}"#
+
+        let redacted = enabledPolicy.redactJSONBody(body)
+        let object = try #require(try JSONSerialization.jsonObject(with: Data(redacted.utf8)) as? [String: Any])
+
+        #expect(object["username"] as? String == "admin")
+        #expect(object["password"] as? String == "[REDACTED]")
+        #expect(!redacted.contains(#"p\"w\"secret"#))
+    }
+
     @Test("Redacts multiple sensitive JSON fields")
     func redactMultipleJSONFields() {
         let body = #"{"api_key": "key1", "client_secret": "sec2", "data": "public"}"#

@@ -53,11 +53,11 @@ struct MCPStatusService {
     }
 
     func getCertificateStatus() async -> MCPToolCallResult {
-        let readiness = await MainActor.run {
-            ReadinessCoordinator.shared.certReadiness
-        }
-        let canIntercept = await MainActor.run {
-            ReadinessCoordinator.shared.canInterceptHTTPS
+        let (readiness, canIntercept) = await MainActor.run {
+            (
+                ReadinessCoordinator.shared.certReadiness,
+                ReadinessCoordinator.shared.canInterceptHTTPS
+            )
         }
 
         var fields: [String: MCPJSONValue] = [

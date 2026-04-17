@@ -329,7 +329,7 @@ struct MCPServerHandlerTests {
     func redactionPolicyBody() {
         let policy = MCPRedactionPolicy(isEnabled: true)
         let body = """
-        {"access_token": "eyJhbGciOiJIUzI1NiJ9", "username": "john"}
+        {"access_token": "FAKE.TOKEN.FORTEST", "username": "john"}
         """
         let redacted = policy.redactJSONBody(body)
         #expect(redacted.contains("[REDACTED]"))

@@ -115,6 +115,16 @@ final class MCPServerCoordinator {
 
         do {
             try await server.start()
+            if stopRequested {
+                await server.stop()
+                mcpServer = nil
+                isRunning = false
+                activePort = nil
+                lastError = nil
+                stopRequested = false
+                Self.logger.info("MCP server start completed after stop request; server stopped immediately")
+                return
+            }
             mcpServer = server
             isRunning = true
             activePort = await server.activePort
@@ -125,12 +135,17 @@ final class MCPServerCoordinator {
             isRunning = false
             activePort = nil
             lastError = error.localizedDescription
+            stopRequested = false
             Self.logger.error("MCP server failed to start: \(error.localizedDescription)")
         }
     }
 
     func stop() async {
+        stopRequested = true
         guard let server = mcpServer else {
+            if !isStarting {
+                stopRequested = false
+            }
             return
         }
         await server.stop()
@@ -138,11 +153,13 @@ final class MCPServerCoordinator {
         isRunning = false
         activePort = nil
         lastError = nil
+        stopRequested = false
         Self.logger.info("MCP server stopped")
     }
 
     func restart() async {
         await stop()
+        stopRequested = false
         await startIfEnabled()
     }
 
@@ -159,4 +176,5 @@ final class MCPServerCoordinator {
     private var cachedSessionStore: SessionStore?
     private weak var flowProvider: (any MCPLiveFlowProvider)?
     private weak var stateProvider: (any MCPProxyStateProvider)?
+    private var stopRequested = false
 }

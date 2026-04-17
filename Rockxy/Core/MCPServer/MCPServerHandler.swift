@@ -372,7 +372,7 @@ private extension MCPServerHandler {
         }
         activeSessionID = sessionID
 
-        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
 
         let result = MCPInitializeResult(
             protocolVersion: negotiatedVersion,
