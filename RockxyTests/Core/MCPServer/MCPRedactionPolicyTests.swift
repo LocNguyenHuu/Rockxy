@@ -173,6 +173,15 @@ struct MCPRedactionPolicyTests {
         #expect(redacted.contains("public"))
     }
 
+    @Test("Leaves generic key fields intact in JSON bodies")
+    func preserveGenericJSONKeyField() {
+        let body = #"{"items":[{"key":"foo","value":"bar"}]}"#
+
+        let redacted = enabledPolicy.redactJSONBody(body)
+
+        #expect(redacted == body)
+    }
+
     @Test("Disabled policy doesn't redact JSON body")
     func disabledJSONBody() {
         let body = #"{"access_token": "secret123", "password": "hunter2"}"#
@@ -285,6 +294,16 @@ struct MCPRedactionPolicyTests {
         #expect(!redacted.contains("abc"))
         #expect(redacted.contains("username=john"))
         #expect(redacted.contains("format=json"))
+    }
+
+    @Test("Redacts percent-encoded form keys")
+    func redactPercentEncodedFormKey() {
+        let policy = MCPRedactionPolicy(isEnabled: true)
+        let body = "client%5Fsecret=topsecret&mode=test"
+        let redacted = policy.redactFormBody(body)
+        #expect(!redacted.contains("topsecret"))
+        #expect(redacted.contains("client%5Fsecret=[REDACTED]"))
+        #expect(redacted.contains("mode=test"))
     }
 
     @Test("Redacts XML body sensitive elements")

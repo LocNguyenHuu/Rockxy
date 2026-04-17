@@ -136,7 +136,7 @@ struct MCPContent: Codable {
                 debugDescription: "Unsupported MCP content type: \(type)"
             )
         }
-        self.type = type
+        self.type = "text"
         text = try container.decodeIfPresent(String.self, forKey: .text)
     }
 
@@ -151,7 +151,8 @@ struct MCPContent: Codable {
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode("text", forKey: .type)
+        assert(type == "text")
+        try container.encode(type, forKey: .type)
         try container.encodeIfPresent(text, forKey: .text)
     }
 

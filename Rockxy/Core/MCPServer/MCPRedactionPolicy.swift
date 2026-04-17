@@ -83,10 +83,12 @@ struct MCPRedactionPolicy {
         "key",
     ]
 
-    static let sensitiveBodyKeys: Set<String> = sensitiveQueryParams.union([
-        "credentials",
-        "id_token",
-    ])
+    static let sensitiveBodyKeys: Set<String> = sensitiveQueryParams
+        .subtracting(["key"])
+        .union([
+            "credentials",
+            "id_token",
+        ])
 
     let state: MCPRedactionState
 
@@ -190,8 +192,9 @@ struct MCPRedactionPolicy {
                 return pair
             }
             let key = String(parts[0])
-            if Self.sensitiveQueryParams.contains(key.lowercased()) {
-                return "\(key)=[REDACTED]"
+            let decodedKey = key.removingPercentEncoding ?? key
+            if Self.sensitiveQueryParams.contains(decodedKey.lowercased()) {
+                return "\(key)=\(redactedPlaceholder)"
             }
             return pair
         }

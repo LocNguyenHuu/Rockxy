@@ -72,6 +72,7 @@ final class MCPSessionManager: @unchecked Sendable {
         _ = removeExpiredSessionsLocked(now: Date())
     }
 
+    #if DEBUG
     func setSessionTimestamp(_ date: Date, for id: String) {
         lock.lock()
         defer { lock.unlock() }
@@ -81,6 +82,7 @@ final class MCPSessionManager: @unchecked Sendable {
         }
         sessions[id] = date
     }
+    #endif
 
     // MARK: Private
 
