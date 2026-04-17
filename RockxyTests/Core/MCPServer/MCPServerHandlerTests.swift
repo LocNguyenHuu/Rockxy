@@ -171,12 +171,17 @@ struct MCPServerHandlerTests {
     }
 
     @Test("MCPSessionManager removeExpiredSessions cleans up")
-    func sessionManagerEviction() {
+    func sessionManagerEviction() throws {
         let manager = MCPSessionManager()
-        _ = manager.createSession()
+        let sessionID = try #require(manager.createSession())
         #expect(manager.activeSessions == 1)
+
+        manager.setSessionTimestamp(
+            Date().addingTimeInterval(-(MCPLimits.sessionTimeout + 5)),
+            for: sessionID
+        )
         manager.removeExpiredSessions()
-        #expect(manager.activeSessions == 1)
+        #expect(manager.activeSessions == 0)
     }
 
     @Test("JsonRpcRequest encodes with 2.0 version")
@@ -315,7 +320,7 @@ struct MCPServerHandlerTests {
         let policy = MCPRedactionPolicy(isEnabled: true)
         let url = "https://api.example.com/data?api_key=secret123&page=1"
         let redacted = policy.redactURL(url)
-        #expect(redacted.contains("[REDACTED]"))
+        #expect(redacted.contains("%5BREDACTED%5D") || redacted.contains("[REDACTED]"))
         #expect(redacted.contains("page=1"))
         #expect(!redacted.contains("secret123"))
     }
@@ -363,7 +368,7 @@ struct MCPServerHandlerTests {
         )
 
         #expect(initialize.status == .ok)
-        #expect(initialize.headers.first(name: "Mcp-Session-Id") != nil)
+        #expect(initialize.headers.contains(name: "Mcp-Session-Id"))
 
         let tools = try performRequest(
             through: channel,
@@ -619,7 +624,7 @@ struct MCPServerHandlerTests {
             case let .body(bodyPart):
                 switch bodyPart {
                 case let .byteBuffer(buffer):
-                    bodyText += String(decoding: buffer.readableBytesView, as: UTF8.self)
+                    bodyText += String(bytes: buffer.readableBytesView, encoding: .utf8) ?? ""
                 case .fileRegion:
                     Issue.record("Unexpected file region in HTTP response body")
                     throw CocoaError(.coderInvalidValue)

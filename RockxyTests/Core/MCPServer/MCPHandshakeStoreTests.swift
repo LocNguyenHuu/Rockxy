@@ -6,6 +6,8 @@ import Testing
 
 @Suite("MCP Handshake Store", .serialized)
 struct MCPHandshakeStoreTests {
+    // MARK: Internal
+
     @Test("Token generation returns base64 string")
     func tokenGeneration() throws {
         let token = MCPHandshakeStore.generateToken()
@@ -24,13 +26,14 @@ struct MCPHandshakeStoreTests {
     @Test("Write and read handshake file")
     func writeAndRead() throws {
         let token = try #require(MCPHandshakeStore.generateToken())
-        try MCPHandshakeStore.write(token: token, port: 9_710)
+        let fileURL = makeTempHandshakeURL()
+        try MCPHandshakeStore.write(token: token, port: 9_710, to: fileURL)
 
-        let handshake = try MCPHandshakeStore.read()
+        let handshake = try MCPHandshakeStore.read(from: fileURL)
         #expect(handshake.token == token)
         #expect(handshake.port == 9_710)
 
-        MCPHandshakeStore.delete()
+        MCPHandshakeStore.delete(at: fileURL)
     }
 
     @Test("Validate token with correct value")
@@ -50,8 +53,9 @@ struct MCPHandshakeStoreTests {
 
     @Test("Delete is idempotent")
     func deleteIdempotent() {
-        MCPHandshakeStore.delete()
-        MCPHandshakeStore.delete()
+        let fileURL = makeTempHandshakeURL()
+        MCPHandshakeStore.delete(at: fileURL)
+        MCPHandshakeStore.delete(at: fileURL)
     }
 
     @Test("Handshake file uses identity-aware path")
@@ -77,13 +81,22 @@ struct MCPHandshakeStoreTests {
     @Test("Handshake file has 0o600 permissions")
     func filePermissions() throws {
         let token = try #require(MCPHandshakeStore.generateToken())
-        try MCPHandshakeStore.write(token: token, port: 9_710)
-        defer { MCPHandshakeStore.delete() }
+        let fileURL = makeTempHandshakeURL()
+        try MCPHandshakeStore.write(token: token, port: 9_710, to: fileURL)
+        defer { MCPHandshakeStore.delete(at: fileURL) }
 
         let attrs = try FileManager.default.attributesOfItem(
-            atPath: MCPHandshakeStore.handshakeFilePath.path
+            atPath: fileURL.path
         )
         let permissions = attrs[.posixPermissions] as? Int
         #expect(permissions == 0o600)
+    }
+
+    // MARK: Private
+
+    private func makeTempHandshakeURL() -> URL {
+        FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+            .appendingPathComponent("mcp-handshake.json")
     }
 }

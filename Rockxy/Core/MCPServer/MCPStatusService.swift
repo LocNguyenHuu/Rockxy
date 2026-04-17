@@ -36,6 +36,7 @@ struct MCPStatusService {
             "is_recording": .bool(state.isRecording),
             "is_system_proxy": .bool(state.isSystemProxy),
             "transaction_count": .int(state.transactionCount),
+            "has_provider": .bool(state.hasProvider),
         ]
 
         if state.isRunning {
@@ -43,7 +44,9 @@ struct MCPStatusService {
         }
 
         if !state.isRunning, !state.hasProvider {
-            fields["note"] = .string("Proxy window not active")
+            let message = "Proxy window not active"
+            fields["note"] = .string(message)
+            fields["status_reason"] = .string(message)
         }
 
         return jsonResult(.object(fields))

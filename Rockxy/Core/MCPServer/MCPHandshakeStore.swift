@@ -31,28 +31,60 @@ enum MCPHandshakeStore {
     }
 
     static func write(token: String, port: Int) throws {
-        let directory = handshakeFilePath.deletingLastPathComponent()
+        try write(token: token, port: port, to: handshakeFilePath)
+    }
+
+    static func write(token: String, port: Int, to fileURL: URL) throws {
+        let directory = fileURL.deletingLastPathComponent()
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
 
         let handshake = Handshake(token: token, port: port)
         let data = try JSONEncoder().encode(handshake)
-        try data.write(to: handshakeFilePath, options: .atomic)
+        let tempURL = directory
+            .appendingPathComponent(".\(fileURL.lastPathComponent).\(UUID().uuidString).tmp")
 
-        try FileManager.default.setAttributes(
-            [.posixPermissions: 0o600],
-            ofItemAtPath: handshakeFilePath.path
-        )
+        do {
+            guard FileManager.default.createFile(
+                atPath: tempURL.path,
+                contents: data,
+                attributes: [.posixPermissions: 0o600]
+            ) else {
+                throw CocoaError(.fileWriteUnknown)
+            }
+
+            if FileManager.default.fileExists(atPath: fileURL.path) {
+                try FileManager.default.removeItem(at: fileURL)
+            }
+
+            try FileManager.default.moveItem(at: tempURL, to: fileURL)
+            try FileManager.default.setAttributes(
+                [.posixPermissions: 0o600],
+                ofItemAtPath: fileURL.path
+            )
+        } catch {
+            try? FileManager.default.removeItem(at: tempURL)
+            throw error
+        }
+
         logger.info("Wrote MCP handshake file at port \(port)")
     }
 
     static func read() throws -> Handshake {
-        let data = try Data(contentsOf: handshakeFilePath)
+        try read(from: handshakeFilePath)
+    }
+
+    static func read(from fileURL: URL) throws -> Handshake {
+        let data = try Data(contentsOf: fileURL)
         return try JSONDecoder().decode(Handshake.self, from: data)
     }
 
     static func delete() {
+        delete(at: handshakeFilePath)
+    }
+
+    static func delete(at fileURL: URL) {
         do {
-            try FileManager.default.removeItem(at: handshakeFilePath)
+            try FileManager.default.removeItem(at: fileURL)
             logger.info("Deleted MCP handshake file")
         } catch let error as NSError where error.domain == NSCocoaErrorDomain
             && error.code == NSFileNoSuchFileError

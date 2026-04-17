@@ -2,7 +2,7 @@
 import Testing
 
 @MainActor
-@Suite("MCP Server Coordinator")
+@Suite("MCP Server Coordinator", .serialized)
 struct MCPServerCoordinatorTests {
     @Test("Initial state is not running")
     func initialState() {
@@ -15,14 +15,13 @@ struct MCPServerCoordinatorTests {
     @Test("Start when disabled does nothing")
     func startWhenDisabled() async {
         let wasEnabled = AppSettingsManager.shared.settings.mcpServerEnabled
+        defer { AppSettingsManager.shared.updateMCPServerEnabled(wasEnabled) }
         AppSettingsManager.shared.updateMCPServerEnabled(false)
 
         let coordinator = MCPServerCoordinator()
         await coordinator.startIfEnabled()
         #expect(!coordinator.isRunning)
         #expect(coordinator.activePort == nil)
-
-        AppSettingsManager.shared.updateMCPServerEnabled(wasEnabled)
     }
 
     @Test("Stop when not running is safe")
@@ -37,13 +36,12 @@ struct MCPServerCoordinatorTests {
     @Test("Restart when disabled stays stopped")
     func restartWhenDisabled() async {
         let wasEnabled = AppSettingsManager.shared.settings.mcpServerEnabled
+        defer { AppSettingsManager.shared.updateMCPServerEnabled(wasEnabled) }
         AppSettingsManager.shared.updateMCPServerEnabled(false)
 
         let coordinator = MCPServerCoordinator()
         await coordinator.restart()
         #expect(!coordinator.isRunning)
-
-        AppSettingsManager.shared.updateMCPServerEnabled(wasEnabled)
     }
 
     @Test("Detach providers when none attached is safe")

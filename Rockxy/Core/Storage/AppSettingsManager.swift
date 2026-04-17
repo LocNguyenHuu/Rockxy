@@ -38,7 +38,11 @@ final class AppSettingsManager {
     }
 
     func updateMCPServerPort(_ port: Int) {
-        settings.mcpServerPort = port
+        let clampedPort = min(max(port, 1), 65_535)
+        if clampedPort != port {
+            Self.logger.warning("Clamped invalid MCP server port \(port) to \(clampedPort)")
+        }
+        settings.mcpServerPort = clampedPort
         save()
     }
 

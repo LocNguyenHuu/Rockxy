@@ -51,13 +51,17 @@ struct MCPSessionManagerTests {
     }
 
     @Test("Expired sessions are cleaned up")
-    func expiredCleanup() {
+    func expiredCleanup() throws {
         let manager = MCPSessionManager()
-        _ = manager.createSession()
+        let sessionID = try #require(manager.createSession())
         #expect(manager.activeSessions == 1)
 
+        manager.setSessionTimestamp(
+            Date().addingTimeInterval(-(MCPLimits.sessionTimeout + 5)),
+            for: sessionID
+        )
         manager.removeExpiredSessions()
-        #expect(manager.activeSessions == 1)
+        #expect(manager.activeSessions == 0)
     }
 
     @Test("Active session count is accurate")

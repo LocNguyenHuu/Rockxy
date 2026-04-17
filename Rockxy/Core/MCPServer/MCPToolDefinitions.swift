@@ -57,6 +57,7 @@ enum MCPToolDefinitions {
                     "type": "integer",
                     "description": "Maximum number of flows to return (default 50, max 500)",
                     "default": .int(50),
+                    "minimum": .int(1),
                     "maximum": .int(500),
                 ]),
                 "filter_host": .object([
@@ -116,6 +117,7 @@ enum MCPToolDefinitions {
                     "type": "integer",
                     "description": "Maximum number of results (default 50, max 500)",
                     "default": .int(50),
+                    "minimum": .int(1),
                     "maximum": .int(500),
                 ]),
             ]),
@@ -146,7 +148,7 @@ enum MCPToolDefinitions {
                             ]),
                             "value": .object([
                                 "type": "string",
-                                "description": "Value to compare against",
+                                "description": "Value to compare against (pass as string, e.g. '404' for numeric fields like status_code)",
                             ]),
                         ]),
                         "required": .array([.string("field"), .string("operator"), .string("value")]),

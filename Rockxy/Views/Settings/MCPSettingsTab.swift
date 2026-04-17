@@ -44,8 +44,6 @@ struct MCPSettingsTab: View {
 
     @AppStorage(RockxyIdentity.current.defaultsKey("mcp.serverEnabled")) private var mcpEnabled = false
 
-    @AppStorage(RockxyIdentity.current.defaultsKey("mcp.serverPort")) private var mcpPort = 9_710
-
     @AppStorage(RockxyIdentity.current.defaultsKey("mcp.redactSensitiveData")) private var mcpRedactSensitiveData = true
 
     private var mcpCoordinator: MCPServerCoordinator {
@@ -55,18 +53,30 @@ struct MCPSettingsTab: View {
     // MARK: - Helpers
 
     private var configJSON: String {
-        let binaryPath = Bundle.main.bundlePath + "/Contents/MacOS/rockxy-mcp"
-        return """
+        let config: [String: Any] = [
+            "mcpServers": [
+                "rockxy": [
+                    "command": binaryPath,
+                    "args": [],
+                    "env": [:],
+                ],
+            ],
+        ]
+
+        guard let data = try? JSONSerialization.data(withJSONObject: config, options: [.prettyPrinted, .sortedKeys]),
+              let text = String(data: data, encoding: .utf8) else
         {
-          "mcpServers": {
-            "rockxy": {
-              "command": "\(binaryPath)",
-              "args": [],
-              "env": {}
-            }
-          }
+            return "{\"mcpServers\":{\"rockxy\":{\"command\":\"rockxy-mcp\",\"args\":[],\"env\":{}}}}"
         }
-        """
+        return text
+    }
+
+    private var binaryPath: String {
+        Bundle.main.bundleURL
+            .appendingPathComponent("Contents")
+            .appendingPathComponent("MacOS")
+            .appendingPathComponent("rockxy-mcp")
+            .path
     }
 
     private var sectionDivider: some View {

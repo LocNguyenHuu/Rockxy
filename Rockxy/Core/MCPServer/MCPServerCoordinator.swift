@@ -23,6 +23,7 @@ final class MCPServerCoordinator {
     private(set) var isRunning = false
     private(set) var activePort: Int?
     private(set) var lastError: String?
+    private(set) var isStarting = false
 
     /// Called when the app's main coordinator is available to wire live data providers.
     func attachProviders(
@@ -76,6 +77,12 @@ final class MCPServerCoordinator {
             Self.logger.debug("MCP server disabled in settings, skipping start")
             return
         }
+        guard !isRunning, !isStarting else {
+            Self.logger.debug("MCP server start skipped because it is already running or starting")
+            return
+        }
+        isStarting = true
+        defer { isStarting = false }
 
         let config = MCPServerConfiguration(
             port: settings.mcpServerPort
@@ -105,10 +112,10 @@ final class MCPServerCoordinator {
             configuration: config,
             toolRegistry: registry
         )
-        mcpServer = server
 
         do {
             try await server.start()
+            mcpServer = server
             isRunning = true
             activePort = await server.activePort
             lastError = nil

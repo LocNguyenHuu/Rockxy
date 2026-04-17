@@ -12,8 +12,8 @@ struct MCPIntegrationTests {
 
     @Test("Launch-time enablement starts server")
     func launchTimeStart() async throws {
-        let testLock = try Self.acquireTestLock()
-        defer { _ = testLock }
+        try Self.ensureSuiteLock()
+        await resetSharedCoordinator()
 
         let wasEnabled = AppSettingsManager.shared.settings.mcpServerEnabled
         let wasPort = AppSettingsManager.shared.settings.mcpServerPort
@@ -21,6 +21,10 @@ struct MCPIntegrationTests {
 
         AppSettingsManager.shared.updateMCPServerEnabled(true)
         AppSettingsManager.shared.updateMCPServerPort(port)
+        defer {
+            AppSettingsManager.shared.updateMCPServerEnabled(wasEnabled)
+            AppSettingsManager.shared.updateMCPServerPort(wasPort)
+        }
 
         await MCPServerCoordinator.shared.startIfEnabled()
 
@@ -29,29 +33,26 @@ struct MCPIntegrationTests {
 
         await MCPServerCoordinator.shared.stop()
         #expect(!MCPServerCoordinator.shared.isRunning)
-
-        AppSettingsManager.shared.updateMCPServerEnabled(wasEnabled)
-        AppSettingsManager.shared.updateMCPServerPort(wasPort)
     }
 
     @Test("Disabled setting prevents start")
     func disabledSetting() async throws {
-        let testLock = try Self.acquireTestLock()
-        defer { _ = testLock }
+        try Self.ensureSuiteLock()
+        await resetSharedCoordinator()
 
         let wasEnabled = AppSettingsManager.shared.settings.mcpServerEnabled
 
         AppSettingsManager.shared.updateMCPServerEnabled(false)
+        defer {
+            AppSettingsManager.shared.updateMCPServerEnabled(wasEnabled)
+        }
         await MCPServerCoordinator.shared.startIfEnabled()
         #expect(!MCPServerCoordinator.shared.isRunning)
-
-        AppSettingsManager.shared.updateMCPServerEnabled(wasEnabled)
     }
 
     @Test("Provider attach and detach")
     func providerAttachDetach() throws {
-        let testLock = try Self.acquireTestLock()
-        defer { _ = testLock }
+        try Self.ensureSuiteLock()
 
         let flowProvider = MockFlowProvider()
         let stateProvider = MockProxyStateProvider()
@@ -62,8 +63,8 @@ struct MCPIntegrationTests {
 
     @Test("Handshake file created on start, deleted on stop")
     func handshakeLifecycle() async throws {
-        let testLock = try Self.acquireTestLock()
-        defer { _ = testLock }
+        try Self.ensureSuiteLock()
+        await resetSharedCoordinator()
 
         let wasEnabled = AppSettingsManager.shared.settings.mcpServerEnabled
         let wasPort = AppSettingsManager.shared.settings.mcpServerPort
@@ -71,12 +72,14 @@ struct MCPIntegrationTests {
 
         AppSettingsManager.shared.updateMCPServerEnabled(true)
         AppSettingsManager.shared.updateMCPServerPort(port)
+        defer {
+            AppSettingsManager.shared.updateMCPServerEnabled(wasEnabled)
+            AppSettingsManager.shared.updateMCPServerPort(wasPort)
+        }
 
         await MCPServerCoordinator.shared.startIfEnabled()
 
         guard MCPServerCoordinator.shared.isRunning else {
-            AppSettingsManager.shared.updateMCPServerEnabled(wasEnabled)
-            AppSettingsManager.shared.updateMCPServerPort(wasPort)
             Issue.record("Server failed to start — port \(port) likely in use")
             return
         }
@@ -98,15 +101,11 @@ struct MCPIntegrationTests {
             atPath: MCPHandshakeStore.handshakeFilePath.path
         )
         #expect(!stillExists)
-
-        AppSettingsManager.shared.updateMCPServerEnabled(wasEnabled)
-        AppSettingsManager.shared.updateMCPServerPort(wasPort)
     }
 
     @Test("RuleEngine.shared used for list_rules")
     func rulesUseSharedEngine() async throws {
-        let testLock = try Self.acquireTestLock()
-        defer { _ = testLock }
+        try Self.ensureSuiteLock()
 
         let service = MCPRuleQueryService(ruleEngine: RuleEngine.shared)
         let result = await service.listRules()
@@ -115,8 +114,8 @@ struct MCPIntegrationTests {
 
     @Test("Initialize, notification, and tools list work over HTTP")
     func initializeNotificationAndToolsList() async throws {
-        let testLock = try Self.acquireTestLock()
-        defer { _ = testLock }
+        try Self.ensureSuiteLock()
+        await resetSharedCoordinator()
 
         let port = Self.testPort(offset: 2)
         let saved = saveMCPSettings(enabled: true, port: port)
@@ -135,7 +134,7 @@ struct MCPIntegrationTests {
 
         #expect(initialize.response.statusCode == 200)
         let sessionId = try #require(initialize.response.value(forHTTPHeaderField: "Mcp-Session-Id"))
-        let initializeText = String(decoding: initialize.data, as: UTF8.self)
+        let initializeText = try #require(String(bytes: initialize.data, encoding: .utf8))
         #expect(initializeText.contains("\"protocolVersion\":\"2025-11-25\""))
 
         let notification = try await sendJsonRpc(
@@ -162,7 +161,7 @@ struct MCPIntegrationTests {
         )
 
         #expect(tools.response.statusCode == 200)
-        let toolsText = String(decoding: tools.data, as: UTF8.self)
+        let toolsText = try #require(String(bytes: tools.data, encoding: .utf8))
         #expect(toolsText.contains("get_version"))
         #expect(toolsText.contains("filter_flows"))
 
@@ -171,8 +170,8 @@ struct MCPIntegrationTests {
 
     @Test("Initialize rejects unsupported MCP protocol version")
     func initializeRejectsUnsupportedProtocolVersion() async throws {
-        let testLock = try Self.acquireTestLock()
-        defer { _ = testLock }
+        try Self.ensureSuiteLock()
+        await resetSharedCoordinator()
 
         let port = Self.testPort(offset: 8)
         let saved = saveMCPSettings(enabled: true, port: port)
@@ -190,7 +189,7 @@ struct MCPIntegrationTests {
         )
 
         #expect(result.response.statusCode == 200)
-        let text = String(decoding: result.data, as: UTF8.self)
+        let text = try #require(String(bytes: result.data, encoding: .utf8))
         #expect(text.contains("Unsupported MCP protocol version"))
 
         await MCPServerCoordinator.shared.stop()
@@ -198,8 +197,8 @@ struct MCPIntegrationTests {
 
     @Test("HTTP transport returns recent flows from attached app state")
     func httpRecentFlowsFromMainCoordinator() async throws {
-        let testLock = try Self.acquireTestLock()
-        defer { _ = testLock }
+        try Self.ensureSuiteLock()
+        await resetSharedCoordinator()
 
         let port = Self.testPort(offset: 6)
         let saved = saveMCPSettings(enabled: true, port: port)
@@ -256,8 +255,8 @@ struct MCPIntegrationTests {
 
     @Test("rockxy-mcp bridge handles initialize, initialized notification, and tools list")
     func stdioBridgeInitializeAndToolsList() async throws {
-        let testLock = try Self.acquireTestLock()
-        defer { _ = testLock }
+        try Self.ensureSuiteLock()
+        await resetSharedCoordinator()
 
         let port = Self.testPort(offset: 5)
         let saved = saveMCPSettings(enabled: true, port: port)
@@ -313,7 +312,7 @@ struct MCPIntegrationTests {
         try stdinPipe.fileHandleForWriting.close()
         process.waitUntilExit()
 
-        let stderr = String(decoding: stderrPipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+        let stderr = String(bytes: stderrPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
         if process.terminationStatus != 0 {
             Issue.record("rockxy-mcp stderr: \(stderr)")
         }
@@ -325,8 +324,8 @@ struct MCPIntegrationTests {
 
     @Test("rockxy-mcp bridge handles multiple requests in one stdin chunk")
     func stdioBridgeHandlesChunkedInput() async throws {
-        let testLock = try Self.acquireTestLock()
-        defer { _ = testLock }
+        try Self.ensureSuiteLock()
+        await resetSharedCoordinator()
 
         let port = Self.testPort(offset: 7)
         let saved = saveMCPSettings(enabled: true, port: port)
@@ -370,7 +369,7 @@ struct MCPIntegrationTests {
         try stdinPipe.fileHandleForWriting.close()
         process.waitUntilExit()
 
-        let stderr = String(decoding: stderrPipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+        let stderr = String(bytes: stderrPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
         #expect(process.terminationStatus == 0)
         #expect(stderr.isEmpty)
 
@@ -379,8 +378,8 @@ struct MCPIntegrationTests {
 
     @Test("rockxy-mcp bridge handles split stdin lines across multiple writes")
     func stdioBridgeHandlesSplitStdinLines() async throws {
-        let testLock = try Self.acquireTestLock()
-        defer { _ = testLock }
+        try Self.ensureSuiteLock()
+        await resetSharedCoordinator()
 
         let port = Self.testPort(offset: 9)
         let saved = saveMCPSettings(enabled: true, port: port)
@@ -426,7 +425,7 @@ struct MCPIntegrationTests {
         try stdinPipe.fileHandleForWriting.close()
         process.waitUntilExit()
 
-        let stderr = String(decoding: stderrPipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+        let stderr = String(bytes: stderrPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
         #expect(process.terminationStatus == 0)
         #expect(stderr.isEmpty)
 
@@ -435,8 +434,8 @@ struct MCPIntegrationTests {
 
     @Test("Rejects disallowed origin")
     func rejectsDisallowedOrigin() async throws {
-        let testLock = try Self.acquireTestLock()
-        defer { _ = testLock }
+        try Self.ensureSuiteLock()
+        await resetSharedCoordinator()
 
         let port = Self.testPort(offset: 3)
         let saved = saveMCPSettings(enabled: true, port: port)
@@ -455,7 +454,7 @@ struct MCPIntegrationTests {
         )
 
         #expect(result.response.statusCode == 403)
-        let text = String(decoding: result.data, as: UTF8.self)
+        let text = try #require(String(bytes: result.data, encoding: .utf8))
         #expect(text.contains("Origin not allowed"))
 
         await MCPServerCoordinator.shared.stop()
@@ -463,8 +462,8 @@ struct MCPIntegrationTests {
 
     @Test("Rejects oversized request body")
     func rejectsOversizedBody() async throws {
-        let testLock = try Self.acquireTestLock()
-        defer { _ = testLock }
+        try Self.ensureSuiteLock()
+        await resetSharedCoordinator()
 
         let port = Self.testPort(offset: 4)
         let saved = saveMCPSettings(enabled: true, port: port)
@@ -481,7 +480,7 @@ struct MCPIntegrationTests {
         )
 
         #expect(result.response.statusCode == 413)
-        let text = String(decoding: result.data, as: UTF8.self)
+        let text = try #require(String(bytes: result.data, encoding: .utf8))
         #expect(text.contains("Request body too large"))
 
         await MCPServerCoordinator.shared.stop()
@@ -508,10 +507,16 @@ struct MCPIntegrationTests {
 
     private typealias SavedSettings = (enabled: Bool, port: Int, redact: Bool)
 
+    private static let suiteLockResult: Result<CrossProcessLock, Error> = Result {
+        try acquireTestLock()
+    }
+
     /// Derives a stable, process-scoped port range so parallel test workers do not collide.
     private static func testPort(offset: Int) -> Int {
-        let processBucket = Int(ProcessInfo.processInfo.processIdentifier % 1_000)
-        return 50_000 + (processBucket * 10) + offset
+        let slotWidth = 20
+        precondition(offset < slotWidth, "offset must be less than \(slotWidth)")
+        let processBucket = Int(ProcessInfo.processInfo.processIdentifier % 100)
+        return 40_000 + (processBucket * slotWidth) + offset
     }
 
     private static func acquireTestLock() throws -> CrossProcessLock {
@@ -525,6 +530,10 @@ struct MCPIntegrationTests {
             throw CocoaError(.fileReadUnknown)
         }
         return CrossProcessLock(fileDescriptor: fd)
+    }
+
+    private static func ensureSuiteLock() throws {
+        _ = try suiteLockResult.get()
     }
 
     private func saveMCPSettings(enabled: Bool, port: Int) -> SavedSettings {
@@ -615,7 +624,7 @@ struct MCPIntegrationTests {
         while Date() < deadline {
             if let chunk = try handle.read(upToCount: 1), let byte = chunk.first {
                 if byte == UInt8(ascii: "\n") {
-                    let line = String(decoding: buffer, as: UTF8.self)
+                    let line = String(bytes: buffer, encoding: .utf8) ?? ""
                         .trimmingCharacters(in: .whitespacesAndNewlines)
                     if !line.isEmpty {
                         return line
@@ -643,5 +652,10 @@ struct MCPIntegrationTests {
         }
 
         throw CocoaError(.fileReadUnknown)
+    }
+
+    private func resetSharedCoordinator() async {
+        await MCPServerCoordinator.shared.stop()
+        MCPServerCoordinator.shared.detachProviders()
     }
 }

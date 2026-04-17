@@ -117,31 +117,20 @@ struct MCPRedactionPolicy {
         guard isEnabled else {
             return urlString
         }
-        guard let components = URLComponents(string: urlString) else {
+        guard var components = URLComponents(string: urlString) else {
             return urlString
         }
         guard let queryItems = components.queryItems, !queryItems.isEmpty else {
             return urlString
         }
 
-        let redactedPairs = queryItems.map { item -> String in
-            let key = item.name
-            let value = item.value ?? ""
-            if Self.sensitiveQueryParams.contains(key.lowercased()) {
-                return "\(key)=\(redactedPlaceholder)"
+        components.queryItems = queryItems.map { item in
+            if Self.sensitiveQueryParams.contains(item.name.lowercased()) {
+                return URLQueryItem(name: item.name, value: redactedPlaceholder)
             }
-            return "\(key)=\(value)"
+            return item
         }
-
-        var result = components
-        result.query = nil
-        result.fragment = nil
-        let base = result.string ?? urlString
-        let queryString = redactedPairs.joined(separator: "&")
-        if let fragment = components.fragment {
-            return "\(base)?\(queryString)#\(fragment)"
-        }
-        return "\(base)?\(queryString)"
+        return components.string ?? urlString
     }
 
     func redactBody(_ text: String, contentType: ContentType?) -> String {
@@ -227,7 +216,11 @@ struct MCPRedactionPolicy {
             return curl
         }
         var result = curl
-        result = applyRegex(curlHeaderPattern, to: result)
+        result = applyRegex(
+            curlHeaderPattern,
+            to: result,
+            replacement: "-H $1$2: \(redactedPlaceholder)$1"
+        )
         return result
     }
 
@@ -245,7 +238,7 @@ struct MCPRedactionPolicy {
     )
 
     private static let curlHeaderPatternRegex: NSRegularExpression = try! NSRegularExpression(
-        pattern: #"-H\s+['"](\#(sensitiveHeaderAlternation))\s*:\s*[^'"]*['"]"#,
+        pattern: #"-H\s+(['"])(\#(sensitiveHeaderAlternation))\s*:\s*[^'"]*\1"#,
         options: [.caseInsensitive]
     )
 
@@ -286,12 +279,18 @@ struct MCPRedactionPolicy {
         Self.curlHeaderPatternRegex
     }
 
-    private func applyRegex(_ regex: NSRegularExpression, to input: String) -> String {
+    private func applyRegex(
+        _ regex: NSRegularExpression,
+        to input: String,
+        replacement: String? = nil
+    )
+        -> String
+    {
         let range = NSRange(input.startIndex ..< input.endIndex, in: input)
         return regex.stringByReplacingMatches(
             in: input,
             range: range,
-            withTemplate: "$1: \"\(redactedPlaceholder)\""
+            withTemplate: replacement ?? "$1: \"\(redactedPlaceholder)\""
         )
     }
 }

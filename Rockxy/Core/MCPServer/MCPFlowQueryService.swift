@@ -24,9 +24,8 @@ struct MCPFlowQueryService {
     )
         async -> MCPToolCallResult
     {
-        let transactions = await fetchTransactions(limit: limit)
-
-        let capped = min(limit, MCPLimits.maxFlowResults)
+        let capped = max(1, min(limit, MCPLimits.maxFlowResults))
+        let transactions = await fetchTransactions(limit: MCPLimits.maxFlowResults)
         var filtered = transactions
 
         if let host = filterHost {
@@ -381,10 +380,22 @@ struct MCPFlowQueryService {
 
     private func errorResult(_ message: String) -> MCPToolCallResult {
         logger.warning("Tool call error: \(message, privacy: .public)")
-        return MCPToolCallResult(
-            content: [.text("{\"error\": \"\(message)\"}")],
-            isError: true
-        )
+        let payload: MCPJSONValue = .object(["error": .string(message)])
+
+        do {
+            let data = try payload.encodeToData()
+            let text = String(data: data, encoding: .utf8) ?? "{\"error\":\"Unknown error\"}"
+            return MCPToolCallResult(
+                content: [.text(text)],
+                isError: true
+            )
+        } catch {
+            logger.warning("Failed to encode MCP flow error result: \(error.localizedDescription, privacy: .public)")
+            return MCPToolCallResult(
+                content: [.text("{\"error\":\"Unknown error\"}")],
+                isError: true
+            )
+        }
     }
 
     private func jsonResult(_ value: MCPJSONValue) -> MCPToolCallResult {

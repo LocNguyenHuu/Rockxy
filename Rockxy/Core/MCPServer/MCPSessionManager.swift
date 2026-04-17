@@ -25,6 +25,8 @@ final class MCPSessionManager: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
 
+        _ = removeExpiredSessionsLocked(now: Date())
+
         guard sessions.count < MCPLimits.maxConcurrentSessions else {
             mcpSessionLogger.warning(
                 "Session limit reached (\(MCPLimits.maxConcurrentSessions)), rejecting new session"
@@ -67,18 +69,35 @@ final class MCPSessionManager: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
 
-        let now = Date()
-        let expired = sessions.filter { now.timeIntervalSince($0.value) > MCPLimits.sessionTimeout }
-        for id in expired.keys {
-            sessions.removeValue(forKey: id)
+        _ = removeExpiredSessionsLocked(now: Date())
+    }
+
+    func setSessionTimestamp(_ date: Date, for id: String) {
+        lock.lock()
+        defer { lock.unlock() }
+
+        guard sessions[id] != nil else {
+            return
         }
-        if !expired.isEmpty {
-            mcpSessionLogger.info("Evicted \(expired.count) expired MCP session(s)")
-        }
+        sessions[id] = date
     }
 
     // MARK: Private
 
     private let lock = NSLock()
     private var sessions: [String: Date] = [:]
+
+    private func removeExpiredSessionsLocked(now: Date) -> Int {
+        var expiredIDs: [String] = []
+        for (id, created) in sessions where now.timeIntervalSince(created) > MCPLimits.sessionTimeout {
+            expiredIDs.append(id)
+        }
+        for id in expiredIDs {
+            sessions.removeValue(forKey: id)
+        }
+        if !expiredIDs.isEmpty {
+            mcpSessionLogger.info("Evicted \(expiredIDs.count) expired MCP session(s)")
+        }
+        return expiredIDs.count
+    }
 }

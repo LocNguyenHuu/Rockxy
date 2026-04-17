@@ -27,7 +27,7 @@ struct MCPStatusServiceTests {
         let service = makeService()
         let result = service.getVersion()
 
-        #expect(result.isError == nil || result.isError == false)
+        expectNoError(result)
         let text = result.content.first?.text ?? ""
         #expect(text.contains("app_version"))
         #expect(text.contains("build_number"))
@@ -55,10 +55,11 @@ struct MCPStatusServiceTests {
         let service = makeService()
         let result = await service.getProxyStatus()
 
-        #expect(result.isError == nil || result.isError == false)
-        let text = result.content.first?.text ?? ""
-        #expect(text.contains("\"is_running\":false") || text.contains("\"is_running\": false"))
-        #expect(text.contains("Proxy window not active"))
+        expectNoError(result)
+        let json = try? decodeJSONObject(from: result)
+        #expect(json?["is_running"] as? Bool == false)
+        #expect(json?["has_provider"] as? Bool == false)
+        #expect(json?["status_reason"] as? String == "Proxy window not active")
     }
 
     @Test("Get proxy status with active provider")
@@ -74,7 +75,7 @@ struct MCPStatusServiceTests {
 
         let result = await service.getProxyStatus()
 
-        #expect(result.isError == nil || result.isError == false)
+        expectNoError(result)
         let text = result.content.first?.text ?? ""
         #expect(text.contains("\"is_running\":true") || text.contains("\"is_running\": true"))
         #expect(text.contains("8888"))
@@ -125,7 +126,7 @@ struct MCPStatusServiceTests {
 
         let result = await service.getProxyStatus()
 
-        #expect(result.isError == nil || result.isError == false)
+        expectNoError(result)
         let text = result.content.first?.text ?? ""
         #expect(text.contains("\"is_running\":false") || text.contains("\"is_running\": false"))
         #expect(!text.contains("\"port\""))
@@ -171,5 +172,15 @@ struct MCPStatusServiceTests {
             )
         }
         return MCPStatusService(serverCoordinator: coordinator)
+    }
+
+    private func expectNoError(_ result: MCPToolCallResult) {
+        #expect(result.isError != true)
+    }
+
+    private func decodeJSONObject(from result: MCPToolCallResult) throws -> [String: Any] {
+        let text = try #require(result.content.first?.text)
+        let data = Data(text.utf8)
+        return try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
     }
 }

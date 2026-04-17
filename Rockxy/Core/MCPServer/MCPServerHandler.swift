@@ -90,6 +90,7 @@ final class MCPServerHandler: ChannelInboundHandler, @unchecked Sendable {
     private let toolRegistry: MCPToolRegistry
     private let storedToken: String
 
+    private var activeSessionID: String?
     private var requestMethod: HTTPMethod?
     private var requestURI: String?
     private var requestHeaders: HTTPHeaders?
@@ -171,6 +172,12 @@ private extension MCPServerHandler {
     )
         -> SecurityRejection?
     {
+        // The stdio bridge does not send `Origin`, so absence is intentionally
+        // permitted here. We only validate `extractHost(from:)` against
+        // `configuration.allowedOrigins` when Origin is present to reduce DNS
+        // rebinding risk for HTTP transports without breaking stdio clients.
+        // Callers that want stricter behavior should layer it above this
+        // `SecurityRejection` path.
         if let origin = headers.first(name: "Origin") {
             let originHost = extractHost(from: origin)
             if !configuration.allowedOrigins.contains(originHost) {
@@ -333,14 +340,25 @@ private extension MCPServerHandler {
             return
         }
 
-        guard MCPProtocolVersion.supported.contains(initParams.protocolVersion) else {
+        guard let negotiatedVersion = MCPProtocolVersion.negotiate(clientVersion: initParams.protocolVersion) else {
             sendJsonRpcError(
                 context: context,
                 id: request.id,
                 code: .invalidParams,
-                message: "Unsupported MCP protocol version: \(initParams.protocolVersion). Supported versions: \(MCPProtocolVersion.supported.sorted().joined(separator: ", "))"
+                message: "Unsupported MCP protocol version: \(initParams.protocolVersion). Compatible range: \(MCPProtocolVersion.compatibilityFloor) ... \(MCPProtocolVersion.current)"
             )
             return
+        }
+
+        if let existingSessionID = requestHeaders?.first(name: "Mcp-Session-Id") {
+            sessionManager.removeSession(existingSessionID)
+            if activeSessionID == existingSessionID {
+                activeSessionID = nil
+            }
+        }
+        if let activeSessionID {
+            sessionManager.removeSession(activeSessionID)
+            self.activeSessionID = nil
         }
 
         guard let sessionID = sessionManager.createSession() else {
@@ -352,11 +370,12 @@ private extension MCPServerHandler {
             )
             return
         }
+        activeSessionID = sessionID
 
         let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
 
         let result = MCPInitializeResult(
-            protocolVersion: MCPProtocolVersion.current,
+            protocolVersion: negotiatedVersion,
             capabilities: MCPServerCapabilities(
                 tools: MCPToolsCapability(listChanged: false)
             ),
@@ -446,6 +465,9 @@ private extension MCPServerHandler {
         }
 
         sessionManager.removeSession(sessionID)
+        if activeSessionID == sessionID {
+            activeSessionID = nil
+        }
         mcpHandlerLogger.info("MCP session teardown: \(sessionID, privacy: .public)")
         sendResponse(context: context, status: .ok, body: nil)
     }
@@ -534,11 +556,12 @@ private extension MCPServerHandler {
     }
 
     func errorBodyData(message: String) -> Data {
-        // Simple JSON error envelope for non-JSON-RPC error responses.
-        let escaped = message
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"")
-        return Data("{\"error\":\"\(escaped)\"}".utf8)
+        do {
+            return try JSONSerialization.data(withJSONObject: ["error": message], options: [])
+        } catch {
+            mcpHandlerLogger.warning("Failed to encode MCP HTTP error body: \(error.localizedDescription)")
+            return Data("{\"error\":\"Internal server error\"}".utf8)
+        }
     }
 }
 

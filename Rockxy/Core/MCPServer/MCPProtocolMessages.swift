@@ -4,8 +4,35 @@ import Foundation
 
 /// MCP protocol version constant.
 enum MCPProtocolVersion {
+    // MARK: Internal
+
     static let current = "2025-11-25"
-    static let supported: Set<String> = [current]
+    static let compatibilityFloor = "2025-03-26"
+
+    static func negotiate(clientVersion: String) -> String? {
+        guard isValidVersionString(clientVersion) else {
+            return nil
+        }
+        guard clientVersion >= compatibilityFloor, clientVersion <= current else {
+            return nil
+        }
+        return current
+    }
+
+    // MARK: Private
+
+    private static func isValidVersionString(_ value: String) -> Bool {
+        let parts = value.split(separator: "-")
+        guard parts.count == 3,
+              parts[0].count == 4,
+              parts[1].count == 2,
+              parts[2].count == 2,
+              parts.allSatisfy({ !$0.isEmpty && $0.allSatisfy(\.isNumber) }) else
+        {
+            return false
+        }
+        return true
+    }
 }
 
 // MARK: - MCPClientInfo
@@ -93,11 +120,47 @@ struct MCPToolCallParams: Codable {
 
 /// A content block within a tool call result. Phase 1 only supports text.
 struct MCPContent: Codable {
+    // MARK: Lifecycle
+
+    init(type: String, text: String?) {
+        self.type = type
+        self.text = text
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let type = try container.decode(String.self, forKey: .type)
+        guard type == "text" else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .type,
+                in: container,
+                debugDescription: "Unsupported MCP content type: \(type)"
+            )
+        }
+        self.type = type
+        text = try container.decodeIfPresent(String.self, forKey: .text)
+    }
+
+    // MARK: Internal
+
     let type: String
     let text: String?
 
     static func text(_ value: String) -> MCPContent {
         MCPContent(type: "text", text: value)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode("text", forKey: .type)
+        try container.encodeIfPresent(text, forKey: .text)
+    }
+
+    // MARK: Private
+
+    private enum CodingKeys: String, CodingKey {
+        case type
+        case text
     }
 }
 

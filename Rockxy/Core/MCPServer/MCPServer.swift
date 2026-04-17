@@ -95,7 +95,7 @@ actor MCPServer {
             try MCPHandshakeStore.write(token: token, port: configuration.port)
         } catch {
             mcpServerLogger.error("Failed to write MCP handshake file: \(error.localizedDescription)")
-            await stop()
+            await stop(notifyObservers: false)
             throw error
         }
 
@@ -107,16 +107,33 @@ actor MCPServer {
     }
 
     func stop() async {
-        guard let channel = serverChannel else {
+        await stop(notifyObservers: true)
+    }
+
+    // MARK: Private
+
+    private let configuration: MCPServerConfiguration
+    private let toolRegistry: MCPToolRegistry
+    private let sessionManager: MCPSessionManager
+
+    private var eventLoopGroup: MultiThreadedEventLoopGroup?
+    private var serverChannel: Channel?
+
+    private func stop(notifyObservers: Bool) async {
+        let hadRuntime = serverChannel != nil || eventLoopGroup != nil || activePort != nil
+        guard hadRuntime else {
             return
         }
+        let channel = serverChannel
         serverChannel = nil
         activePort = nil
 
-        do {
-            try await channel.close().get()
-        } catch {
-            mcpServerLogger.error("Error closing MCP server channel: \(error.localizedDescription)")
+        if let channel {
+            do {
+                try await channel.close().get()
+            } catch {
+                mcpServerLogger.error("Error closing MCP server channel: \(error.localizedDescription)")
+            }
         }
 
         if let group = eventLoopGroup {
@@ -131,17 +148,10 @@ actor MCPServer {
         MCPHandshakeStore.delete()
         mcpServerLogger.info("MCP server stopped")
 
-        NotificationCenter.default.post(name: .mcpServerDidStop, object: nil)
+        if notifyObservers {
+            NotificationCenter.default.post(name: .mcpServerDidStop, object: nil)
+        }
     }
-
-    // MARK: Private
-
-    private let configuration: MCPServerConfiguration
-    private let toolRegistry: MCPToolRegistry
-    private let sessionManager: MCPSessionManager
-
-    private var eventLoopGroup: MultiThreadedEventLoopGroup?
-    private var serverChannel: Channel?
 }
 
 // MARK: - MCPServerError

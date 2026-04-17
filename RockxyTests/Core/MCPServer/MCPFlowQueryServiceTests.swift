@@ -88,7 +88,7 @@ struct MCPFlowQueryServiceTests {
 
         let store = try SessionStore(directory: directory)
         let storedTransactions = [
-            TestFixtures.makeTransaction(method: "POST", url: "https://store.example.com/orders", statusCode: 202),
+            TestFixtures.makeTransaction(method: "POST", url: "https://other.example.com/orders", statusCode: 202),
             TestFixtures.makeTransaction(method: "GET", url: "https://store.example.com/orders/1", statusCode: 200),
         ]
         for transaction in storedTransactions {
@@ -102,7 +102,7 @@ struct MCPFlowQueryServiceTests {
         )
 
         let result = await service.getRecentFlows(
-            limit: 10,
+            limit: 1,
             filterHost: "store.example.com",
             filterMethod: nil,
             filterStatusCode: nil
@@ -110,9 +110,9 @@ struct MCPFlowQueryServiceTests {
 
         let json = try decodeJSONObject(from: result)
         let flows = try #require(json["flows"] as? [[String: Any]])
-        #expect(flows.count == 2)
+        #expect(flows.count == 1)
         #expect(flows.allSatisfy { ($0["host"] as? String) == "store.example.com" })
-        #expect(json["total_count"] as? Int == 2)
+        #expect(json["total_count"] as? Int == 1)
     }
 
     @Test("Filters flows by host")
@@ -337,6 +337,8 @@ struct MCPFlowQueryServiceTests {
 
         let text = result.content.first?.text ?? ""
         #expect(!text.contains("secret-token-123"))
+        #expect(text.contains("-H '"))
+        #expect(text.contains("Authorization: [REDACTED]"))
     }
 
     // MARK: - Search Flows

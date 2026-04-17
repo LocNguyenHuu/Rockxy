@@ -193,6 +193,43 @@ struct MCPToolRegistryTests {
         #expect(text.contains("filters"))
     }
 
+    @Test("filter_flows rejects malformed filter entries")
+    func filterFlowsRejectsMalformedEntries() async {
+        let registry = makeTestRegistry()
+        let result = await registry.callTool(
+            params: MCPToolCallParams(
+                name: "filter_flows",
+                arguments: ["filters": .array([.string("bad-filter")])]
+            )
+        )
+
+        #expect(result.isError == true)
+        let text = result.content.first?.text ?? ""
+        #expect(text.contains("must be an object"))
+    }
+
+    @Test("filter_flows rejects invalid combination")
+    func filterFlowsRejectsInvalidCombination() async {
+        let registry = makeTestRegistry()
+        let result = await registry.callTool(
+            params: MCPToolCallParams(
+                name: "filter_flows",
+                arguments: [
+                    "filters": .array([.object([
+                        "field": .string("host"),
+                        "operator": .string("contains"),
+                        "value": .string("example.com"),
+                    ])]),
+                    "combination": .string("xor"),
+                ]
+            )
+        )
+
+        #expect(result.isError == true)
+        let text = result.content.first?.text ?? ""
+        #expect(text.contains("combination"))
+    }
+
     // MARK: Private
 
     // MARK: - Private Helpers

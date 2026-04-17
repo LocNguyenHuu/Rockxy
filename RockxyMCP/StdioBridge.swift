@@ -94,6 +94,7 @@ final class StdioBridge {
         if methodName == "initialize" {
             lastInitializeRequestBody = body
         }
+        let isIdempotentRequest = isIdempotentMethod(methodName, body: body)
 
         var call = performHTTP(body: body, methodName: methodName)
         updateSessionState(from: call, requestMethod: methodName)
@@ -105,7 +106,8 @@ final class StdioBridge {
             updateSessionState(from: call, requestMethod: methodName)
         }
 
-        if shouldRecoverSession(from: call, requestMethod: methodName),
+        if isIdempotentRequest,
+           shouldRecoverSession(from: call, requestMethod: methodName),
            recoverSession()
         {
             call = performHTTP(body: body, methodName: methodName)
@@ -283,6 +285,38 @@ final class StdioBridge {
             return nil
         }
         return object["method"] as? String
+    }
+
+    private func isIdempotentMethod(_ methodName: String?, body: Data) -> Bool {
+        switch methodName {
+        case "notifications/initialized",
+             "tools/list",
+             "ping":
+            return true
+        case "tools/call":
+            guard let object = try? JSONSerialization.jsonObject(with: body) as? [String: Any],
+                  let params = object["params"] as? [String: Any],
+                  let toolName = params["name"] as? String else
+            {
+                return false
+            }
+
+            let idempotentTools: Set = [
+                "get_version",
+                "get_proxy_status",
+                "get_certificate_status",
+                "get_recent_flows",
+                "get_flow_detail",
+                "search_flows",
+                "filter_flows",
+                "export_flow_curl",
+                "list_rules",
+                "get_ssl_proxying_list",
+            ]
+            return idempotentTools.contains(toolName)
+        default:
+            return false
+        }
     }
 
     private func protocolVersion(from data: Data?) -> String? {

@@ -78,7 +78,7 @@ struct MCPRedactionPolicyTests {
 
         let redacted = enabledPolicy.redactURL(url)
 
-        #expect(redacted.contains("[REDACTED]"))
+        #expect(redacted.contains("%5BREDACTED%5D") || redacted.contains("[REDACTED]"))
         #expect(!redacted.contains("secret123"))
         #expect(!redacted.contains("mytoken"))
         #expect(redacted.contains("format=json"))
@@ -94,6 +94,18 @@ struct MCPRedactionPolicyTests {
         #expect(redacted.contains("page=1"))
         #expect(redacted.contains("limit=20"))
         #expect(!redacted.contains("[REDACTED]"))
+    }
+
+    @Test("Preserves URL encoding while redacting sensitive params")
+    func preserveURLEncoding() {
+        let url = "https://api.example.com/search?redirect=https%3A%2F%2Fexample.com%2Fa%20b&token=abc123"
+
+        let redacted = enabledPolicy.redactURL(url)
+
+        #expect(redacted.contains("redirect=https://example.com/a%20b") || redacted
+            .contains("redirect=https%3A%2F%2Fexample.com%2Fa%20b"))
+        #expect(redacted.contains("token=%5BREDACTED%5D") || redacted.contains("token=[REDACTED]"))
+        #expect(!redacted.contains("abc123"))
     }
 
     @Test("URL without query params unchanged")
@@ -174,6 +186,8 @@ struct MCPRedactionPolicyTests {
         #expect(!redacted.contains("secret-token"))
         #expect(!redacted.contains("session=abc123"))
         #expect(redacted.contains("application/json"))
+        #expect(redacted.contains("-H '"))
+        #expect(redacted.contains("Authorization: [REDACTED]"))
     }
 
     @Test("Disabled policy doesn't redact cURL")

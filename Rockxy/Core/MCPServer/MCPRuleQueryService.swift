@@ -40,9 +40,7 @@ struct MCPRuleQueryService {
                 condition["header_value"] = .string(headerValue)
             }
 
-            if !condition.isEmpty {
-                fields["match_condition"] = .object(condition)
-            }
+            fields["match_condition"] = .object(condition)
 
             return .object(fields)
         }

@@ -69,13 +69,17 @@ struct MCPToolRegistry {
             guard let filters = extractArray("filters", from: args) else {
                 return missingParamResult("filters")
             }
-            let filterDicts = filters.compactMap { value -> [String: MCPJSONValue]? in
+            var filterDicts: [[String: MCPJSONValue]] = []
+            for value in filters {
                 guard case let .object(dict) = value else {
-                    return nil
+                    return invalidParamResult("filters", message: "Each filter entry must be an object")
                 }
-                return dict
+                filterDicts.append(dict)
             }
             let combination = extractString("combination", from: args) ?? "and"
+            guard ["and", "or"].contains(combination.lowercased()) else {
+                return invalidParamResult("combination", message: "combination must be 'and' or 'or'")
+            }
             return await flowService.filterFlows(filters: filterDicts, combination: combination)
 
         case "export_flow_curl":
@@ -111,11 +115,18 @@ struct MCPToolRegistry {
     private func extractInt(_ key: String, from args: [String: MCPJSONValue]) -> Int? {
         switch args[key] {
         case let .int(value):
-            value
+            return value
         case let .double(value):
-            Int(value)
+            guard value.isFinite,
+                  value.rounded(.towardZero) == value,
+                  value >= Double(Int.min),
+                  value <= Double(Int.max) else
+            {
+                return nil
+            }
+            return Int(value)
         default:
-            nil
+            return nil
         }
     }
 
@@ -135,8 +146,12 @@ struct MCPToolRegistry {
 
     private func missingParamResult(_ paramName: String) -> MCPToolCallResult {
         mcpToolRegistryLogger.warning("Missing required parameter: \(paramName, privacy: .public)")
-        return MCPToolCallResult(
-            content: [.text("{\"error\": \"Missing required parameter: \(paramName)\"}")],
+        return invalidParamResult(paramName, message: "Missing required parameter: \(paramName)")
+    }
+
+    private func invalidParamResult(_ paramName: String, message: String) -> MCPToolCallResult {
+        MCPToolCallResult(
+            content: [.text("{\"error\":\"\(message)\",\"param\":\"\(paramName)\"}")],
             isError: true
         )
     }

@@ -11,6 +11,12 @@ struct MCPProtocolMessagesTests {
         #expect(MCPProtocolVersion.current == "2025-11-25")
     }
 
+    @Test("Protocol negotiation accepts compatible older client versions")
+    func protocolNegotiation() {
+        #expect(MCPProtocolVersion.negotiate(clientVersion: "2025-03-26") == MCPProtocolVersion.current)
+        #expect(MCPProtocolVersion.negotiate(clientVersion: "2024-01-01") == nil)
+    }
+
     @Test("MCPInitializeParams round-trip")
     func initializeParams() throws {
         let params = MCPInitializeParams(
@@ -128,6 +134,14 @@ struct MCPProtocolMessagesTests {
         let content = MCPContent.text("hello")
         #expect(content.type == "text")
         #expect(content.text == "hello")
+    }
+
+    @Test("MCPContent rejects unsupported content types")
+    func contentRejectsUnsupportedType() throws {
+        let data = Data(#"{"type":"image","text":"nope"}"#.utf8)
+        #expect(throws: DecodingError.self) {
+            _ = try JSONDecoder().decode(MCPContent.self, from: data)
+        }
     }
 
     @Test("MCPToolCallResult error flag")
