@@ -92,6 +92,10 @@ struct RockxyIdentity {
 
     static let current = RockxyIdentity(bundle: .main)
 
+    static var isRunningTests: Bool {
+        NSClassFromString("XCTestCase") != nil
+    }
+
     let displayName: String
     let familyNamespace: String
     let appBundleIdentifier: String
@@ -148,6 +152,12 @@ struct RockxyIdentity {
     }
 
     func appSupportDirectory(fileManager: FileManager = .default) -> URL {
+        if Self.isRunningTests {
+            return Self.temporaryDirectory(
+                named: appSupportDirectoryName,
+                fileManager: fileManager
+            )
+        }
         let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         return appSupport.appendingPathComponent(appSupportDirectoryName, isDirectory: true)
     }
@@ -157,10 +167,19 @@ struct RockxyIdentity {
     }
 
     func temporaryAppSupportDirectory(fileManager: FileManager = .default) -> URL {
-        fileManager.temporaryDirectory.appendingPathComponent(appSupportDirectoryName, isDirectory: true)
+        Self.temporaryDirectory(
+            named: appSupportDirectoryName,
+            fileManager: fileManager
+        )
     }
 
     func sharedSupportDirectory(fileManager: FileManager = .default) -> URL {
+        if Self.isRunningTests {
+            return Self.temporaryDirectory(
+                named: sharedSupportDirectoryName,
+                fileManager: fileManager
+            )
+        }
         let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         return appSupport.appendingPathComponent(sharedSupportDirectoryName, isDirectory: true)
     }
@@ -183,5 +202,14 @@ struct RockxyIdentity {
             return value
         }
         return fallback
+    }
+
+    private static func temporaryDirectory(
+        named directoryName: String,
+        fileManager: FileManager
+    )
+        -> URL
+    {
+        fileManager.temporaryDirectory.appendingPathComponent(directoryName, isDirectory: true)
     }
 }

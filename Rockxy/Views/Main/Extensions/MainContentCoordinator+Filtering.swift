@@ -27,6 +27,19 @@ extension MainContentCoordinator {
         workspace.refreshToken += 1
     }
 
+    private func appendDerivedRows(_ batch: [HTTPTransaction], to workspace: WorkspaceState) {
+        let appendedRows = batch
+            .filter { !$0.isTLSFailure }
+            .map(RequestListRow.init(from:))
+
+        guard !appendedRows.isEmpty else {
+            return
+        }
+
+        workspace.filteredRows.append(contentsOf: appendedRows)
+        workspace.refreshToken += 1
+    }
+
     // MARK: - Filtered Transactions
 
     func appendFilteredTransactions(_ batch: [HTTPTransaction]) {
@@ -34,13 +47,14 @@ extension MainContentCoordinator {
         if filterCriteria.sidebarScope == .allTraffic, filterCriteria.isEmpty, !hasActiveRules,
            activeSortDescriptors.isEmpty
         {
-            filteredTransactions.append(contentsOf: batch.filter { !$0.isTLSFailure })
+            let visibleBatch = batch.filter { !$0.isTLSFailure }
+            filteredTransactions.append(contentsOf: visibleBatch)
             activeWorkspace.lastDeriveWasAppendOnly = true
+            appendDerivedRows(visibleBatch, to: activeWorkspace)
         } else {
             recomputeFilteredTransactions()
             return
         }
-        deriveFilteredRows()
     }
 
     func recomputeFilteredTransactions() {
@@ -148,13 +162,14 @@ extension MainContentCoordinator {
         if workspace.filterCriteria.sidebarScope == .allTraffic,
            workspace.filterCriteria.isEmpty, !hasActiveRules, workspace.activeSortDescriptors.isEmpty
         {
-            workspace.filteredTransactions.append(contentsOf: batch.filter { !$0.isTLSFailure })
+            let visibleBatch = batch.filter { !$0.isTLSFailure }
+            workspace.filteredTransactions.append(contentsOf: visibleBatch)
             workspace.lastDeriveWasAppendOnly = true
+            appendDerivedRows(visibleBatch, to: workspace)
         } else {
             recomputeFilteredTransactions(for: workspace)
             return
         }
-        deriveFilteredRows(for: workspace)
     }
 
     func recomputeFilteredTransactions(for workspace: WorkspaceState) {
