@@ -322,11 +322,6 @@ struct HistoryRetentionTests {
             }
         }
         await coordinator.sessionManager.startBatchTimer()
-        defer {
-            Task {
-                await coordinator.sessionManager.stopBatchTimer()
-            }
-        }
 
         let connect = TLSInterceptHandler.makeTunnelTransaction(
             host: "example.com",
@@ -351,6 +346,8 @@ struct HistoryRetentionTests {
         #expect(coordinator.transactions.first?.isTLSFailure == false)
         #expect(coordinator.filteredTransactions.count == 1)
         #expect(coordinator.filteredTransactions.first?.request.method == "CONNECT")
+
+        await coordinator.sessionManager.stopBatchTimer()
     }
 
     @Test("Coordinator clearSession aligns generations after awaited reset")

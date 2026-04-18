@@ -670,8 +670,9 @@ struct MCPIntegrationTests {
         while Date() < deadline {
             if let chunk = try handle.read(upToCount: 1), let byte = chunk.first {
                 if byte == UInt8(ascii: "\n") {
-                    let line = String(bytes: buffer, encoding: .utf8) ?? ""
+                    let line = (String(bytes: buffer, encoding: .utf8) ?? "")
                         .trimmingCharacters(in: .whitespacesAndNewlines)
+                    buffer.removeAll(keepingCapacity: true)
                     if !line.isEmpty {
                         return line
                     }
