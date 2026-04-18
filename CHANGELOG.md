@@ -8,9 +8,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- MCP Server: embedded Model Context Protocol (MCP 2025-11-25) backend — exposes proxy traffic, rules, and status via JSON-RPC 2.0 over a local HTTP server with token-based authentication.
+- MCP Server: 10 read-only tools — `get_version`, `get_proxy_status`, `get_certificate_status`, `get_recent_flows`, `get_flow_detail`, `search_flows`, `filter_flows`, `export_flow_curl`, `list_rules`, `get_ssl_proxying_list`.
+- MCP Server: `rockxy-mcp` stdio CLI binary bundled in the app for standard MCP stdio transport with automatic session tracking.
+- MCP Server: privacy-first redaction — sensitive headers, URL query parameters, and body fields (JSON, form-encoded, XML, plain-text Bearer tokens) redacted by default. Live toggle without server restart.
+- MCP Server: Settings > MCP tab with enable/disable toggle, running status indicator, copyable connection config, and redaction privacy controls.
+- MCP Server: auto-starts on app launch when previously enabled; survives Settings window close; falls back to SessionStore when main window is closed.
+
 ### Fixed
 
 ### Changed
+
+- MCP Server: initialize requests now negotiate compatible MCP protocol versions, recycle stale per-connection sessions, and harden transport/session validation.
+- MCP Server: handshake writes now create restricted `0o600` files up front; flow-query fallback filtering, URL/cURL redaction, and port/config validation are stricter and more deterministic.
+- MCP Server: recent-flow SessionStore fallback no longer under-filters when callers request a small limit with host/method/status filters.
+- MCP Server: transport/tool error payloads now stay valid JSON even when messages contain quotes, backslashes, or control characters.
 
 ## [0.8.0] - 2026-04-16
 

@@ -24,6 +24,17 @@ enum AppSettingsStorage {
             ? defaults.bool(forKey: scriptingToolEnabledKey) : true
         settings.allowSystemEnvVars = defaults.bool(forKey: allowSystemEnvVarsKey)
         settings.allowMultipleScriptsPerRequest = defaults.bool(forKey: allowMultipleScriptsPerRequestKey)
+        settings.mcpServerEnabled = defaults.bool(forKey: mcpServerEnabledKey)
+        if defaults.object(forKey: mcpServerPortKey) != nil {
+            let stored = defaults.integer(forKey: mcpServerPortKey)
+            let clamped = min(max(stored, 1), 65_535)
+            if clamped != stored {
+                logger.warning("Clamped out-of-range stored MCP port \(stored) to \(clamped)")
+            }
+            settings.mcpServerPort = clamped
+        }
+        settings.mcpRedactSensitiveData = defaults.object(forKey: mcpRedactSensitiveDataKey) != nil
+            ? defaults.bool(forKey: mcpRedactSensitiveDataKey) : true
         return settings
     }
 
@@ -38,6 +49,9 @@ enum AppSettingsStorage {
         defaults.set(settings.scriptingToolEnabled, forKey: scriptingToolEnabledKey)
         defaults.set(settings.allowSystemEnvVars, forKey: allowSystemEnvVarsKey)
         defaults.set(settings.allowMultipleScriptsPerRequest, forKey: allowMultipleScriptsPerRequestKey)
+        defaults.set(settings.mcpServerEnabled, forKey: mcpServerEnabledKey)
+        defaults.set(settings.mcpServerPort, forKey: mcpServerPortKey)
+        defaults.set(settings.mcpRedactSensitiveData, forKey: mcpRedactSensitiveDataKey)
         logger.info("Settings saved")
     }
 
@@ -55,4 +69,7 @@ enum AppSettingsStorage {
     private static let allowSystemEnvVarsKey = RockxyIdentity.current.defaultsKey("scripting.allowSystemEnvVars")
     private static let allowMultipleScriptsPerRequestKey = RockxyIdentity.current
         .defaultsKey("scripting.allowMultipleScriptsPerRequest")
+    private static let mcpServerEnabledKey = RockxyIdentity.current.defaultsKey("mcp.serverEnabled")
+    private static let mcpServerPortKey = RockxyIdentity.current.defaultsKey("mcp.serverPort")
+    private static let mcpRedactSensitiveDataKey = RockxyIdentity.current.defaultsKey("mcp.redactSensitiveData")
 }
