@@ -21,7 +21,7 @@ Every target in the hub has a **manual** path. Manual support means:
 - the hub ships the concrete command, config block, or code snippet you paste into the runtime, client, container, or framework;
 - Rockxy never launches a shell, configures a third-party app, modifies macOS trust, or changes a device's network settings for you.
 
-Many non-mobile targets additionally ship an **in-app validation watcher**. The Snippets tab keeps the general-purpose sample request, while the Validate tab swaps in a target-specific probe URL such as `GET https://httpbin.org/anything/rockxy/python` before you press **Run Test**. This is still a generic capture check, not process attribution for the selected target. Guide-only targets are limited to targets where Rockxy cannot ship a first-party snippet (typically physical devices, simulators, or frameworks that depend on the underlying platform).
+Many non-mobile targets additionally ship an **in-app validation watcher**. The Snippets tab keeps the general-purpose sample request, while the Validate tab swaps in a target-specific probe URL such as `GET https://httpbin.org/anything/rockxy/python` before you press **Run Test**. This is still a generic capture check, not process attribution for the selected target.
 
 ## Support matrix
 
@@ -72,7 +72,11 @@ Each snippet is generated against Rockxy's active proxy port and the exported ro
 
 If the preflight sees a problem (proxy stopped, recording paused, certificate not trusted, or certificate not exportable) it surfaces the first blocking issue with a direct action you can take before rerunning.
 
+Validate currently depends on reaching `httpbin.org`. If `httpbin.org` is down, DNS is blocked, or your network policy prevents that outbound request, the watcher can time out even when Rockxy itself is configured correctly. In that case, verify the local proxy and certificate path first, then rerun Validate from a network that can reach `httpbin.org`.
+
 ### Guide only — concrete manual steps, no in-app snippet generator
+
+Guide-only targets are limited to targets where Rockxy cannot ship a first-party snippet (typically physical devices, simulators, or frameworks that depend on the underlying platform).
 
 These targets depend on behavior Rockxy does not drive from macOS (physical-device pairing, simulator automation, framework-specific bundlers), so the hub ships honest guide copy rather than a generated snippet:
 

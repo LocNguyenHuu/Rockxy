@@ -17,9 +17,14 @@ struct SidebarSSLProxyingTests {
     func excludeNotEnabled() {
         let coordinator = MainContentCoordinator()
         let manager = SSLProxyingManager.shared
+        let originalEnabled = manager.isEnabled
         let rule = SSLProxyingRule(domain: "api.example.com", listType: .exclude)
         manager.addRule(rule)
-        defer { manager.removeRule(id: rule.id) }
+        manager.setEnabled(true)
+        defer {
+            manager.removeRule(id: rule.id)
+            manager.setEnabled(originalEnabled)
+        }
 
         #expect(!coordinator.isSSLProxyingEnabled(for: "api.example.com"))
     }
@@ -28,10 +33,15 @@ struct SidebarSSLProxyingTests {
     func disabledIncludeNotEnabled() {
         let coordinator = MainContentCoordinator()
         let manager = SSLProxyingManager.shared
+        let originalEnabled = manager.isEnabled
         let rule = SSLProxyingRule(domain: "api.example.com", listType: .include)
         manager.addRule(rule)
         manager.toggleRule(id: rule.id)
-        defer { manager.removeRule(id: rule.id) }
+        manager.setEnabled(true)
+        defer {
+            manager.removeRule(id: rule.id)
+            manager.setEnabled(originalEnabled)
+        }
 
         #expect(!coordinator.isSSLProxyingEnabled(for: "api.example.com"))
     }
@@ -40,11 +50,33 @@ struct SidebarSSLProxyingTests {
     func enabledIncludeIsEnabled() {
         let coordinator = MainContentCoordinator()
         let manager = SSLProxyingManager.shared
+        let originalEnabled = manager.isEnabled
         let rule = SSLProxyingRule(domain: "api.example.com", listType: .include)
         manager.addRule(rule)
-        defer { manager.removeRule(id: rule.id) }
+        manager.setEnabled(true)
+        defer {
+            manager.removeRule(id: rule.id)
+            manager.setEnabled(originalEnabled)
+        }
 
         #expect(coordinator.isSSLProxyingEnabled(for: "api.example.com"))
+    }
+
+    @Test("global SSL proxying off reports domain as disabled")
+    func globalToggleOffReportsDisabled() {
+        let coordinator = MainContentCoordinator()
+        let manager = SSLProxyingManager.shared
+        let originalEnabled = manager.isEnabled
+        let rule = SSLProxyingRule(domain: "api.example.com", listType: .include)
+        manager.addRule(rule)
+        manager.setEnabled(false)
+        defer {
+            manager.removeRule(id: rule.id)
+            manager.setEnabled(originalEnabled)
+        }
+
+        #expect(!coordinator.isSSLProxyingEnabled(for: "api.example.com"))
+        #expect(!coordinator.isSSLProxyingFullyEnabled(forAppNamed: "Google Chrome", fallbackDomain: "api.example.com"))
     }
 
     @Test("enableSSLProxyingForDomain turns the tool back on and re-enables existing rules")

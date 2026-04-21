@@ -64,6 +64,7 @@ final class DeveloperSetupViewModel {
     var snapshot: SetupSnapshot
     var activeIssue: SetupIssue?
     private var validationRunID: UUID?
+    private var validationTaskToken: ValidationTaskToken?
 
     var filteredTargetSections: [SetupTargetSection] {
         SetupTarget.filteredSections(matching: sourceListSearchText, pinnedTargetIDs: pinnedTargetIDs)
@@ -256,13 +257,20 @@ final class DeveloperSetupViewModel {
     func refreshSnapshot() async {
         let settings = AppSettingsManager.shared.settings
         let readiness = ReadinessCoordinator.shared
-        let runtimeReadiness = DeveloperSetupRuntimeTooling.readiness(for: selectedTarget.id)
+        let originalTargetID = selectedTarget.id
         let certificateSnapshot = await CertificateManager.shared.rootCAStatusSnapshot(performValidation: false)
         let pem = try? await CertificateManager.shared.getRootCAPEM()
+        guard selectedTarget.id == originalTargetID else {
+            return
+        }
+
+        let runtimeReadiness = DeveloperSetupRuntimeTooling.readiness(for: originalTargetID)
+        let workflow = currentWorkflow
+        let target = selectedTarget
 
         ensureSelectedSnippetMatchesCurrentTarget()
 
-        snapshot.supportStatus = selectedTarget.supportStatus
+        snapshot.supportStatus = target.supportStatus
         snapshot.runtimeReady = runtimeReadiness.isSatisfied
         snapshot.runtimeStatusNote = runtimeReadiness.note
         snapshot.proxyRunning = coordinator.isProxyRunning
@@ -275,16 +283,30 @@ final class DeveloperSetupViewModel {
         snapshot.certificateFileReady = Self.exportedCertificateFileReady(from: settings)
         snapshot.proxyMode = readiness.proxyMode
         snapshot.readinessWarningMessage = readiness.activeWarning?.message
-        snapshot.selectedSnippetID = currentWorkflow.supportsSnippets ? selectedSnippetID : nil
+        snapshot.selectedSnippetID = workflow.supportsSnippets ? selectedSnippetID : nil
 
-        if snapshot.verificationState == .idle, supportsValidation {
-            let nextIssue = Self.validationIssue(for: selectedTarget, snapshot: snapshot, workflow: currentWorkflow)
+        let priorVerificationState = snapshot.verificationState
+        let isTerminalState = switch priorVerificationState {
+        case .success, .timedOut, .cancelled:
+            true
+        default:
+            false
+        }
+        guard !isTerminalState else {
+            return
+        }
+
+        if workflow.supportsValidation {
+            let nextIssue = Self.validationIssue(for: target, snapshot: snapshot, workflow: workflow)
             activeIssue = nextIssue
-            snapshot.verificationState = nextIssue == nil ? .readyToVerify : .readinessFailed
-        } else if snapshot.verificationState != .waitingForTraffic {
-            let nextIssue = Self.validationIssue(for: selectedTarget, snapshot: snapshot, workflow: currentWorkflow)
-            activeIssue = nextIssue
-            snapshot.verificationState = nextIssue == nil ? .readyToVerify : .readinessFailed
+            if priorVerificationState != .waitingForTraffic {
+                snapshot.verificationState = nextIssue == nil ? .readyToVerify : .readinessFailed
+            }
+        } else {
+            activeIssue = .targetIsGuideOnly
+            if priorVerificationState != .waitingForTraffic {
+                snapshot.verificationState = .idle
+            }
         }
     }
 
@@ -372,14 +394,20 @@ final class DeveloperSetupViewModel {
         validationTask?.cancel()
         let capturedTargetID = selectedTarget.id
         let validationRunID = UUID()
+        let capturedTaskToken = ValidationTaskToken()
         self.validationRunID = validationRunID
+        self.validationTaskToken = capturedTaskToken
         validationTask = Task { @MainActor [weak self] in
             guard let self else {
                 return
             }
 
             await self.refreshSnapshot()
-            guard self.selectedTarget.id == capturedTargetID, self.validationRunID == validationRunID else {
+            guard
+                self.selectedTarget.id == capturedTargetID,
+                self.validationTaskToken === capturedTaskToken,
+                self.validationRunID == validationRunID
+            else {
                 return
             }
 
@@ -406,7 +434,11 @@ final class DeveloperSetupViewModel {
 
                 while !Task.isCancelled {
                     if !self.supportsValidation {
-                        guard self.selectedTarget.id == capturedTargetID, self.validationRunID == validationRunID else {
+                        guard
+                            self.selectedTarget.id == capturedTargetID,
+                            self.validationTaskToken === capturedTaskToken,
+                            self.validationRunID == validationRunID
+                        else {
                             return
                         }
                         self.cancelValidation(markCancelled: true)
@@ -417,7 +449,11 @@ final class DeveloperSetupViewModel {
                         || !self.coordinator.isProxyRunning
                         || !self.coordinator.isRecording
                     {
-                        guard self.selectedTarget.id == capturedTargetID, self.validationRunID == validationRunID else {
+                        guard
+                            self.selectedTarget.id == capturedTargetID,
+                            self.validationTaskToken === capturedTaskToken,
+                            self.validationRunID == validationRunID
+                        else {
                             return
                         }
                         self.cancelValidation(markCancelled: true)
@@ -449,7 +485,11 @@ final class DeveloperSetupViewModel {
                     try? await Task.sleep(for: .milliseconds(250))
                 }
 
-                guard self.selectedTarget.id == capturedTargetID, self.validationRunID == validationRunID else {
+                guard
+                    self.selectedTarget.id == capturedTargetID,
+                    self.validationTaskToken === capturedTaskToken,
+                    self.validationRunID == validationRunID
+                else {
                     return
                 }
                 self.cancelValidation(markCancelled: true)
@@ -466,6 +506,7 @@ final class DeveloperSetupViewModel {
         validationTask?.cancel()
         validationTask = nil
         validationRunID = nil
+        validationTaskToken = nil
 
         if markCancelled {
             snapshot.verificationState = .cancelled
@@ -529,6 +570,8 @@ final class DeveloperSetupViewModel {
 
     private var validationTask: Task<Void, Never>?
     private let pinnedStore: DeveloperSetupPinnedStore
+
+    private final class ValidationTaskToken {}
 
     private var selectedSnippetTitle: String {
         currentSnippetOptions.first(where: { $0.id == selectedSnippetID })?.title

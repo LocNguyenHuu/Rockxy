@@ -347,6 +347,7 @@ extension MainContentCoordinator {
         // Rebuild sidebar app indexes for all workspaces (app counts/names may have changed).
         // If a workspace has an active app filter, recompute its filtered transactions
         // because membership depends on clientApp.
+        rebuildObservedDomainsByApp()
         for workspace in workspaceStore.workspaces {
             rebuildSidebarIndexes(for: workspace)
             if workspace.filterCriteria.sidebarApp != nil {
@@ -356,7 +357,6 @@ extension MainContentCoordinator {
                 deriveFilteredRows(for: workspace)
             }
         }
-        rebuildObservedDomainsByApp()
     }
 
     func updateDomainTree(for transaction: HTTPTransaction) {

@@ -541,7 +541,10 @@ enum DeveloperSetupWorkflowCatalog {
 
         const agent = new https.Agent({
           ca: fs.readFileSync("\(certPath)"),
-          proxyEnv: true,
+          proxyEnv: {
+            HTTP_PROXY: process.env.HTTP_PROXY,
+            HTTPS_PROXY: process.env.HTTPS_PROXY,
+          },
         });
 
         const request = https.request("https://httpbin.org/get", {
@@ -753,11 +756,13 @@ enum DeveloperSetupWorkflowCatalog {
         # development JVM or a copied cacerts file if you do not want to mutate
         # a shared installation.
         # Requires the default cacerts password "changeit" unless it was changed.
+        keystore="$( [ -n "$JAVA_HOME" ] && printf "%s" "$JAVA_HOME" || /usr/libexec/java_home )/lib/security/cacerts"
+
         keytool -importcert \\
           -noprompt \\
           -alias rockxy-ca \\
           -file \(certPath) \\
-          -keystore "$JAVA_HOME/lib/security/cacerts" \\
+          -keystore "$keystore" \\
           -storepass changeit
 
         # Then run your Java test, app, or CLI request normally; it will

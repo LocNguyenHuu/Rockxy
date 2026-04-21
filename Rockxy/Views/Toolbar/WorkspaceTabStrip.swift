@@ -15,7 +15,7 @@ struct WorkspaceTabStrip: View {
             addButton
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 6)
+        .padding(.vertical, 2)
         .frame(height: 32)
         .background(Color(nsColor: .windowBackgroundColor))
         .overlay(alignment: .bottom) {
@@ -164,6 +164,10 @@ private struct WorkspaceTabItem: View {
             }
         }
         .onHover { isHovering = $0 }
+        .onDisappear {
+            pendingSelectionTask?.cancel()
+            pendingSelectionTask = nil
+        }
     }
 
     // MARK: Private

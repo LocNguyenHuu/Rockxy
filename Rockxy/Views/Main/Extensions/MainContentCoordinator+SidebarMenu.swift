@@ -14,7 +14,10 @@ extension MainContentCoordinator {
     // MARK: - SSL Proxying
 
     func isSSLProxyingEnabled(for domain: String) -> Bool {
-        SSLProxyingManager.shared.includeRules.contains { $0.isEnabled && $0.matches(domain) }
+        guard SSLProxyingManager.shared.isEnabled else {
+            return false
+        }
+        return SSLProxyingManager.shared.includeRules.contains { $0.isEnabled && $0.matches(domain) }
     }
 
     @discardableResult
@@ -71,6 +74,10 @@ extension MainContentCoordinator {
     @discardableResult
     func enableSSLProxyingForApp(_ app: AppInfo, refreshPresentation: Bool = true) -> Bool {
         var didChange = false
+        if !SSLProxyingManager.shared.isEnabled {
+            SSLProxyingManager.shared.setEnabled(true)
+            didChange = true
+        }
         for domain in app.domains where !isSSLProxyingEnabled(for: domain) {
             didChange = enableSSLProxyingForDomain(domain, refreshPresentation: false) || didChange
         }

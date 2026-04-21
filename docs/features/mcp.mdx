@@ -90,13 +90,13 @@ Use `--scope user` for end-user setup so Rockxy is available across all projects
 
 Claude Desktop local MCP is configured separately from Claude CLI.
 
-On macOS, the common config file is:
+On macOS, the standard config file for a normal install is:
 
 ```text
 ~/Library/Application Support/Claude/claude_desktop_config.json
 ```
 
-Add Rockxy under the top-level `mcpServers` object. If your file already has `preferences`, keep them and add `mcpServers` alongside them.
+Some sandboxed or containerized installs can keep the config in an app-container path instead. If you do not see this file yet, create it, then add Rockxy under the top-level `mcpServers` object. If your file already has `preferences`, keep them and add `mcpServers` alongside them so the existing settings stay intact.
 
 ### Example
 

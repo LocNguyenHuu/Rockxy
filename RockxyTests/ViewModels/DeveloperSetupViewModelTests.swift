@@ -497,6 +497,20 @@ struct DeveloperSetupViewModelTests {
         #expect(snippet?.contains("https://httpbin.org/get") == true)
     }
 
+    @Test("Generated Node.js https snippet passes proxyEnv as an environment object")
+    func generatedNodeHTTPSSnippetUsesEnvironmentObject() {
+        let snippet = DeveloperSetupWorkflowCatalog.generatedSnippet(
+            for: .nodeJS,
+            snippetID: .nodeHTTPS,
+            port: 9_090,
+            certificatePath: "/tmp/RockxyRootCA.pem"
+        )
+
+        #expect(snippet?.contains("proxyEnv: {") == true)
+        #expect(snippet?.contains("HTTP_PROXY: process.env.HTTP_PROXY") == true)
+        #expect(snippet?.contains("HTTPS_PROXY: process.env.HTTPS_PROXY") == true)
+    }
+
     @Test("Generated cURL snippet includes proxy flag and CA bundle")
     func generatedCurlSnippet() {
         let snippet = DeveloperSetupWorkflowCatalog.generatedSnippet(
@@ -597,7 +611,8 @@ struct DeveloperSetupViewModelTests {
 
         #expect(snippet?.contains("keytool -importcert") == true)
         #expect(snippet?.contains("/tmp/RockxyRootCA.pem") == true)
-        #expect(snippet?.contains("$JAVA_HOME/lib/security/cacerts") == true)
+        #expect(snippet?.contains("keystore=\"$( [ -n \"$JAVA_HOME\" ]") == true)
+        #expect(snippet?.contains("-keystore \"$keystore\"") == true)
         #expect(snippet?.contains("prefer a dedicated") == true)
     }
 
@@ -796,5 +811,16 @@ struct DeveloperSetupViewModelTests {
 
         #expect(viewModel.certificatePathHint == nil)
         #expect(viewModel.certificatePathStatusText == "Export required")
+    }
+
+    @Test("refreshSnapshot preserves terminal verification states")
+    func refreshSnapshotPreservesTerminalState() async {
+        let viewModel = DeveloperSetupViewModel(coordinator: MainContentCoordinator())
+        viewModel.snapshot.verificationState = .success
+        viewModel.activeIssue = nil
+
+        await viewModel.refreshSnapshot()
+
+        #expect(viewModel.snapshot.verificationState == .success)
     }
 }

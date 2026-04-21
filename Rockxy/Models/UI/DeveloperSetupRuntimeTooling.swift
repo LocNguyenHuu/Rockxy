@@ -15,9 +15,10 @@ enum DeveloperSetupRuntimeTooling {
     static func readiness(for targetID: SetupTarget.ID) -> SetupRuntimeReadiness {
         switch targetID {
         case .python:
+            let pathCandidates = executableURLsOnPath(named: "python3")
             return executableReadiness(
                 title: "Python 3",
-                urls: [URL(fileURLWithPath: "/usr/bin/python3")]
+                urls: [URL(fileURLWithPath: "/usr/bin/python3")] + pathCandidates
             )
         case .nodeJS:
             return executableReadiness(
@@ -130,6 +131,31 @@ enum DeveloperSetupRuntimeTooling {
 
         let toolURL = URL(fileURLWithPath: javaHomePath).appendingPathComponent("bin/\(name)")
         return fileManager.isExecutableFile(atPath: toolURL.path) ? toolURL : nil
+    }
+
+    static func executableURLsOnPath(named name: String, path: String? = nil) -> [URL] {
+        let searchPath = path ?? ProcessInfo.processInfo.environment["PATH"] ?? ""
+        guard !searchPath.isEmpty else {
+            return []
+        }
+
+        let fileManager = FileManager.default
+        var urls: [URL] = []
+        var seen = Set<String>()
+
+        for component in searchPath.split(separator: ":").map(String.init) where !component.isEmpty {
+            let candidate = URL(fileURLWithPath: component).appendingPathComponent(name)
+            let normalizedPath = candidate.path
+            guard
+                seen.insert(normalizedPath).inserted,
+                fileManager.isExecutableFile(atPath: normalizedPath)
+            else {
+                continue
+            }
+            urls.append(candidate)
+        }
+
+        return urls
     }
 
     private static func executableReadiness(title: String, urls: [URL]) -> SetupRuntimeReadiness {
