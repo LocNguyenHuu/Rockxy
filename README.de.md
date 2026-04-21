@@ -39,7 +39,7 @@
 ---
 
 <!-- BEGIN GENERATED: latest-release -->
-## Neueste Version
+## Neueste veröffentlichte Version
 
 **v0.9.0** — 2026-04-18
 
@@ -107,6 +107,12 @@
 Die vollständige Versionshistorie finden Sie in [CHANGELOG.md](CHANGELOG.md).
 <!-- END GENERATED: latest-release -->
 
+## Highlights des aktuellen Branches
+
+- Developer Setup Hub deckt jetzt Runtimes, Browser, Clients, Ger&auml;te, Frameworks und Umgebungen mit zielgerichteten Snippets, Validierungs-Watchern und ehrlicher Guide-Dokumentation ab.
+- Wenn SSL Proxying pro Domain oder App aktiviert bzw. deaktiviert wird, bleiben die HTTPS-Aufforderung, Sidebar-Aktionen und die Haupttabelle synchron.
+- Inspektor und Haupttabelle wurden weiter verfeinert: einzeilige scrollbare Tabs, oben ausgerichteter Query-Inhalt, klarere Trennung von Status/Code, Request/Response-Byte-Spalten, Duration-Korrekturen und live aktualisierte SSL-Statussymbole.
+
 ## Funktionen
 
 **Traffic-Erfassung** &mdash; SwiftNIO-basierter Proxy mit CONNECT-Tunnel, automatischer TLS-Zertifikatsgenerierung pro Host, WebSocket-Frame-Erfassung und automatischer GraphQL-Operationserkennung.
@@ -120,6 +126,8 @@ Die vollständige Versionshistorie finden Sie in [CHANGELOG.md](CHANGELOG.md).
 **Mit Plugins erweitern** &mdash; JavaScript-Scripting in einer sandboxed JavaScriptCore-Laufzeit. Traffic mit benutzerdefinierten Hooks inspizieren, modifizieren und automatisieren.
 
 **F&uuml;r Skalierung gebaut** &mdash; NSTableView mit virtuellem Scrollen f&uuml;r 100k+ Anfragen. Ringpuffer-Eviction, Disk-Body-Offloading, gebatchte UI-Updates. Keine Verz&ouml;gerung.
+
+**Developer Setup Hub** &mdash; Gef&uuml;hrte Einrichtung pro Runtime, Browser, Ger&auml;t, Framework und Umgebung mit kopierbaren Snippets, Validierungsproben und Troubleshooting-Hinweisen.
 
 **AI-Ready (MCP Server)** &mdash; Integrierter Model Context Protocol-Server, mit dem Claude CLI, Claude Desktop und andere MCP-Clients live Traffic, Regeln und Proxy-Status direkt aus dem Chat abfragen k&ouml;nnen. Nur lokal, Token-authentifiziert, sensible Daten werden standardm&auml;&szlig;ig maskiert.
 
@@ -189,11 +197,13 @@ Schwachstellen melden &uuml;ber [SECURITY.md](SECURITY.md). Siehe die [vollst&au
 Vollst&auml;ndige Dokumentation verf&uuml;gbar unter [Rockxy Docs](docs/index.mdx):
 
 - [Schnellstart-Anleitung](docs/quickstart.mdx) &mdash; in wenigen Minuten einsatzbereit
+- [Developer Setup Hub](docs/features/developer-setup-hub.mdx) &mdash; Runtime-Snippets, Ger&auml;te-Guides, Validierungsproben und Support-Matrix
 - [Architektur](docs/development/architecture.mdx) &mdash; Proxy-Engine, Actor-Modell, Datenfluss
 - [Sicherheitsmodell](docs/development/security.mdx) &mdash; Vertrauensgrenzen, XPC-Validierung, Zertifikatsverwaltung
 - [Design-Entscheidungen](docs/development/design-decisions.mdx) &mdash; warum SwiftNIO, NSTableView, Actors
 - [Aus Quellcode bauen](docs/development/building.mdx) &mdash; Bauen, Testen, Lint und Debuggen
 - [Code-Stil](docs/development/code-style.mdx) &mdash; SwiftLint, SwiftFormat und Konventionen
+- [Changelog](CHANGELOG.md) &mdash; aktuelle Branch-&Auml;nderungen und Verlauf der getaggten Releases
 
 ## Beitragen
 

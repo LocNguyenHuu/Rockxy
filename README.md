@@ -39,7 +39,7 @@
 ---
 
 <!-- BEGIN GENERATED: latest-release -->
-## Latest Release
+## Latest Tagged Release
 
 **v0.9.0** — 2026-04-18
 
@@ -107,6 +107,12 @@
 See [CHANGELOG.md](CHANGELOG.md) for the full release history.
 <!-- END GENERATED: latest-release -->
 
+## Current Branch Highlights
+
+- Developer Setup Hub now covers runtimes, browsers, clients, devices, frameworks, and environments with target-specific snippets, validation watchers, and honest guide content.
+- HTTPS response prompts, sidebar actions, and the request table now stay in sync when SSL proxying is enabled or disabled by domain or app.
+- The inspector and main request table were polished with scrolling tabs, top-aligned query content, clearer status/code separation, request/response byte columns, duration fixes, and live SSL state icons.
+
 ## Features
 
 **Traffic Capture** — SwiftNIO proxy with CONNECT tunnel, auto-generated per-host TLS certificates, WebSocket frame capture, and automatic GraphQL operation detection.
@@ -120,6 +126,8 @@ See [CHANGELOG.md](CHANGELOG.md) for the full release history.
 **Extend with Plugins** — JavaScript scripting in a sandboxed JavaScriptCore runtime. Inspect, modify, and automate traffic with custom hooks.
 
 **Built for Scale** — NSTableView virtual scrolling handles 100k+ requests. Ring buffer eviction, disk body offloading, batched UI updates. Zero lag.
+
+**Developer Setup Hub** — Guided setup per runtime, browser, device, framework, and environment with copyable snippets, validation probes, and troubleshooting notes.
 
 **AI-Ready (MCP Server)** — Bundled Model Context Protocol server lets Claude CLI, Claude Desktop, and other MCP clients query live traffic, rules, and proxy status directly from chat. Local-only, token-authenticated, sensitive data redacted by default.
 
@@ -191,12 +199,14 @@ Report vulnerabilities via [SECURITY.md](SECURITY.md). See the [full security ar
 Full documentation available at the [Rockxy Docs](docs/index.mdx):
 
 - [Quickstart Guide](docs/quickstart.mdx) — get up and running in minutes
+- [Developer Setup Hub](docs/features/developer-setup-hub.mdx) — runtime snippets, device guides, validation probes, and support matrix
 - [MCP Integration](docs/features/mcp.mdx) — connect Rockxy to Claude CLI or Claude Desktop
 - [Architecture](docs/development/architecture.mdx) — proxy engine, actor model, data flow
 - [Security Model](docs/development/security.mdx) — trust boundaries, XPC validation, certificate management
 - [Design Decisions](docs/development/design-decisions.mdx) — why SwiftNIO, NSTableView, actors
 - [Building from Source](docs/development/building.mdx) — build, test, lint, and debug
 - [Code Style](docs/development/code-style.mdx) — SwiftLint, SwiftFormat, and conventions
+- [Changelog](CHANGELOG.md) — unreleased work and tagged releases
 
 ## Contributing
 

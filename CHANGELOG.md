@@ -16,11 +16,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - MCP Settings: config JSON no longer shows escaped forward slashes (`\/`) in the `command` path — output now matches standard local JSON configuration files.
+- SSL Proxying controls: the encrypted HTTPS response prompt, sidebar actions, and the main request table now stay in sync when enabling or disabling interception by domain or app.
+- Request table: CONNECT tunnel rows no longer show placeholder request/response byte counts, and duration now falls back to measured tunnel timing when detailed timing data is unavailable.
 
 ### Changed
 
 - Developer Setup Hub: removed the combined `HTTP Clients` row in favor of individual client targets; the neutrality test now allows `Vision Pro` as a proper noun while still rejecting standalone packaging terms.
 - Developer Setup Hub: promoted `Java VMs`, `Firefox`, `Postman`, `Insomnia`, `Paw`, `Docker`, `ElectronJS`, and `Next.js` from `guideOnly` to `availableNow` — each now ships a real snippet path with the in-app validation watcher instead of just guide tips.
+- Inspector: request and response tabs now use a single-line scrolling tab strip, and short tabs such as Query stay top-aligned in both right and bottom inspector layouts.
+- Request table: added `Status`, `Request`, `Response`, and `SSL` columns, restored the `ID` header, and made the SSL icon reflect effective interception state instead of URL scheme alone.
 
 ## [0.9.0] - 2026-04-18
 
