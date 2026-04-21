@@ -113,6 +113,18 @@ Some applications (e.g., Firefox, Electron apps with custom proxy settings) igno
 
 Rockxy holds up to 50,000 transactions in memory. Older transactions are evicted to SQLite automatically. If memory usage is still high, clear the current session from **File > Clear Session**.
 
+## Claude Setup
+
+If you want to use Rockxy with Claude, open **Settings → MCP** after installation and turn on **Enable MCP Server**.
+
+Rockxy ships with a bundled local MCP bridge named `rockxy-mcp`. Both Claude CLI and Claude Desktop can use it, but they each keep their own MCP configuration.
+
+See [MCP Integration](/features/mcp) for the full end-user guide, including:
+
+- Claude CLI setup with `claude mcp add`
+- Claude Desktop setup with `claude_desktop_config.json`
+- troubleshooting for local MCP vs. remote Connectors
+
 ## Next Steps
 
 <CardGroup cols={2}>
@@ -121,5 +133,8 @@ Rockxy holds up to 50,000 transactions in memory. Older transactions are evicted
   </Card>
   <Card title="Traffic Capture" icon="network-wired" href="/features/traffic-capture">
     Learn about filtering, searching, and inspecting captured traffic.
+  </Card>
+  <Card title="MCP Integration" icon="plug" href="/features/mcp">
+    Connect Rockxy to Claude CLI or Claude Desktop.
   </Card>
 </CardGroup>

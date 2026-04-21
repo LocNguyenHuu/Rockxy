@@ -39,7 +39,7 @@
 ---
 
 <!-- BEGIN GENERATED: latest-release -->
-## Dernière Version
+## Dernière version publiée
 
 **v0.9.0** — 2026-04-18
 
@@ -107,6 +107,12 @@
 Consultez [CHANGELOG.md](CHANGELOG.md) pour l’historique complet des versions.
 <!-- END GENERATED: latest-release -->
 
+## Points forts de la branche actuelle
+
+- Developer Setup Hub couvre désormais les runtimes, navigateurs, clients, appareils, frameworks et environnements avec des snippets ciblés, des watchers de validation et une documentation honnête.
+- Quand le SSL Proxying est activé ou désactivé par domaine ou par application, l’invite HTTPS chiffrée, les actions de la barre latérale et la table principale restent synchronisées.
+- L’inspecteur et la table principale ont &eacute;t&eacute; peaufin&eacute;s avec des onglets d&eacute;filants sur une seule ligne, un contenu Query align&eacute; en haut, une meilleure s&eacute;paration Status/Code, des colonnes Request/Response en octets, des correctifs de duration et des ic&ocirc;nes SSL mises &agrave; jour en direct.
+
 ## Fonctionnalit&eacute;s
 
 **Capture du trafic** &mdash; Proxy bas&eacute; sur SwiftNIO avec tunnel CONNECT, g&eacute;n&eacute;ration automatique de certificats TLS par h&ocirc;te, capture de frames WebSocket et d&eacute;tection automatique des op&eacute;rations GraphQL.
@@ -120,6 +126,10 @@ Consultez [CHANGELOG.md](CHANGELOG.md) pour l’historique complet des versions.
 **Extension par plugins** &mdash; Scripting JavaScript dans un environnement JavaScriptCore isol&eacute;. Inspectez, modifiez et automatisez le trafic avec des hooks personnalis&eacute;s.
 
 **Con&ccedil;u pour la mont&eacute;e en charge** &mdash; NSTableView avec d&eacute;filement virtuel pour 100k+ requ&ecirc;tes. &Eacute;viction par tampon circulaire, d&eacute;chargement des body sur disque, mises &agrave; jour UI group&eacute;es. Z&eacute;ro latence.
+
+**Developer Setup Hub** &mdash; Configuration guid&eacute;e par runtime, navigateur, appareil, framework et environnement avec snippets copiables, sondes de validation et notes de d&eacute;pannage.
+
+**AI-Ready (MCP Server)** &mdash; Serveur Model Context Protocol int&eacute;gr&eacute; qui permet &agrave; Claude CLI, Claude Desktop et aux autres clients MCP d'interroger le trafic en direct, les r&egrave;gles et l'&eacute;tat du proxy directement depuis le chat. Local uniquement, authentifi&eacute; par token, donn&eacute;es sensibles masqu&eacute;es par d&eacute;faut.
 
 > 100 % natif macOS. Pas d'Electron. Pas de vues web. SwiftUI + AppKit + SwiftNIO.
 
@@ -175,6 +185,7 @@ Signaler les vuln&eacute;rabilit&eacute;s via [SECURITY.md](SECURITY.md). Voir l
 - [x] Syst&egrave;me de plugins JavaScript (ex&eacute;cution sandbox&eacute;e)
 - [x] Import/export HAR, fichiers de session natifs, diff de requ&ecirc;tes
 - [x] Corr&eacute;lation OSLog et masquage des identifiants
+- [x] Serveur Model Context Protocol (MCP) pour les assistants IA (Claude CLI, Claude Desktop)
 - [ ] Support HTTP/2 et HTTP/3
 - [ ] Proxy d'appareil distant (iOS via USB/Wi-Fi)
 - [ ] Mode headless pour les pipelines CI/CD
@@ -186,11 +197,13 @@ Signaler les vuln&eacute;rabilit&eacute;s via [SECURITY.md](SECURITY.md). Voir l
 Documentation compl&egrave;te disponible sur [Rockxy Docs](docs/index.mdx) :
 
 - [Guide de d&eacute;marrage rapide](docs/quickstart.mdx) &mdash; op&eacute;rationnel en quelques minutes
+- [Developer Setup Hub](docs/features/developer-setup-hub.mdx) &mdash; snippets runtime, guides appareil, sondes de validation et matrice de support
 - [Architecture](docs/development/architecture.mdx) &mdash; moteur proxy, mod&egrave;le Actor, flux de donn&eacute;es
 - [Mod&egrave;le de s&eacute;curit&eacute;](docs/development/security.mdx) &mdash; fronti&egrave;res de confiance, validation XPC, gestion des certificats
 - [D&eacute;cisions de conception](docs/development/design-decisions.mdx) &mdash; pourquoi SwiftNIO, NSTableView, les Actors
 - [Compiler depuis les sources](docs/development/building.mdx) &mdash; compilation, tests, lint et d&eacute;bogage
 - [Style de code](docs/development/code-style.mdx) &mdash; SwiftLint, SwiftFormat et conventions
+- [Changelog](CHANGELOG.md) &mdash; travaux non publi&eacute;s et historique des versions tagu&eacute;es
 
 ## Contribuer
 

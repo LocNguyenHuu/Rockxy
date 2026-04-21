@@ -1,0 +1,198 @@
+---
+title: "MCP Integration"
+description: "Connect Rockxy to Claude CLI or Claude Desktop with the bundled rockxy-mcp local MCP server."
+---
+
+# MCP Integration
+
+Rockxy includes a bundled local MCP server so compatible tools can inspect captured traffic, read proxy and certificate status, list rules, and export requests as cURL without leaving your AI client.
+
+Rockxy's MCP integration is **local-only**:
+
+- Rockxy starts a local server on `127.0.0.1`
+- the bundled `rockxy-mcp` binary acts as the stdio bridge used by Claude
+- Rockxy writes a local handshake file with the current port and auth token
+
+On macOS, the bundled bridge reads the handshake from `~/Library/Application Support/com.amunx.rockxy.community/mcp-handshake.json`.
+
+You do **not** add Rockxy through Claude's remote **Connectors** flow.
+
+## Before You Start
+
+Make sure all of these are true:
+
+1. Rockxy is installed and launched.
+2. In Rockxy, open **Settings → MCP**.
+3. Turn on **Enable MCP Server**.
+4. Optionally keep **Redact Sensitive Data Before Sending to AI** enabled.
+5. Copy the generated MCP config snippet from Rockxy.
+
+<Tip>
+If you move `Rockxy.app` to a different folder later, open **Settings → MCP** and copy the config again so the `command` path stays correct.
+</Tip>
+
+## What Rockxy Gives You
+
+Rockxy currently exposes these MCP tools:
+
+- `get_version`
+- `get_proxy_status`
+- `get_certificate_status`
+- `get_recent_flows`
+- `get_flow_detail`
+- `search_flows`
+- `filter_flows`
+- `export_flow_curl`
+- `list_rules`
+- `get_ssl_proxying_list`
+
+## Set Up Claude CLI
+
+Claude CLI and Claude Desktop use different MCP config stores. If you want Rockxy in Claude CLI, configure it there directly.
+
+### Recommended command
+
+If Rockxy is installed in `/Applications`, run:
+
+```bash
+claude mcp add rockxy --scope user -- /Applications/Rockxy.app/Contents/MacOS/rockxy-mcp
+```
+
+If your app is installed somewhere else, replace the path with the exact `command` path shown in **Settings → MCP**.
+
+### Verify the setup
+
+Run:
+
+```bash
+claude mcp list
+```
+
+You should see `rockxy` listed and connected.
+
+Then start a fresh Claude CLI session:
+
+```bash
+claude
+```
+
+Try:
+
+```text
+Use the rockxy MCP server and call get_version.
+```
+
+### Why `--scope user` is recommended
+
+Use `--scope user` for end-user setup so Rockxy is available across all projects on your Mac. Project-local scope can work, but it is easier to misconfigure and may only appear inside one specific workspace.
+
+## Set Up Claude Desktop
+
+Claude Desktop local MCP is configured separately from Claude CLI.
+
+On macOS, the standard config file for a normal install is:
+
+```text
+~/Library/Application Support/Claude/claude_desktop_config.json
+```
+
+Some sandboxed or containerized installs can keep the config in an app-container path instead. If you do not see this file yet, create it, then add Rockxy under the top-level `mcpServers` object. If your file already has `preferences`, keep them and add `mcpServers` alongside them so the existing settings stay intact.
+
+### Example
+
+```json
+{
+  "preferences": {
+    "sidebarMode": "chat"
+  },
+  "mcpServers": {
+    "rockxy": {
+      "command": "/Applications/Rockxy.app/Contents/MacOS/rockxy-mcp",
+      "args": [],
+      "env": {}
+    }
+  }
+}
+```
+
+If your existing file already contains more `preferences`, do not delete them. Just merge in the `mcpServers.rockxy` block.
+
+### After editing the file
+
+1. Save `claude_desktop_config.json`.
+2. Quit Claude Desktop completely.
+3. Launch Claude Desktop again.
+4. Open a new chat.
+
+Then try:
+
+```text
+Use the rockxy MCP server and call get_version.
+```
+
+## Claude Desktop vs. Connectors
+
+This distinction matters:
+
+- **Connectors** in Claude are for remote MCP services
+- **Rockxy** is a local stdio MCP server running on your Mac
+
+So if you do not see a place to paste Rockxy JSON into **Settings → Connectors**, that is expected. Rockxy belongs in `claude_desktop_config.json`, not the remote Connectors UI.
+
+## Example Demo Flow
+
+Once Claude can see Rockxy, this prompt makes a good end-to-end demo:
+
+```text
+Use the rockxy MCP server to:
+1. confirm the connection with get_version
+2. check proxy status
+3. list the 10 most recent flows
+4. find the most relevant failing API flow
+5. show its details
+6. export it as curl
+7. summarize the likely root cause
+```
+
+## Troubleshooting
+
+### Claude says `rockxy` is not available
+
+Check these first:
+
+1. Rockxy is running.
+2. **Settings → MCP → Enable MCP Server** is still on.
+3. You restarted Claude after changing the config.
+4. You are editing the correct config for the client you are using.
+
+Remember:
+
+- Claude CLI config is separate from Claude Desktop config
+- Claude Desktop **Connectors** are separate from local MCP config
+
+### `claude mcp list` shows `rockxy`, but Claude Desktop still does not
+
+That usually means only Claude CLI was configured. Add Rockxy to `claude_desktop_config.json` as well.
+
+### Claude Desktop has `preferences` already
+
+That is normal. Keep your existing `preferences` object and add `mcpServers` next to it.
+
+### The app path changed
+
+If you moved `Rockxy.app`, the old `command` path may be stale. Open **Settings → MCP** in Rockxy and copy the config again.
+
+### The MCP bridge cannot connect
+
+The bundled `rockxy-mcp` process only works when Rockxy is running with MCP enabled. If Rockxy is closed, or MCP is disabled, the bridge cannot read the handshake details it needs.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Capture traffic first, then bring the same flows into Claude.
+  </Card>
+  <Card title="Settings" icon="sliders" href="/customization/settings">
+    Review the MCP toggle, privacy controls, and other app settings.
+  </Card>
+</CardGroup>

@@ -14,6 +14,7 @@ extension MainContentCoordinator {
         let removedIDs = Set(transactions.prefix(removeCount).map(\.id))
 
         transactions.removeFirst(removeCount)
+        rebuildObservedDomainsByApp()
         evictFromAllWorkspaces(removedIDs: removedIDs)
 
         Self.logger.info("Evicted \(removeCount) oldest transactions (remaining: \(self.transactions.count))")

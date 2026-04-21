@@ -19,6 +19,18 @@ final class MainContentCoordinator {
         self.workspaceStore = WorkspaceStore(maxWorkspaces: policy.maxWorkspaceTabs)
     }
 
+    deinit {
+        if let rulesObserver {
+            NotificationCenter.default.removeObserver(rulesObserver)
+        }
+        if let sslProxyingObserver {
+            NotificationCenter.default.removeObserver(sslProxyingObserver)
+        }
+        if let evictionObserver {
+            NotificationCenter.default.removeObserver(evictionObserver)
+        }
+    }
+
     // MARK: Internal
 
     struct DeferredBatch {
@@ -85,7 +97,7 @@ final class MainContentCoordinator {
     var bandwidthTimer: Timer?
     var isProxyOverridden = false
     var isAutoSelectEnabled = true
-    var evictionObserver: NSObjectProtocol?
+    nonisolated(unsafe) var evictionObserver: NSObjectProtocol?
 
     // MARK: - UI State — Engine Status
 
@@ -114,6 +126,8 @@ final class MainContentCoordinator {
     var exportScopeContext: ExportScopeContext?
     var sessionProvenance: SessionProvenance?
     var activeToast: ToastMessage?
+    var sslProxyingRefreshToken: Int = 0
+    var observedDomainsByApp: [String: Set<String>] = [:]
 
     private(set) var ruleLoadTask: Task<Void, Never>?
 
@@ -340,7 +354,8 @@ final class MainContentCoordinator {
 
     // MARK: Private
 
-    private var rulesObserver: NSObjectProtocol?
+    nonisolated(unsafe) private var rulesObserver: NSObjectProtocol?
+    nonisolated(unsafe) var sslProxyingObserver: NSObjectProtocol?
 }
 
 // MARK: - SystemProxyWarning

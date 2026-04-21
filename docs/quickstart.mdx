@@ -60,6 +60,14 @@ For WebSocket connections, you will see individual frames listed with their opco
 
 Switch to the **Logs** tab in the sidebar to see captured application logs from OSLog streams and process stdout/stderr. Logs are correlated with network requests by timestamp and process, so you can trace a request from the network layer through to the application log output.
 
+## 7. Connect Rockxy to Claude
+
+If you want to inspect traffic that Rockxy captures for Claude, open **Settings → MCP** in Rockxy, turn on **Enable MCP Server**, and copy the generated config snippet.
+
+Rockxy uses a **local MCP** setup for Claude CLI and Claude Desktop. It is not configured through Claude's remote **Connectors** flow.
+
+For the full setup guide, including Claude CLI and Claude Desktop instructions, see [MCP Integration](/features/mcp).
+
 ## Next Steps
 
 <CardGroup cols={2}>
@@ -77,5 +85,8 @@ Switch to the **Logs** tab in the sidebar to see captured application logs from 
   </Card>
   <Card title="Sessions & HAR" icon="floppy-disk" href="/features/sessions">
     Save, restore, import, and export captured traffic.
+  </Card>
+  <Card title="MCP Integration" icon="plug" href="/features/mcp">
+    Connect Rockxy to Claude and inspect flows directly from your chat.
   </Card>
 </CardGroup>

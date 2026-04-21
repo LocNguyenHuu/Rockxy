@@ -166,6 +166,7 @@ extension MainContentCoordinator {
                 updateDomainTree(for: transaction)
                 updateAppNodes(for: transaction)
             }
+            rebuildObservedDomainsByApp()
             recomputeFilteredTransactions()
             headerColumnStore.updateDiscoveredHeaders(from: transactions)
             TrafficDomainSnapshot.shared.update(appNodes: appNodes, domainTree: domainTree)
@@ -207,6 +208,7 @@ extension MainContentCoordinator {
                 updateDomainTree(for: transaction)
                 updateAppNodes(for: transaction)
             }
+            rebuildObservedDomainsByApp()
 
             if let codableLogEntries = session.logEntries {
                 logEntries = codableLogEntries.map { $0.toLiveModel() }

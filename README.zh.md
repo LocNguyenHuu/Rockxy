@@ -39,7 +39,7 @@
 ---
 
 <!-- BEGIN GENERATED: latest-release -->
-## 最新发布
+## 最新已发布版本
 
 **v0.9.0** — 2026-04-18
 
@@ -107,6 +107,12 @@
 完整发布历史见 [CHANGELOG.md](CHANGELOG.md)。
 <!-- END GENERATED: latest-release -->
 
+## 当前分支亮点
+
+- Developer Setup Hub 现在覆盖运行时、浏览器、客户端、设备、框架与环境，并提供按目标生成的代码片段、验证监视器和清晰的操作指引。
+- 当按域名或应用启用/禁用 SSL Proxying 时，HTTPS 响应提示、侧边栏操作和主请求表的展示会保持同步。
+- Inspector 与主请求表已完成一轮打磨，包括单行可滚动标签、Query 顶部对齐、更清晰的 Status/Code 区分、Request/Response 字节列、Duration 修正以及实时 SSL 状态图标。
+
 ## 功能特性
 
 **流量捕获** — 基于 SwiftNIO 的代理，支持 CONNECT 隧道、自动为每个主机生成 TLS 证书、WebSocket 帧捕获，以及自动检测 GraphQL 操作。
@@ -120,6 +126,10 @@
 **插件扩展** — 在沙箱化的 JavaScriptCore 运行时中使用 JavaScript 脚本。通过自定义 hook 检查、修改和自动化流量。
 
 **为大规模而生** — NSTableView 虚拟滚动处理 100k+ 请求。环形缓冲区淘汰、磁盘 body 卸载、批量 UI 更新。零延迟。
+
+**Developer Setup Hub** — 面向运行时、浏览器、设备、框架与环境的引导式配置中心，提供可复制片段、验证探针和故障排查说明。
+
+**AI-Ready (MCP Server)** — 内置 Model Context Protocol 服务器，让 Claude CLI、Claude Desktop 及其他 MCP 客户端可直接在对话中查询实时流量、规则和代理状态。仅本地运行，使用 token 认证，敏感数据默认脱敏。
 
 > 100% 原生 macOS。没有 Electron。没有 Web 视图。SwiftUI + AppKit + SwiftNIO。
 
@@ -175,6 +185,7 @@ Rockxy 拦截网络流量 — 安全是基础，不是可选项。
 - [x] JavaScript 插件系统（沙箱执行）
 - [x] HAR 导入/导出、原生会话文件、请求对比
 - [x] OSLog 关联和凭证脱敏
+- [x] 面向 AI 助手的 Model Context Protocol (MCP) 服务器（Claude CLI、Claude Desktop）
 - [ ] HTTP/2 和 HTTP/3 支持
 - [ ] 远程设备代理（iOS 通过 USB/Wi-Fi）
 - [ ] CI/CD 流水线的 Headless 模式
@@ -186,11 +197,14 @@ Rockxy 拦截网络流量 — 安全是基础，不是可选项。
 完整文档请访问 [Rockxy Docs](docs/index.mdx)：
 
 - [快速入门](docs/quickstart.mdx) — 几分钟内完成设置
+- [Developer Setup Hub](docs/features/developer-setup-hub.mdx) — 运行时代码片段、设备指南、验证探针与支持矩阵
+- [MCP 集成](docs/features/mcp.mdx) — MCP 配置与使用指南
 - [架构](docs/development/architecture.mdx) — 代理引擎、Actor 模型、数据流
 - [安全模型](docs/development/security.mdx) — 信任边界、XPC 验证、证书管理
 - [设计决策](docs/development/design-decisions.mdx) — 为什么选择 SwiftNIO、NSTableView、Actors
 - [从源码构建](docs/development/building.mdx) — 构建、测试、lint 和调试
 - [代码风格](docs/development/code-style.mdx) — SwiftLint、SwiftFormat 和约定
+- [更新日志](CHANGELOG.md) — 当前分支变更与已发布版本历史
 
 ## 贡献
 

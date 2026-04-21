@@ -39,7 +39,7 @@
 ---
 
 <!-- BEGIN GENERATED: latest-release -->
-## Latest Release
+## Latest Tagged Release
 
 **v0.9.0** — 2026-04-18
 
@@ -107,6 +107,12 @@
 See [CHANGELOG.md](CHANGELOG.md) for the full release history.
 <!-- END GENERATED: latest-release -->
 
+## Current Branch Highlights
+
+- Developer Setup Hub now covers runtimes, browsers, clients, devices, frameworks, and environments with target-specific snippets, validation watchers, and honest guide content.
+- HTTPS response prompts, sidebar actions, and the request table now stay in sync when SSL proxying is enabled or disabled by domain or app.
+- The inspector and main request table were polished with scrolling tabs, top-aligned query content, clearer status/code separation, request/response byte columns, duration fixes, and live SSL state icons.
+
 ## Features
 
 **Traffic Capture** — SwiftNIO proxy with CONNECT tunnel, auto-generated per-host TLS certificates, WebSocket frame capture, and automatic GraphQL operation detection.
@@ -121,6 +127,10 @@ See [CHANGELOG.md](CHANGELOG.md) for the full release history.
 
 **Built for Scale** — NSTableView virtual scrolling handles 100k+ requests. Ring buffer eviction, disk body offloading, batched UI updates. Zero lag.
 
+**Developer Setup Hub** — Guided setup per runtime, browser, device, framework, and environment with copyable snippets, validation probes, and troubleshooting notes.
+
+**AI-Ready (MCP Server)** — Bundled Model Context Protocol server lets Claude CLI, Claude Desktop, and other MCP clients query live traffic, rules, and proxy status directly from chat. Local-only, token-authenticated, sensitive data redacted by default.
+
 > 100% native macOS. No Electron. No web views. SwiftUI + AppKit + SwiftNIO.
 
 ## Quick Start
@@ -134,6 +144,8 @@ open Rockxy.xcodeproj
 Build and run in Xcode. The Welcome window guides you through root CA setup, helper installation, and proxy activation.
 
 **Requirements:** macOS 14.0+, Xcode 16+, Swift 5.9
+
+If you want to connect Rockxy to Claude after installation, see the [MCP Integration guide](docs/features/mcp.mdx).
 
 ## Rockxy vs. Alternatives
 
@@ -175,6 +187,7 @@ Report vulnerabilities via [SECURITY.md](SECURITY.md). See the [full security ar
 - [x] JavaScript plugin system with sandboxed execution
 - [x] HAR import/export, native session files, request diff
 - [x] OSLog correlation and credential redaction
+- [x] Model Context Protocol (MCP) server for AI assistants (Claude CLI, Claude Desktop)
 - [ ] HTTP/2 and HTTP/3 support
 - [ ] Remote device proxy (iOS over USB/Wi-Fi)
 - [ ] Headless mode for CI/CD pipeline integration
@@ -186,11 +199,14 @@ Report vulnerabilities via [SECURITY.md](SECURITY.md). See the [full security ar
 Full documentation available at the [Rockxy Docs](docs/index.mdx):
 
 - [Quickstart Guide](docs/quickstart.mdx) — get up and running in minutes
+- [Developer Setup Hub](docs/features/developer-setup-hub.mdx) — runtime snippets, device guides, validation probes, and support matrix
+- [MCP Integration](docs/features/mcp.mdx) — connect Rockxy to Claude CLI or Claude Desktop
 - [Architecture](docs/development/architecture.mdx) — proxy engine, actor model, data flow
 - [Security Model](docs/development/security.mdx) — trust boundaries, XPC validation, certificate management
 - [Design Decisions](docs/development/design-decisions.mdx) — why SwiftNIO, NSTableView, actors
 - [Building from Source](docs/development/building.mdx) — build, test, lint, and debug
 - [Code Style](docs/development/code-style.mdx) — SwiftLint, SwiftFormat, and conventions
+- [Changelog](CHANGELOG.md) — unreleased work and tagged releases
 
 ## Contributing
 

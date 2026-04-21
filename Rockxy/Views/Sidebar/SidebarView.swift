@@ -122,6 +122,10 @@ struct SidebarView: View {
                 isPresented: $isAddFavoritePresented
             )
         }
+        .background(
+            // Keep the sidebar invalidated when SSL proxying presentation changes.
+            EmptyView().id(coordinator.sslProxyingRefreshToken)
+        )
     }
 
     // MARK: Private
@@ -467,6 +471,7 @@ struct SidebarView: View {
     private func appContextMenu(_ app: AppInfo) -> some View {
         let item = SidebarItem.app(name: app.name, bundleId: nil)
         let isPinned = coordinator.isFavorite(item)
+        let isSSLProxyingEnabledForApp = coordinator.isSSLProxyingFullyEnabled(forAppNamed: app.name)
 
         Button {
             coordinator.toggleSidebarFavorite(item)
@@ -489,10 +494,18 @@ struct SidebarView: View {
 
         Divider()
 
-        Button {
-            coordinator.enableSSLProxyingForApp(app)
-        } label: {
-            Label(String(localized: "Enable SSL Proxying"), systemImage: "lock.shield")
+        if isSSLProxyingEnabledForApp {
+            Button {
+                coordinator.disableSSLProxyingForApp(app)
+            } label: {
+                Label(String(localized: "Disable SSL Proxying"), systemImage: "lock.shield")
+            }
+        } else {
+            Button {
+                coordinator.enableSSLProxyingForApp(app)
+            } label: {
+                Label(String(localized: "Enable SSL Proxying"), systemImage: "lock.shield")
+            }
         }
 
         Button {
