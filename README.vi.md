@@ -41,7 +41,7 @@
 <!-- BEGIN GENERATED: latest-release -->
 ## Bản Phát Hành Đã Gắn Tag Mới Nhất
 
-**v0.9.0** — 2026-04-18
+**v0.10.0** — 2026-04-21
 
 ### Đã Sửa
 

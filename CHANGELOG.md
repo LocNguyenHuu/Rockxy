@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+### Fixed
+
+### Changed
+
+## [0.10.0] - 2026-04-21
+
+### Added
+
 - Developer Setup Hub: dedicated rows for `Postman`, `Insomnia`, and `Paw` under **Browsers & Clients**, each with its own proxy + certificate workflow.
 - Developer Setup Hub: `tvOS / watchOS` and `Vision Pro` rows under **Devices**, documented as iOS-class guide-only targets with honest limitations.
 - Developer Setup Hub: guide content for `iOS Device`, `iOS Simulator`, `Android Device`, `Android Emulator`, `Flutter`, and `React Native` — bind/listen, certificate trust, and platform-specific caveats (Android network-security-config, iOS simulator trust, Metro restarts).

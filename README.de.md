@@ -41,7 +41,7 @@
 <!-- BEGIN GENERATED: latest-release -->
 ## Neueste veröffentlichte Version
 
-**v0.9.0** — 2026-04-18
+**v0.10.0** — 2026-04-21
 
 ### Behoben
 

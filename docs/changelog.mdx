@@ -6,21 +6,26 @@ rss: true
 
 # Changelog
 
-<Update label="Unreleased" description="Current branch">
+<Update label="April 2026" description="v0.10.0">
   ### Added
 
-  - Developer Setup Hub: dedicated rows for `Postman`, `Insomnia`, `Paw`, `tvOS / watchOS`, and `Vision Pro`, plus new guide coverage for iOS, Android, Flutter, and React Native targets.
-  - Developer Setup Hub: target-specific validation snippets and local proof lanes for Python, Node.js, Ruby, Go, Rust, cURL, Java, Firefox, Docker, and Next.js.
+  - Developer Setup Hub: dedicated rows for `Postman`, `Insomnia`, and `Paw` under **Browsers & Clients**, each with its own proxy + certificate workflow.
+  - Developer Setup Hub: `tvOS / watchOS` and `Vision Pro` rows under **Devices**, documented as iOS-class guide-only targets with honest limitations.
+  - Developer Setup Hub: guide content for `iOS Device`, `iOS Simulator`, `Android Device`, `Android Emulator`, `Flutter`, and `React Native` — bind/listen, certificate trust, and platform-specific caveats (Android network-security-config, iOS simulator trust, Metro restarts).
+  - Developer Setup Hub: validated manual snippets + httpbin validation watcher for eight additional targets — `Java VMs` (keytool import + HttpClient sample), `Firefox` (Network Settings + authority-store import + cURL verification), `Postman`, `Insomnia`, and `Paw` (proxy + CA settings snippet + cURL verification), `Docker` (throwaway `docker run` probe mounting the CA via `host.docker.internal`), `ElectronJS` (`--proxy-server` CLI flag and `session.setProxy` main-process snippet, both with `NODE_EXTRA_CA_CERTS`), and `Next.js` (App Router route handler with `NODE_EXTRA_CA_CERTS` + `HTTPS_PROXY` for `next dev`).
 
   ### Fixed
 
-  - SSL Proxying controls now stay in sync between the encrypted HTTPS response prompt, sidebar actions, and the main request table.
-  - Request table metrics no longer show placeholder request/response byte counts for CONNECT tunnel rows, and tunnel duration now falls back to measured timing when needed.
+  - MCP Settings: config JSON no longer shows escaped forward slashes (`\/`) in the `command` path — output now matches standard local JSON configuration files.
+  - SSL Proxying controls: the encrypted HTTPS response prompt, sidebar actions, and the main request table now stay in sync when enabling or disabling interception by domain or app.
+  - Request table: CONNECT tunnel rows no longer show placeholder request/response byte counts, and duration now falls back to measured tunnel timing when detailed timing data is unavailable.
 
   ### Changed
 
-  - Inspector tabs now use a single-line scrolling strip, and short tabs such as Query stay top-aligned in both right and bottom layouts.
-  - Request table now separates `Status` from `Code`, adds `Request`, `Response`, and `SSL` columns, and updates the SSL icon to reflect effective interception state.
+  - Developer Setup Hub: removed the combined `HTTP Clients` row in favor of individual client targets; the neutrality test now allows `Vision Pro` as a proper noun while still rejecting standalone packaging terms.
+  - Developer Setup Hub: promoted `Java VMs`, `Firefox`, `Postman`, `Insomnia`, `Paw`, `Docker`, `ElectronJS`, and `Next.js` from `guideOnly` to `availableNow` — each now ships a real snippet path with the in-app validation watcher instead of just guide tips.
+  - Inspector: request and response tabs now use a single-line scrolling tab strip, and short tabs such as Query stay top-aligned in both right and bottom inspector layouts.
+  - Request table: added `Status`, `Request`, `Response`, and `SSL` columns, restored the `ID` header, and made the SSL icon reflect effective interception state instead of URL scheme alone.
 
 </Update>
 
