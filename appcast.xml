@@ -1,0 +1,44 @@
+<?xml version="1.0" standalone="yes"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+  <channel>
+    <title>Rockxy</title>
+    <link>https://raw.githubusercontent.com/RockxyApp/Rockxy/main/appcast.xml</link>
+    <description>Rockxy release channel</description>
+    <language>en</language>
+    <item>
+      <title>Version 0.10.0 (build 13)</title>
+      <pubDate>Tue, 21 Apr 2026 00:00:00 +0000</pubDate>
+      <enclosure
+        url="https://github.com/RockxyApp/Rockxy/releases/download/v0.10.0/Rockxy-0.10.0-13.dmg"
+        sparkle:version="13"
+        sparkle:shortVersionString="0.10.0"
+        sparkle:edSignature="odrg386XWeommsAHNM40Q5l53hno2xvhVl98rT4Wi5cPCW2LQXOiJWWxE5B2KsIzkxFshVILViL9FYkLEUvfCQ=="
+        length="18718519"
+        type="application/octet-stream" />
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <sparkle:releaseNotesLink>https://github.com/RockxyApp/Rockxy/releases/tag/v0.10.0</sparkle:releaseNotesLink>
+      <description><![CDATA[
+<h3>Added</h3>
+<ul>
+  <li>Developer Setup Hub: dedicated rows for `Postman`, `Insomnia`, and `Paw` under **Browsers &amp; Clients**, each with its own proxy + certificate workflow.</li>
+  <li>Developer Setup Hub: `tvOS / watchOS` and `Vision Pro` rows under **Devices**, documented as iOS-class guide-only targets with honest limitations.</li>
+  <li>Developer Setup Hub: guide content for `iOS Device`, `iOS Simulator`, `Android Device`, `Android Emulator`, `Flutter`, and `React Native` — bind/listen, certificate trust, and platform-specific caveats (Android network-security-config, iOS simulator trust, Metro restarts).</li>
+  <li>Developer Setup Hub: validated manual snippets + httpbin validation watcher for eight additional targets — `Java VMs` (keytool import + HttpClient sample), `Firefox` (Network Settings + authority-store import + cURL verification), `Postman`, `Insomnia`, and `Paw` (proxy + CA settings snippet + cURL verification), `Docker` (throwaway `docker run` probe mounting the CA via `host.docker.internal`), `ElectronJS` (`--proxy-server` CLI flag and `session.setProxy` main-process snippet, both with `NODE_EXTRA_CA_CERTS`), and `Next.js` (App Router route handler with `NODE_EXTRA_CA_CERTS` + `HTTPS_PROXY` for `next dev`).</li>
+</ul>
+<h3>Fixed</h3>
+<ul>
+  <li>MCP Settings: config JSON no longer shows escaped forward slashes (`\/`) in the `command` path — output now matches standard local JSON configuration files.</li>
+  <li>SSL Proxying controls: the encrypted HTTPS response prompt, sidebar actions, and the main request table now stay in sync when enabling or disabling interception by domain or app.</li>
+  <li>Request table: CONNECT tunnel rows no longer show placeholder request/response byte counts, and duration now falls back to measured tunnel timing when detailed timing data is unavailable.</li>
+</ul>
+<h3>Changed</h3>
+<ul>
+  <li>Developer Setup Hub: removed the combined `HTTP Clients` row in favor of individual client targets; the neutrality test now allows `Vision Pro` as a proper noun while still rejecting standalone packaging terms.</li>
+  <li>Developer Setup Hub: promoted `Java VMs`, `Firefox`, `Postman`, `Insomnia`, `Paw`, `Docker`, `ElectronJS`, and `Next.js` from `guideOnly` to `availableNow` — each now ships a real snippet path with the in-app validation watcher instead of just guide tips.</li>
+  <li>Inspector: request and response tabs now use a single-line scrolling tab strip, and short tabs such as Query stay top-aligned in both right and bottom inspector layouts.</li>
+  <li>Request table: added `Status`, `Request`, `Response`, and `SSL` columns, restored the `ID` header, and made the SSL icon reflect effective interception state instead of URL scheme alone.</li>
+</ul>
+      ]]></description>
+    </item>
+  </channel>
+</rss>

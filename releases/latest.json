@@ -1,0 +1,19 @@
+{
+  "product": "Rockxy",
+  "channel": "community-prod",
+  "version": "0.10.0",
+  "build": "13",
+  "releaseTag": "v0.10.0",
+  "releaseDate": "2026-04-21",
+  "minimumSystemVersion": "14.0",
+  "publicRepoSlug": "RockxyApp/Rockxy",
+  "releaseUrl": "https://github.com/RockxyApp/Rockxy/releases/tag/v0.10.0",
+  "downloadUrl": "https://github.com/RockxyApp/Rockxy/releases/download/v0.10.0/Rockxy-0.10.0-13.dmg",
+  "checksumUrl": "https://github.com/RockxyApp/Rockxy/releases/download/v0.10.0/Rockxy-0.10.0-13.dmg.sha256",
+  "checksumSha256": "a376fd1bf603e5dcb147fa065e3ce7a78f06dff75b5c8d8b1a17ba0e17d35e26",
+  "artifactName": "Rockxy-0.10.0-13.dmg",
+  "artifactLength": 18718519,
+  "appcastUrl": "https://raw.githubusercontent.com/RockxyApp/Rockxy/main/appcast.xml",
+  "latestReleaseUrl": "https://raw.githubusercontent.com/RockxyApp/Rockxy/main/releases/latest.json",
+  "sparkleEdSignature": "odrg386XWeommsAHNM40Q5l53hno2xvhVl98rT4Wi5cPCW2LQXOiJWWxE5B2KsIzkxFshVILViL9FYkLEUvfCQ=="
+}
