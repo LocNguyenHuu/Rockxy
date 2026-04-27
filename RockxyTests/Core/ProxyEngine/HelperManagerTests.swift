@@ -71,6 +71,108 @@ struct HelperManagerTests {
         #expect(!HelperManager.requiresApproval(error: unrelatedError, serviceStatus: .notRegistered))
     }
 
+    @Test("valid helper plist passes launchd preflight validation")
+    func validHelperPlistPassesValidation() throws {
+        let data = try makeHelperLaunchdPlistData()
+
+        try HelperManager.validateBundledHelperLaunchdPlistData(
+            data,
+            expectedLabel: TestIdentity.helperMachServiceName,
+            expectedBundleProgram: expectedHelperBundleProgram,
+            expectedMachServiceName: TestIdentity.helperMachServiceName
+        )
+    }
+
+    @Test("missing Label fails helper plist validation")
+    func missingLabelFailsValidation() throws {
+        let data = try makeHelperLaunchdPlistData(label: nil)
+
+        do {
+            try HelperManager.validateBundledHelperLaunchdPlistData(
+                data,
+                expectedLabel: TestIdentity.helperMachServiceName,
+                expectedBundleProgram: expectedHelperBundleProgram,
+                expectedMachServiceName: TestIdentity.helperMachServiceName
+            )
+            Issue.record("Expected helper plist validation to fail for missing Label")
+        } catch let error as HelperManager.HelperPlistValidationError {
+            #expect(error == .missingLabel)
+        } catch {
+            Issue.record("Unexpected helper plist validation error: \(error)")
+        }
+    }
+
+    @Test("wrong BundleProgram fails helper plist validation")
+    func wrongBundleProgramFailsValidation() throws {
+        let data = try makeHelperLaunchdPlistData(bundleProgram: "Contents/MacOS/RockxyHelperTool")
+
+        do {
+            try HelperManager.validateBundledHelperLaunchdPlistData(
+                data,
+                expectedLabel: TestIdentity.helperMachServiceName,
+                expectedBundleProgram: expectedHelperBundleProgram,
+                expectedMachServiceName: TestIdentity.helperMachServiceName
+            )
+            Issue.record("Expected helper plist validation to fail for wrong BundleProgram")
+        } catch let error as HelperManager.HelperPlistValidationError {
+            #expect(error == .unexpectedBundleProgram("Contents/MacOS/RockxyHelperTool"))
+        } catch {
+            Issue.record("Unexpected helper plist validation error: \(error)")
+        }
+    }
+
+    @Test("missing MachServices entry fails helper plist validation")
+    func missingMachServicesEntryFailsValidation() throws {
+        let data = try makeHelperLaunchdPlistData(machServices: [:])
+
+        do {
+            try HelperManager.validateBundledHelperLaunchdPlistData(
+                data,
+                expectedLabel: TestIdentity.helperMachServiceName,
+                expectedBundleProgram: expectedHelperBundleProgram,
+                expectedMachServiceName: TestIdentity.helperMachServiceName
+            )
+            Issue.record("Expected helper plist validation to fail for missing MachServices entry")
+        } catch let error as HelperManager.HelperPlistValidationError {
+            #expect(error == .missingMachService(TestIdentity.helperMachServiceName))
+        } catch {
+            Issue.record("Unexpected helper plist validation error: \(error)")
+        }
+    }
+
+    @Test("malformed helper plist data fails validation")
+    func malformedHelperPlistDataFailsValidation() {
+        let malformedData = Data("not-a-plist".utf8)
+
+        do {
+            try HelperManager.validateBundledHelperLaunchdPlistData(
+                malformedData,
+                expectedLabel: TestIdentity.helperMachServiceName,
+                expectedBundleProgram: expectedHelperBundleProgram,
+                expectedMachServiceName: TestIdentity.helperMachServiceName
+            )
+            Issue.record("Expected helper plist validation to fail for malformed data")
+        } catch let error as HelperManager.HelperPlistValidationError {
+            #expect(error == .malformedPlist)
+        } catch {
+            Issue.record("Unexpected helper plist validation error: \(error)")
+        }
+    }
+
+    @Test("helper package failure messaging guides reinstall instead of Login Items approval")
+    func helperPackageFailureMessagingIsReinstallOriented() {
+        let error = HelperManager.HelperInstallPreflightError.missingBundledLaunchdPlist(
+            path: "/Applications/Rockxy.app/Contents/Library/LaunchDaemons/\(TestIdentity.helperPlistName)"
+        )
+        let message = error.localizedDescription
+
+        #expect(message.localizedLowercase.contains("app package is incomplete"))
+        #expect(message.localizedLowercase.contains("reinstall"))
+        #expect(message.contains("Homebrew"))
+        #expect(!message.contains("Login Items"))
+        #expect(!message.contains("System Settings"))
+    }
+
     // MARK: - Probe Error Classification
 
     @Test("classifyProbeError maps appSignatureInvalid")
@@ -225,4 +327,31 @@ struct HelperManagerTests {
         #expect(manager.isReachable == false)
         #expect(manager.installedInfo == nil)
     }
+}
+
+private let expectedHelperBundleProgram = "Contents/Library/HelperTools/RockxyHelperTool"
+
+private func makeHelperLaunchdPlistData(
+    label: String? = TestIdentity.helperMachServiceName,
+    bundleProgram: String? = expectedHelperBundleProgram,
+    machServices: [String: Any]? = [TestIdentity.helperMachServiceName: true]
+)
+    throws -> Data
+{
+    var plist: [String: Any] = [:]
+    if let label {
+        plist["Label"] = label
+    }
+    if let bundleProgram {
+        plist["BundleProgram"] = bundleProgram
+    }
+    if let machServices {
+        plist["MachServices"] = machServices
+    }
+
+    return try PropertyListSerialization.data(
+        fromPropertyList: plist,
+        format: .xml,
+        options: 0
+    )
 }

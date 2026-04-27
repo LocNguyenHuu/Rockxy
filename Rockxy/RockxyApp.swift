@@ -295,7 +295,14 @@ struct RockxyMenuCommands: Commands {
     @State private var certificateError: String?
     @State private var showCertificateAlert = false
 
+    @CommandsBuilder
     private var appMenu: some Commands {
+        CommandGroup(replacing: .appInfo) {
+            Button(String(localized: "About Rockxy")) {
+                showAboutPanel()
+            }
+        }
+
         CommandGroup(before: .appSettings) {
             Button(String(localized: "Check for Updates…")) {
                 updater.checkForUpdates()
@@ -678,17 +685,17 @@ struct RockxyMenuCommands: Commands {
             }
 
             Button(String(localized: "Github…")) {
-                openURL("https://github.com/LocNguyenHuu/Rockxy")
+                openURL("https://github.com/RockxyApp/Rockxy")
             }
 
             Button(String(localized: "Technical Documents…")) {
-                openURL("https://github.com/LocNguyenHuu/Rockxy/wiki")
+                openURL("https://github.com/RockxyApp/Rockxy/wiki")
             }
 
             Divider()
 
             Button(String(localized: "Report Bug…")) {
-                openURL("https://github.com/LocNguyenHuu/Rockxy/issues")
+                openURL("https://github.com/RockxyApp/Rockxy/issues")
             }
 
             Button(String(localized: "Copy Debug Info…")) {
@@ -702,6 +709,33 @@ struct RockxyMenuCommands: Commands {
             return
         }
         NSWorkspace.shared.open(url)
+    }
+
+    private func showAboutPanel() {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Unknown"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "Unknown"
+        let homepage = URL(string: "https://github.com/RockxyApp/Rockxy")
+        let credits = NSMutableAttributedString(string: String(localized: "Open source HTTP debugging for macOS.\n"))
+
+        if let homepage {
+            let linkText = String(localized: "View project on GitHub")
+            let link = NSMutableAttributedString(string: linkText)
+            link.addAttribute(.link, value: homepage, range: NSRange(location: 0, length: link.length))
+            credits.append(link)
+        }
+
+        var options: [NSApplication.AboutPanelOptionKey: Any] = [
+            .applicationName: RockxyIdentity.current.displayName,
+            .applicationVersion: version,
+            .version: String(localized: "Build \(build)"),
+            .credits: credits,
+        ]
+
+        if let applicationIcon = NSApplication.shared.applicationIconImage {
+            options[.applicationIcon] = applicationIcon
+        }
+
+        NSApplication.shared.orderFrontStandardAboutPanel(options: options)
     }
 
     private func copyDebugInfo() {

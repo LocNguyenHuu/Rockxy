@@ -15,16 +15,9 @@ struct MCPIntegrationTests {
         try Self.ensureSuiteLock()
         await resetSharedCoordinator()
 
-        let wasEnabled = AppSettingsManager.shared.settings.mcpServerEnabled
-        let wasPort = AppSettingsManager.shared.settings.mcpServerPort
         let port = Self.testPort(offset: 0)
-
-        AppSettingsManager.shared.updateMCPServerEnabled(true)
-        AppSettingsManager.shared.updateMCPServerPort(port)
-        defer {
-            AppSettingsManager.shared.updateMCPServerEnabled(wasEnabled)
-            AppSettingsManager.shared.updateMCPServerPort(wasPort)
-        }
+        let saved = saveMCPSettings(enabled: true, port: port)
+        defer { restoreMCPSettings(saved) }
 
         await MCPServerCoordinator.shared.startIfEnabled()
 
@@ -40,12 +33,12 @@ struct MCPIntegrationTests {
         try Self.ensureSuiteLock()
         await resetSharedCoordinator()
 
-        let wasEnabled = AppSettingsManager.shared.settings.mcpServerEnabled
+        let saved = saveMCPSettings(
+            enabled: false,
+            port: AppSettingsManager.shared.settings.mcpServerPort
+        )
+        defer { restoreMCPSettings(saved) }
 
-        AppSettingsManager.shared.updateMCPServerEnabled(false)
-        defer {
-            AppSettingsManager.shared.updateMCPServerEnabled(wasEnabled)
-        }
         await MCPServerCoordinator.shared.startIfEnabled()
         #expect(!MCPServerCoordinator.shared.isRunning)
     }
@@ -66,16 +59,9 @@ struct MCPIntegrationTests {
         try Self.ensureSuiteLock()
         await resetSharedCoordinator()
 
-        let wasEnabled = AppSettingsManager.shared.settings.mcpServerEnabled
-        let wasPort = AppSettingsManager.shared.settings.mcpServerPort
         let port = Self.testPort(offset: 1)
-
-        AppSettingsManager.shared.updateMCPServerEnabled(true)
-        AppSettingsManager.shared.updateMCPServerPort(port)
-        defer {
-            AppSettingsManager.shared.updateMCPServerEnabled(wasEnabled)
-            AppSettingsManager.shared.updateMCPServerPort(wasPort)
-        }
+        let saved = saveMCPSettings(enabled: true, port: port)
+        defer { restoreMCPSettings(saved) }
 
         await MCPServerCoordinator.shared.startIfEnabled()
 
@@ -532,7 +518,9 @@ struct MCPIntegrationTests {
         private let fileDescriptor: Int32
     }
 
-    private typealias SavedSettings = (enabled: Bool, port: Int, redact: Bool)
+    private struct SavedSettings {
+        let settings: AppSettings
+    }
 
     private static let suiteLockResult: Result<CrossProcessLock, Error> = Result {
         try acquireTestLock()
@@ -564,17 +552,16 @@ struct MCPIntegrationTests {
     }
 
     private func saveMCPSettings(enabled: Bool, port: Int) -> SavedSettings {
-        let settings = AppSettingsManager.shared.settings
-        AppSettingsManager.shared.updateMCPServerEnabled(enabled)
-        AppSettingsManager.shared.updateMCPServerPort(port)
-        AppSettingsManager.shared.updateMCPRedactSensitiveData(settings.mcpRedactSensitiveData)
-        return (settings.mcpServerEnabled, settings.mcpServerPort, settings.mcpRedactSensitiveData)
+        let original = AppSettingsManager.shared.settings
+        var settings = original
+        settings.mcpServerEnabled = enabled
+        settings.mcpServerPort = port
+        AppSettingsManager.shared.settings = settings
+        return SavedSettings(settings: original)
     }
 
     private func restoreMCPSettings(_ saved: SavedSettings) {
-        AppSettingsManager.shared.updateMCPServerEnabled(saved.enabled)
-        AppSettingsManager.shared.updateMCPServerPort(saved.port)
-        AppSettingsManager.shared.updateMCPRedactSensitiveData(saved.redact)
+        AppSettingsManager.shared.settings = saved.settings
     }
 
     private func sendJsonRpc(

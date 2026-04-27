@@ -3,7 +3,7 @@
 // Copy this file to Developer.xcconfig and fill in your values.
 // Developer.xcconfig is .gitignore'd to keep secrets out of version control.
 
-#include "CommunityBase.xcconfig"
+#include "LocalDev.xcconfig"
 
 // Your Apple Developer Team ID (10-character alphanumeric string)
 // Find it at: https://developer.apple.com/account → Membership Details
