@@ -51,6 +51,27 @@ final class HelperManager {
         case alreadyEnabled
     }
 
+    enum HelperPlistValidationError: Error, Equatable {
+        case malformedPlist
+        case missingLabel
+        case unexpectedLabel(String)
+        case missingBundleProgram
+        case unexpectedBundleProgram(String)
+        case missingMachServices
+        case missingMachService(String)
+    }
+
+    enum HelperInstallPreflightError: LocalizedError, Equatable {
+        case missingBundledHelperBinary(path: String)
+        case missingBundledLaunchdPlist(path: String)
+        case unreadableBundledLaunchdPlist(path: String)
+        case invalidBundledLaunchdPlist(HelperPlistValidationError)
+
+        var errorDescription: String? {
+            HelperManager.helperPackageIncompleteMessage
+        }
+    }
+
     static let shared = HelperManager()
 
     private(set) var signingIssue: SigningIssue?
@@ -91,6 +112,79 @@ final class HelperManager {
             .register
         @unknown default:
             .register
+        }
+    }
+
+    nonisolated static func validateBundledHelperLaunchdPlistData(
+        _ data: Data,
+        expectedLabel: String,
+        expectedBundleProgram: String,
+        expectedMachServiceName: String
+    ) throws {
+        let plistObject: Any
+        do {
+            plistObject = try PropertyListSerialization.propertyList(from: data, format: nil)
+        } catch {
+            throw HelperPlistValidationError.malformedPlist
+        }
+
+        guard let plist = plistObject as? [String: Any] else {
+            throw HelperPlistValidationError.malformedPlist
+        }
+        guard let label = plist["Label"] as? String, !label.isEmpty else {
+            throw HelperPlistValidationError.missingLabel
+        }
+        guard label == expectedLabel else {
+            throw HelperPlistValidationError.unexpectedLabel(label)
+        }
+        guard let bundleProgram = plist["BundleProgram"] as? String, !bundleProgram.isEmpty else {
+            throw HelperPlistValidationError.missingBundleProgram
+        }
+        guard bundleProgram == expectedBundleProgram else {
+            throw HelperPlistValidationError.unexpectedBundleProgram(bundleProgram)
+        }
+        guard let machServices = plist["MachServices"] as? [String: Any] else {
+            throw HelperPlistValidationError.missingMachServices
+        }
+        guard let machServiceEnabled = machServices[expectedMachServiceName] as? Bool, machServiceEnabled else {
+            throw HelperPlistValidationError.missingMachService(expectedMachServiceName)
+        }
+    }
+
+    nonisolated static func validateBundledHelperInstallResources(
+        bundle: Bundle = .main,
+        fileManager: FileManager = .default
+    ) throws {
+        let identity = RockxyIdentity(bundle: bundle)
+        let appBundleURL = bundle.bundleURL
+        let helperBinaryURL = appBundleURL.appendingPathComponent(bundledHelperBinaryRelativePath)
+        let helperPlistURL = appBundleURL.appendingPathComponent(
+            bundledHelperPlistRelativePath(plistName: identity.helperPlistName)
+        )
+
+        guard fileManager.fileExists(atPath: helperBinaryURL.path) else {
+            throw HelperInstallPreflightError.missingBundledHelperBinary(path: helperBinaryURL.path)
+        }
+        guard fileManager.fileExists(atPath: helperPlistURL.path) else {
+            throw HelperInstallPreflightError.missingBundledLaunchdPlist(path: helperPlistURL.path)
+        }
+
+        let plistData: Data
+        do {
+            plistData = try Data(contentsOf: helperPlistURL)
+        } catch {
+            throw HelperInstallPreflightError.unreadableBundledLaunchdPlist(path: helperPlistURL.path)
+        }
+
+        do {
+            try validateBundledHelperLaunchdPlistData(
+                plistData,
+                expectedLabel: identity.helperMachServiceName,
+                expectedBundleProgram: bundledHelperBinaryRelativePath,
+                expectedMachServiceName: identity.helperMachServiceName
+            )
+        } catch let validationError as HelperPlistValidationError {
+            throw HelperInstallPreflightError.invalidBundledLaunchdPlist(validationError)
         }
     }
 
@@ -304,14 +398,7 @@ final class HelperManager {
         do {
             try await performUninstall()
             try? await Task.sleep(nanoseconds: 500_000_000)
-            do {
-                try performInstall()
-            } catch {
-                Self.logger.warning("Re-registration needs approval: \(error.localizedDescription)")
-                status = .requiresApproval
-                SMAppService.openSystemSettingsLoginItems()
-                return
-            }
+            try performInstall()
             if status != .requiresApproval {
                 await performCheckStatus()
             }
@@ -464,11 +551,51 @@ final class HelperManager {
         category: "HelperManager"
     )
     private static let plistName = RockxyIdentity.current.helperPlistName
+    nonisolated private static let bundledHelperBinaryRelativePath = "Contents/Library/HelperTools/RockxyHelperTool"
     nonisolated private static let helperApprovalMessage = String(
         localized: "Approve the helper tool in System Settings > Login Items to finish installation."
     )
+    nonisolated private static let helperPackageIncompleteMessage = String(
+        localized: """
+        This Rockxy app package is incomplete, so the helper tool cannot be installed. \
+        Reinstall the latest Rockxy release. If you installed Rockxy from Homebrew, \
+        reinstall it after the fixed release is published.
+        """
+    )
     private static let helperProbeAttempts = 3
     private static let helperProbeRetryDelay = Duration.milliseconds(750)
+
+    nonisolated private static func bundledHelperPlistRelativePath(plistName: String) -> String {
+        "Contents/Library/LaunchDaemons/\(plistName)"
+    }
+
+    nonisolated private static func helperPreflightFailureReason(_ error: HelperInstallPreflightError) -> String {
+        switch error {
+        case let .missingBundledHelperBinary(path):
+            "Missing helper binary at \(path)"
+        case let .missingBundledLaunchdPlist(path):
+            "Missing helper launchd plist at \(path)"
+        case let .unreadableBundledLaunchdPlist(path):
+            "Unreadable helper launchd plist at \(path)"
+        case let .invalidBundledLaunchdPlist(validationError):
+            switch validationError {
+            case .malformedPlist:
+                "Helper launchd plist is malformed"
+            case .missingLabel:
+                "Helper launchd plist is missing Label"
+            case let .unexpectedLabel(label):
+                "Helper launchd plist has unexpected Label '\(label)'"
+            case .missingBundleProgram:
+                "Helper launchd plist is missing BundleProgram"
+            case let .unexpectedBundleProgram(bundleProgram):
+                "Helper launchd plist has unexpected BundleProgram '\(bundleProgram)'"
+            case .missingMachServices:
+                "Helper launchd plist is missing MachServices"
+            case let .missingMachService(machServiceName):
+                "Helper launchd plist is missing MachServices.\(machServiceName) = true"
+            }
+        }
+    }
 
     private func postStatusChangeIfNeeded(
         previousStatus: HelperStatus,
@@ -490,6 +617,17 @@ final class HelperManager {
     /// Core install logic without busy/error wrapper.
     private func performInstall() throws {
         Self.logger.info("Installing helper tool")
+        do {
+            try Self.validateBundledHelperInstallResources()
+        } catch let error as HelperInstallPreflightError {
+            Self.logger.error("Bundled helper install preflight failed: \(Self.helperPreflightFailureReason(error), privacy: .public)")
+            status = .notInstalled
+            installedInfo = nil
+            isReachable = false
+            registrationStatus = "Package Incomplete"
+            lastErrorMessage = error.localizedDescription
+            throw error
+        }
         let service = SMAppService.daemon(plistName: Self.plistName)
 
         switch Self.installDisposition(for: service.status) {

@@ -14,9 +14,12 @@ struct MCPServerCoordinatorTests {
 
     @Test("Start when disabled does nothing")
     func startWhenDisabled() async {
-        let wasEnabled = AppSettingsManager.shared.settings.mcpServerEnabled
-        defer { AppSettingsManager.shared.updateMCPServerEnabled(wasEnabled) }
-        AppSettingsManager.shared.updateMCPServerEnabled(false)
+        let originalSettings = AppSettingsManager.shared.settings
+        defer { AppSettingsManager.shared.settings = originalSettings }
+
+        var settings = originalSettings
+        settings.mcpServerEnabled = false
+        AppSettingsManager.shared.settings = settings
 
         let coordinator = MCPServerCoordinator()
         await coordinator.startIfEnabled()
@@ -35,9 +38,12 @@ struct MCPServerCoordinatorTests {
 
     @Test("Restart when disabled stays stopped")
     func restartWhenDisabled() async {
-        let wasEnabled = AppSettingsManager.shared.settings.mcpServerEnabled
-        defer { AppSettingsManager.shared.updateMCPServerEnabled(wasEnabled) }
-        AppSettingsManager.shared.updateMCPServerEnabled(false)
+        let originalSettings = AppSettingsManager.shared.settings
+        defer { AppSettingsManager.shared.settings = originalSettings }
+
+        var settings = originalSettings
+        settings.mcpServerEnabled = false
+        AppSettingsManager.shared.settings = settings
 
         let coordinator = MCPServerCoordinator()
         await coordinator.restart()
