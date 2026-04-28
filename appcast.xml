@@ -6,35 +6,25 @@
     <description>Rockxy release channel</description>
     <language>en</language>
     <item>
-      <title>Version 0.11.0 (build 14)</title>
-      <pubDate>Sat, 25 Apr 2026 00:00:00 +0000</pubDate>
+      <title>Version 0.12.0 (build 15)</title>
+      <pubDate>Tue, 28 Apr 2026 00:00:00 +0000</pubDate>
       <enclosure
-        url="https://github.com/RockxyApp/Rockxy/releases/download/v0.11.0/Rockxy-0.11.0-14.dmg"
-        sparkle:version="14"
-        sparkle:shortVersionString="0.11.0"
-        sparkle:edSignature="QmJqw0jq/HV+5G8dlz9M7hrFIivdWC2e+/dbDy9COEr/gW+Gx0n3wRXQpRSkq6UEHr6W0TGUnAncfT3oPutcBA=="
-        length="20180143"
+        url="https://github.com/RockxyApp/Rockxy/releases/download/v0.12.0/Rockxy-0.12.0-15.dmg"
+        sparkle:version="15"
+        sparkle:shortVersionString="0.12.0"
+        sparkle:edSignature="tqTDeLFjU+b0j3/hKD5km3aMQQdHTFoxTRa5oidaRH0wW2tWNd6iLFIE/vu4nQUkyctLL8/laDw+hqi38TJaDQ=="
+        length="20505062"
         type="application/octet-stream" />
       <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-      <sparkle:releaseNotesLink>https://github.com/RockxyApp/Rockxy/releases/tag/v0.11.0</sparkle:releaseNotesLink>
+      <sparkle:releaseNotesLink>https://github.com/RockxyApp/Rockxy/releases/tag/v0.12.0</sparkle:releaseNotesLink>
       <description><![CDATA[
-<h3>Added</h3>
-<ul>
-  <li>Sparkle-powered automatic updates for signed public releases.</li>
-  <li>Bundled Rockxy MCP support for local developer-tool integrations.</li>
-  <li>Rockxy Pro activation and entitlement-aware upgrade foundations.</li>
-</ul>
 <h3>Fixed</h3>
 <ul>
-  <li>Improved paid-license activation recovery and product validation reliability.</li>
-  <li>Closed release-readiness gaps around production licensing configuration and update metadata.</li>
-  <li>Fixed release signing settings required for Apple notarization and Gatekeeper acceptance.</li>
+  <li>Fixed Homebrew/public app bundles that could fail helper installation with &quot;unable to read plist&quot; by validating and packaging the bundled helper launchd plist correctly (issue #53).</li>
 </ul>
 <h3>Changed</h3>
 <ul>
-  <li>Hardened the release pipeline with production signing, notarization, stapling, checksum, and update-feed validation.</li>
-  <li>Refreshed public documentation, localized README content, and release metadata for the 0.11.0 release.</li>
-  <li>Improved Xcode project and build configuration reproducibility for fresh checkouts.</li>
+  <li>Added a Star History chart to all README translations.</li>
 </ul>
       ]]></description>
     </item>

@@ -14,6 +14,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Added a Star History chart to all README translations.
 
+## [0.12.0] - 2026-04-28
+
+### Fixed
+
+- Fixed Homebrew/public app bundles that could fail helper installation with "unable to read plist" by validating and packaging the bundled helper launchd plist correctly (issue #53).
+
+### Changed
+
+- Added a Star History chart to all README translations.
+
 ## [0.11.0] - 2026-04-25
 
 ### Added
