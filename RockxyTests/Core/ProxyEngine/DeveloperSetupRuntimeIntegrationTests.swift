@@ -842,19 +842,25 @@ struct DeveloperSetupRuntimeIntegrationTests {
 
         let budget = TimeoutBudget(timeout: timeout)
         func terminateProcessForCancellation() {
+            defer {
+                stdoutReader.cancel()
+                stderrReader.cancel()
+            }
+
             if process.isRunning {
                 process.terminate()
-                let gracePeriodDeadline = Date().addingTimeInterval(0.5)
+                let gracePeriodDeadline = Date().addingTimeInterval(1.0)
                 while process.isRunning, Date() < gracePeriodDeadline {
                     Thread.sleep(forTimeInterval: 0.05)
                 }
                 if process.isRunning {
-                    Darwin.kill(process.processIdentifier, SIGKILL)
+                    let processIdentifier = process.processIdentifier
+                    if processIdentifier > 0, process.isRunning {
+                        Darwin.kill(processIdentifier, SIGKILL)
+                    }
                 }
                 process.waitUntilExit()
             }
-            stdoutReader.cancel()
-            stderrReader.cancel()
         }
 
         while process.isRunning {

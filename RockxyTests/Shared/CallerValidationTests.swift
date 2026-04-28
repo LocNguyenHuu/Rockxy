@@ -6,6 +6,7 @@ import Testing
 /// Tests for the shared caller-validation primitives used by `ConnectionValidator`.
 /// These exercise the real validation logic (certificate chain comparison, bundle
 /// identity requirement checking) that the helper's `isValidCaller` delegates to.
+@Suite(.serialized)
 struct CallerValidationTests {
     // MARK: - Certificate Chain Comparison
 

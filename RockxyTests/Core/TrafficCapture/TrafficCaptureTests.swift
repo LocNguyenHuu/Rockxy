@@ -2,6 +2,29 @@ import Foundation
 @testable import Rockxy
 import Testing
 
+// MARK: - ContinuationGate
+
+private final class ContinuationGate: @unchecked Sendable {
+    // MARK: Internal
+
+    func tryOpen() -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+
+        guard !isOpen else {
+            return false
+        }
+
+        isOpen = true
+        return true
+    }
+
+    // MARK: Private
+
+    private let lock = NSLock()
+    private var isOpen = false
+}
+
 // Tests for `InMemorySessionBuffer`: append/retrieve, ordering, count, clear,
 // capacity-based eviction, and unknown-ID lookup.
 
@@ -120,16 +143,14 @@ struct TrafficSessionManagerTests {
     @Test("batch timer delivers transactions")
     func batchTimerDeliversTransactions() async {
         let manager = TrafficSessionManager()
+        let gate = ContinuationGate()
 
         let delivered = await withCheckedContinuation { continuation in
-            var resumed = false
-
             Task {
                 await manager.setOnBatchReady { batch, _ in
-                    guard !batch.isEmpty, !resumed else {
+                    guard !batch.isEmpty, gate.tryOpen() else {
                         return
                     }
-                    resumed = true
                     continuation.resume(returning: true)
                 }
                 await manager.setMaxBufferSize(50_000)
@@ -138,11 +159,10 @@ struct TrafficSessionManagerTests {
             }
 
             Task {
-                try? await Task.sleep(for: .seconds(2))
-                guard !resumed else {
+                try? await Task.sleep(for: .seconds(5))
+                guard gate.tryOpen() else {
                     return
                 }
-                resumed = true
                 continuation.resume(returning: false)
             }
         }
