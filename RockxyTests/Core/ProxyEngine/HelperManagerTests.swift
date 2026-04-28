@@ -111,7 +111,13 @@ struct HelperManagerTests {
         #expect(infoDictionary["CFBundleIdentifier"] as? String == bundle.bundleIdentifier)
     }
 
-    @Test("real app bundle helper resources validate against generated launchd plist")
+    @Test(
+        "real app bundle helper resources validate against generated launchd plist",
+        .enabled(
+            if: builtAppBundleHasReadableHelperMetadata(),
+            "Requires a built app bundle whose embedded helper exposes readable metadata"
+        )
+    )
     func builtAppBundleInstallResourcesValidate() throws {
         let appBundle = Bundle(for: AppDelegate.self)
         #expect(appBundle.bundleIdentifier == TestIdentity.communityBundleIdentifier)
@@ -471,6 +477,14 @@ struct HelperManagerTests {
 
 private func hasSignedBundleWithEmbeddedMetadata() -> Bool {
     signedBundleWithEmbeddedMetadata() != nil
+}
+
+private func builtAppBundleHasReadableHelperMetadata() -> Bool {
+    let appBundle = Bundle(for: AppDelegate.self)
+    let helperBinaryURL = appBundle.bundleURL.appendingPathComponent(
+        HelperManager.bundledHelperBinaryRelativePath
+    )
+    return HelperManager.bundledHelperInfoDictionary(at: helperBinaryURL) != nil
 }
 
 private func signedBundleWithEmbeddedMetadata() -> Bundle? {

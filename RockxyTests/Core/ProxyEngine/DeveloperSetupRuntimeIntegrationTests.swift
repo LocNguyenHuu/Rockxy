@@ -111,6 +111,13 @@ struct DeveloperSetupRuntimeIntegrationTests {
 
     @Test("Go runtime traffic is captured end-to-end")
     func goRuntimeTrafficIsCaptured() async throws {
+        guard let go = try? runtimeExecutable(
+            name: "go",
+            additionalCandidates: ["/opt/homebrew/bin/go", "/usr/local/bin/go"]
+        ) else {
+            return
+        }
+
         try await assertRuntimeProbe(
             runtimeName: "Go",
             requestPath: "/developer-setup/go",
@@ -154,10 +161,7 @@ struct DeveloperSetupRuntimeIntegrationTests {
                 """.write(to: sourceURL, atomically: true, encoding: .utf8)
 
                 return ProcessInvocation(
-                    executableURL: try runtimeExecutable(
-                        name: "go",
-                        additionalCandidates: ["/opt/homebrew/bin/go", "/usr/local/bin/go"]
-                    ),
+                    executableURL: go,
                     arguments: ["run", sourceURL.path]
                 )
             }

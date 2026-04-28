@@ -101,7 +101,13 @@ struct RockxyUpdateConfigurationTests {
         #expect(configuration.buildReleaseDate == .distantFuture)
     }
 
-    @Test("Release guidance points dry runs at publish confirm")
+    @Test(
+        "Release guidance points dry runs at publish confirm",
+        .enabled(
+            if: repoContainsFile("scripts/rockxy-release.sh"),
+            "Requires local release scripts checked out in the repo"
+        )
+    )
     func releaseGuidanceMentionsPublishConfirm() throws {
         let script = try loadRepoFile("scripts/rockxy-release.sh")
 
@@ -179,6 +185,24 @@ struct AppUpdaterTests {
 }
 
 private func loadRepoFile(_ relativePath: String) throws -> String {
+    try String(
+        contentsOf: try repoRootURL().appendingPathComponent(relativePath),
+        encoding: .utf8
+    )
+}
+
+private func repoContainsFile(_ relativePath: String) -> Bool {
+    let rootURL: URL
+    do {
+        rootURL = try repoRootURL()
+    } catch {
+        return false
+    }
+
+    return FileManager.default.fileExists(atPath: rootURL.appendingPathComponent(relativePath).path)
+}
+
+private func repoRootURL() throws -> URL {
     let fileManager = FileManager.default
     var candidateDirectory = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
 
@@ -187,10 +211,7 @@ private func loadRepoFile(_ relativePath: String) throws -> String {
         let xcodeProjectMarker = candidateDirectory.appendingPathComponent("Rockxy.xcodeproj").path
 
         if fileManager.fileExists(atPath: gitMarker) || fileManager.fileExists(atPath: xcodeProjectMarker) {
-            return try String(
-                contentsOf: candidateDirectory.appendingPathComponent(relativePath),
-                encoding: .utf8
-            )
+            return candidateDirectory
         }
 
         let parentDirectory = candidateDirectory.deletingLastPathComponent()
@@ -199,7 +220,7 @@ private func loadRepoFile(_ relativePath: String) throws -> String {
                 domain: "RockxyUpdateConfigurationTests",
                 code: 1,
                 userInfo: [
-                    NSLocalizedDescriptionKey: "Unable to locate the Rockxy repository root while loading \(relativePath).",
+                    NSLocalizedDescriptionKey: "Unable to locate the Rockxy repository root while loading repository fixtures.",
                 ]
             )
         }
