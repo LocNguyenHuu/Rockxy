@@ -209,17 +209,35 @@ struct WelcomeView: View {
             }
 
             if viewModel.helperStatus == .requiresApproval {
-                HStack(alignment: .top, spacing: 4) {
-                    Image(systemName: "info.circle")
-                        .foregroundStyle(.secondary)
-                        .font(.system(size: 10))
-                    Text(
-                        String(
-                            localized: "macOS requires you to approve the helper tool in System Settings \u{2192} General \u{2192} Login Items."
+                VStack(spacing: 8) {
+                    HStack(alignment: .top, spacing: 4) {
+                        Image(systemName: "info.circle")
+                            .foregroundStyle(.secondary)
+                            .font(.system(size: 10))
+                        Text(
+                            String(
+                                localized: "macOS requires you to approve the helper tool in System Settings \u{2192} General \u{2192} Login Items."
+                            )
                         )
-                    )
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+
+                    Button {
+                        Task {
+                            await viewModel.forceResetHelper()
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .font(.system(size: 10))
+                            Text(String(localized: "Reset Helper Registration"))
+                                .font(.caption)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.accentColor)
+                    .disabled(viewModel.isPerformingAction)
                 }
                 .padding(.horizontal, 40)
             }
