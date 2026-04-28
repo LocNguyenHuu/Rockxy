@@ -45,6 +45,15 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+      - name: Prepare CI developer config
+        run: |
+          cat > Configuration/Developer.xcconfig <<'EOF'
+          #include "LocalDev.xcconfig"
+
+          ROCKXY_TEAM_ID =
+          CODE_SIGN_IDENTITY =
+          DEVELOPMENT_TEAM =
+          EOF
       - name: Select Xcode
         run: |
           for candidate in \
@@ -71,6 +80,13 @@ jobs:
             -destination 'platform=macOS' \
             -parallel-testing-enabled NO \
             -resultBundlePath build/test-results/Rockxy.xcresult \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            PROVISIONING_PROFILE="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
             test
       - name: Upload test result bundle
         if: always()
@@ -89,6 +105,15 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+      - name: Prepare CI developer config
+        run: |
+          cat > Configuration/Developer.xcconfig <<'EOF'
+          #include "LocalDev.xcconfig"
+
+          ROCKXY_TEAM_ID =
+          CODE_SIGN_IDENTITY =
+          DEVELOPMENT_TEAM =
+          EOF
       - name: Select Xcode
         run: |
           for candidate in \
@@ -114,6 +139,13 @@ jobs:
             -configuration Release \
             -arch arm64 \
             -derivedDataPath build/arm64 \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            PROVISIONING_PROFILE="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
             build
       - name: Build x86_64
         run: |
@@ -122,6 +154,13 @@ jobs:
             -configuration Release \
             -arch x86_64 \
             -derivedDataPath build/x86_64 \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            PROVISIONING_PROFILE="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
             build
       - name: Create universal binary
         run: |

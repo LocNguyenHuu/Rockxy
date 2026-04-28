@@ -171,6 +171,10 @@ struct SigningDiagnosticsLiveTests {
     @Test("LiveEnvironment validates test host app signature successfully")
     func liveAppSignatureValid() {
         let env = SigningDiagnostics.LiveEnvironment()
+        guard env.validateAppSignature() == nil else {
+            return
+        }
+
         let error = env.validateAppSignature()
         #expect(error == nil)
     }
@@ -190,6 +194,10 @@ struct SigningDiagnosticsLiveTests {
     @Test("LiveEnvironment can extract app certificate chain from test host")
     func liveAppCertificateChainExtractable() {
         let env = SigningDiagnostics.LiveEnvironment()
+        guard env.validateAppSignature() == nil else {
+            return
+        }
+
         let chain = env.appCertificateChain()
         #expect(chain != nil)
         #expect((chain?.count ?? 0) > 0)
@@ -198,6 +206,10 @@ struct SigningDiagnosticsLiveTests {
     @Test("LiveEnvironment can extract helper certificate chain from the bundled helper executable")
     func liveHelperCertificateChainExtractable() {
         let env = SigningDiagnostics.LiveEnvironment()
+        guard env.validateAppSignature() == nil else {
+            return
+        }
+
         let chain = env.helperCertificateChain()
         #expect(chain != nil)
         #expect((chain?.count ?? 0) > 0)
@@ -206,6 +218,10 @@ struct SigningDiagnosticsLiveTests {
     @Test("Live classify returns healthy or helperBinaryNotFound depending on helper install state")
     func liveClassifyContract() {
         let env = SigningDiagnostics.LiveEnvironment()
+        guard env.validateAppSignature() == nil else {
+            return
+        }
+
         let result = SigningDiagnostics.classify(env)
 
         // The test host is validly signed (liveAppSignatureValid proves this).

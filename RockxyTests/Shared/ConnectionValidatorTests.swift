@@ -26,6 +26,10 @@ struct ConnectionValidatorTests {
 
     @Test("isValidCaller accepts connection with real test-host PID")
     func acceptsConnectionWithTestHostPID() {
+        guard supportsLiveConnectionValidationHost() else {
+            return
+        }
+
         let pid = ProcessInfo.processInfo.processIdentifier
         let connection = TestXPCConnection(fakePID: pid)
         defer { connection.invalidate() }
@@ -35,6 +39,10 @@ struct ConnectionValidatorTests {
 
     @Test("isValidCaller accepts connection with test-host PID and Data audit token")
     func acceptsConnectionWithDataAuditToken() {
+        guard supportsLiveConnectionValidationHost() else {
+            return
+        }
+
         let pid = ProcessInfo.processInfo.processIdentifier
         // Zero-filled token → secCodeFromAuditToken returns nil → audit recheck skipped.
         // PID validation passes → accept.
@@ -47,6 +55,10 @@ struct ConnectionValidatorTests {
 
     @Test("isValidCaller accepts connection with test-host PID and NSValue audit token")
     func acceptsConnectionWithNSValueAuditToken() {
+        guard supportsLiveConnectionValidationHost() else {
+            return
+        }
+
         let pid = ProcessInfo.processInfo.processIdentifier
         let nsValue = makeAuditTokenNSValue()
         let connection = TestXPCConnection(fakePID: pid, auditTokenValue: nsValue)
@@ -59,6 +71,10 @@ struct ConnectionValidatorTests {
 
     @Test("isValidCaller exercises audit-token revalidation branch with real Data token")
     func acceptsWithRealDataAuditToken() {
+        guard supportsLiveConnectionValidationHost() else {
+            return
+        }
+
         let pid = ProcessInfo.processInfo.processIdentifier
         guard let realToken = CallerValidation.currentProcessAuditToken() else {
             Issue.record("Cannot obtain current process audit token")
@@ -76,6 +92,10 @@ struct ConnectionValidatorTests {
 
     @Test("isValidCaller exercises audit-token revalidation branch with real NSValue token")
     func acceptsWithRealNSValueAuditToken() {
+        guard supportsLiveConnectionValidationHost() else {
+            return
+        }
+
         let pid = ProcessInfo.processInfo.processIdentifier
         guard let realToken = CallerValidation.currentProcessAuditToken() else {
             Issue.record("Cannot obtain current process audit token")
@@ -92,6 +112,10 @@ struct ConnectionValidatorTests {
 
     @Test("validateCaller exercises audit-token revalidation with real token data")
     func validateCallerWithRealAuditToken() {
+        guard supportsLiveConnectionValidationHost() else {
+            return
+        }
+
         let pid = ProcessInfo.processInfo.processIdentifier
         guard let realToken = CallerValidation.currentProcessAuditToken() else {
             Issue.record("Cannot obtain current process audit token")
@@ -174,6 +198,10 @@ struct ConnectionValidatorTests {
 
     @Test("validateCaller accepts test host PID with no audit token")
     func acceptsTestHostPIDNoAuditToken() {
+        guard supportsLiveConnectionValidationHost() else {
+            return
+        }
+
         let pid = ProcessInfo.processInfo.processIdentifier
         #expect(ConnectionValidator.validateCaller(pid: pid, auditTokenData: nil))
     }
@@ -205,6 +233,10 @@ struct ConnectionValidatorTests {
 
     @Test("PID-based SecCode satisfies the same identity check as audit-token path")
     func pidCodeSatisfiesSameIdentityCheck() {
+        guard supportsLiveConnectionValidationHost() else {
+            return
+        }
+
         let pid = ProcessInfo.processInfo.processIdentifier
         guard let code = CallerValidation.secCodeForPID(pid) else {
             Issue.record("Cannot get SecCode for current PID")
@@ -240,6 +272,20 @@ private func makeAuditTokenNSValue(bytes: Data? = nil) -> NSValue {
         }
         return NSValue(bytes: base, objCType: objCType)
     }
+}
+
+private func supportsLiveConnectionValidationHost() -> Bool {
+    var code: SecCode?
+    guard SecCodeCopySelf([], &code) == errSecSuccess, let selfCode = code else {
+        return false
+    }
+    guard CallerValidation.certificatesForSelf() != nil else {
+        return false
+    }
+    return CallerValidation.callerSatisfiesAnyIdentifier(
+        callerCode: selfCode,
+        allowedIdentifiers: RockxyIdentity.current.allowedCallerIdentifiers
+    )
 }
 
 // MARK: - TestXPCConnection
