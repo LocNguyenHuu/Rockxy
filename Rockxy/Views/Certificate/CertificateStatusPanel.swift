@@ -3,13 +3,24 @@ import SwiftUI
 // MARK: - CertificateAction
 
 /// Actions the panel can request from its parent view.
-enum CertificateAction {
+enum CertificateAction: Equatable {
     case generate
     case installAndTrust
     case export
     case share
     case reset
     case recheck
+}
+
+@MainActor
+extension CertificateAction {
+    func userFacingFailureMessage(for error: Error) -> String {
+        if self == .share {
+            return CAShareController.userFacingMessage(for: error)
+        }
+
+        return error.localizedDescription
+    }
 }
 
 // MARK: - CertificateStatusPanel
@@ -261,10 +272,7 @@ struct CertificateStatusPanel: View {
                     onAction(.installAndTrust)
                 }
                 .disabled(isLoading)
-                Button(String(localized: "Share Certificate\u{2026}")) {
-                    onAction(.share)
-                }
-                .disabled(isLoading)
+                shareCertificateButton
                 Button(String(localized: "Generate New\u{2026}")) {
                     onAction(.generate)
                 }
@@ -275,10 +283,7 @@ struct CertificateStatusPanel: View {
                     onAction(.installAndTrust)
                 }
                 .disabled(isLoading)
-                Button(String(localized: "Share Certificate\u{2026}")) {
-                    onAction(.share)
-                }
-                .disabled(isLoading)
+                shareCertificateButton
                 Button(String(localized: "Reset Certificate"), role: .destructive) {
                     onAction(.reset)
                 }
@@ -293,10 +298,7 @@ struct CertificateStatusPanel: View {
                     onAction(.installAndTrust)
                 }
                 .disabled(isLoading)
-                Button(String(localized: "Share Certificate\u{2026}")) {
-                    onAction(.share)
-                }
-                .disabled(isLoading)
+                shareCertificateButton
                 Button(String(localized: "Reset Certificate"), role: .destructive) {
                     onAction(.reset)
                 }
@@ -311,10 +313,7 @@ struct CertificateStatusPanel: View {
                     onAction(.export)
                 }
                 .disabled(isLoading)
-                Button(String(localized: "Share Certificate\u{2026}")) {
-                    onAction(.share)
-                }
-                .disabled(isLoading)
+                shareCertificateButton
                 Button(String(localized: "Generate New\u{2026}")) {
                     onAction(.generate)
                 }
@@ -325,6 +324,13 @@ struct CertificateStatusPanel: View {
                 .disabled(isLoading)
             }
         }
+    }
+
+    private var shareCertificateButton: some View {
+        Button(String(localized: "Share Certificate\u{2026}")) {
+            onAction(.share)
+        }
+        .disabled(isLoading)
     }
 
     private func diagnosticRow(

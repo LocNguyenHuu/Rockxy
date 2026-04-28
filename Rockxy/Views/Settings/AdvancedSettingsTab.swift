@@ -368,9 +368,9 @@ struct AdvancedSettingsTab: View {
             VStack(alignment: .leading, spacing: 14) {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack(alignment: .top, spacing: 12) {
-                        Image(systemName: updater.isConfigured ? "checkmark.shield.fill" : "icloud.slash")
+                        Image(systemName: updater.supportsManualChecks ? "checkmark.shield.fill" : "icloud.slash")
                             .font(.system(size: 16))
-                            .foregroundStyle(updater.isConfigured ? Color.accentColor : Color.secondary)
+                            .foregroundStyle(updater.supportsManualChecks ? Color.accentColor : Color.secondary)
                             .frame(width: 20)
 
                         VStack(alignment: .leading, spacing: 4) {
@@ -404,7 +404,7 @@ struct AdvancedSettingsTab: View {
                     Button(String(localized: "Check for Updates…")) {
                         updater.checkForUpdates()
                     }
-                    .disabled(!updater.isConfigured || !updater.canCheckForUpdates)
+                    .disabled(!updater.canInitiateUpdateCheck)
 
                     Button(String(localized: "Change Logs…")) {
                         updater.openFullChangelog()
@@ -424,7 +424,7 @@ struct AdvancedSettingsTab: View {
                     )
                 )
                 .toggleStyle(.checkbox)
-                .disabled(!updater.isConfigured)
+                .disabled(!updater.supportsAutomaticChecks)
 
                 VStack(alignment: .leading, spacing: 6) {
                     Toggle(
@@ -435,7 +435,11 @@ struct AdvancedSettingsTab: View {
                         )
                     )
                     .toggleStyle(.checkbox)
-                    .disabled(!updater.isConfigured || !updater.automaticallyChecksForUpdates || !updater.allowsAutomaticUpdates)
+                    .disabled(
+                        !updater.supportsAutomaticChecks
+                            || !updater.automaticallyChecksForUpdates
+                            || !updater.allowsAutomaticUpdates
+                    )
 
                     Text(
                         String(
@@ -465,7 +469,7 @@ struct AdvancedSettingsTab: View {
                     }
                     .pickerStyle(.menu)
                     .frame(width: 180)
-                    .disabled(!updater.isConfigured || !updater.automaticallyChecksForUpdates)
+                    .disabled(!updater.supportsAutomaticChecks || !updater.automaticallyChecksForUpdates)
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
@@ -477,7 +481,7 @@ struct AdvancedSettingsTab: View {
                         )
                     )
                     .toggleStyle(.checkbox)
-                    .disabled(!updater.isConfigured)
+                    .disabled(!updater.supportsAutomaticChecks)
 
                     Text(
                         String(

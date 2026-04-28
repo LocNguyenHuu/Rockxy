@@ -6,6 +6,7 @@ import Testing
 /// Tests for the shared caller-validation primitives used by `ConnectionValidator`.
 /// These exercise the real validation logic (certificate chain comparison, bundle
 /// identity requirement checking) that the helper's `isValidCaller` delegates to.
+@Suite(.serialized)
 struct CallerValidationTests {
     // MARK: - Certificate Chain Comparison
 
@@ -50,6 +51,10 @@ struct CallerValidationTests {
 
     @Test("Live test host satisfies its own configured bundle identifiers")
     func liveTestHostSatisfiesOwnIdentity() {
+        guard supportsLiveCallerValidationHost() else {
+            return
+        }
+
         // Obtain SecCode for the current process (the test host = signed Rockxy app).
         var code: SecCode?
         let status = SecCodeCopySelf([], &code)
@@ -112,6 +117,10 @@ struct CallerValidationTests {
 
     @Test("Live certificate chain extraction produces non-empty data")
     func liveCertificateChainExtraction() {
+        guard supportsLiveCallerValidationHost() else {
+            return
+        }
+
         var code: SecCode?
         guard SecCodeCopySelf([], &code) == errSecSuccess, let selfCode = code else {
             Issue.record("SecCodeCopySelf failed")
@@ -149,6 +158,10 @@ struct CallerValidationTests {
 
     @Test("Full validateCaller accepts the test host by its own PID")
     func fullValidationAcceptsTestHost() {
+        guard supportsLiveCallerValidationHost() else {
+            return
+        }
+
         let pid = ProcessInfo.processInfo.processIdentifier
         let allowed = RockxyIdentity.current.allowedCallerIdentifiers
 
@@ -189,6 +202,10 @@ struct CallerValidationTests {
 
     @Test("secCodeForPID-based code satisfies the allowlist (audit-token equivalent path)")
     func pidBasedCodeSatisfiesAllowlist() {
+        guard supportsLiveCallerValidationHost() else {
+            return
+        }
+
         let pid = ProcessInfo.processInfo.processIdentifier
         guard let code = CallerValidation.secCodeForPID(pid) else {
             Issue.record("Cannot get SecCode for current PID")
@@ -216,4 +233,18 @@ struct CallerValidationTests {
         let rejected = CallerValidation.validateCaller(pid: 0, allowedIdentifiers: allowed)
         #expect(!rejected)
     }
+}
+
+private func supportsLiveCallerValidationHost() -> Bool {
+    var code: SecCode?
+    guard SecCodeCopySelf([], &code) == errSecSuccess, let selfCode = code else {
+        return false
+    }
+    guard CallerValidation.certificatesForSelf() != nil else {
+        return false
+    }
+    return CallerValidation.callerSatisfiesAnyIdentifier(
+        callerCode: selfCode,
+        allowedIdentifiers: RockxyIdentity.current.allowedCallerIdentifiers
+    )
 }

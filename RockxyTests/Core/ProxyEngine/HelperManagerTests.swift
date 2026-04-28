@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 @testable import Rockxy
 import ServiceManagement
@@ -79,7 +80,8 @@ struct HelperManagerTests {
             data,
             expectedLabel: TestIdentity.helperMachServiceName,
             expectedBundleProgram: expectedHelperBundleProgram,
-            expectedMachServiceName: TestIdentity.helperMachServiceName
+            expectedMachServiceName: TestIdentity.helperMachServiceName,
+            expectedAssociatedBundleIdentifiers: TestIdentity.expectedAllowedCallerIdentifiers
         )
     }
 
@@ -88,7 +90,53 @@ struct HelperManagerTests {
         let fixture = try makeHelperInstallResourceFixture(helperKind: .regularFile(permissions: 0o755))
         defer { try? FileManager.default.removeItem(at: fixture.temporaryDirectory) }
 
+        try HelperManager.validateBundledHelperInstallResources(
+            bundle: fixture.bundle,
+            helperInfoDictionaryProvider: { _ in fixture.helperInfoDictionary }
+        )
+    }
+
+    @Test("helper install resources read sidecar helper metadata for plain executables")
+    func helperInstallResourcesReadSidecarHelperMetadata() throws {
+        let fixture = try makeHelperInstallResourceFixture(
+            helperKind: .regularFile(permissions: 0o755),
+            writesSidecarInfoPlist: true
+        )
+        defer { try? FileManager.default.removeItem(at: fixture.temporaryDirectory) }
+
         try HelperManager.validateBundledHelperInstallResources(bundle: fixture.bundle)
+
+        let infoDictionary = try #require(HelperManager.bundledHelperInfoDictionary(at: fixture.helperBinaryURL))
+        #expect(infoDictionary["CFBundleIdentifier"] as? String == TestIdentity.helperBundleIdentifier)
+    }
+
+    @Test(
+        "embedded bundle metadata is readable from a signed executable path",
+        .enabled(
+            if: hasSignedBundleWithEmbeddedMetadata(),
+            "Requires a signed bundle with embedded metadata in the test environment"
+        )
+    )
+    func signedExecutablePathExposesEmbeddedInfoDictionary() throws {
+        let bundle = try #require(signedBundleWithEmbeddedMetadata())
+        let executableURL = try #require(bundle.executableURL)
+
+        let infoDictionary = try #require(HelperManager.bundledHelperInfoDictionary(at: executableURL))
+        #expect(infoDictionary["CFBundleIdentifier"] as? String == bundle.bundleIdentifier)
+    }
+
+    @Test(
+        "real app bundle helper resources validate against generated launchd plist",
+        .enabled(
+            if: builtAppBundleHasReadableHelperMetadata(),
+            "Requires a built app bundle whose embedded helper exposes readable metadata"
+        )
+    )
+    func builtAppBundleInstallResourcesValidate() throws {
+        let appBundle = Bundle(for: AppDelegate.self)
+        #expect(appBundle.bundleIdentifier == TestIdentity.communityBundleIdentifier)
+
+        try HelperManager.validateBundledHelperInstallResources(bundle: appBundle)
     }
 
     @Test("helper install resources reject helper directory")
@@ -130,7 +178,8 @@ struct HelperManagerTests {
                 data,
                 expectedLabel: TestIdentity.helperMachServiceName,
                 expectedBundleProgram: expectedHelperBundleProgram,
-                expectedMachServiceName: TestIdentity.helperMachServiceName
+                expectedMachServiceName: TestIdentity.helperMachServiceName,
+                expectedAssociatedBundleIdentifiers: TestIdentity.expectedAllowedCallerIdentifiers
             )
             Issue.record("Expected helper plist validation to fail for missing Label")
         } catch let error as HelperManager.HelperPlistValidationError {
@@ -149,7 +198,8 @@ struct HelperManagerTests {
                 data,
                 expectedLabel: TestIdentity.helperMachServiceName,
                 expectedBundleProgram: expectedHelperBundleProgram,
-                expectedMachServiceName: TestIdentity.helperMachServiceName
+                expectedMachServiceName: TestIdentity.helperMachServiceName,
+                expectedAssociatedBundleIdentifiers: TestIdentity.expectedAllowedCallerIdentifiers
             )
             Issue.record("Expected helper plist validation to fail for wrong BundleProgram")
         } catch let error as HelperManager.HelperPlistValidationError {
@@ -168,7 +218,8 @@ struct HelperManagerTests {
                 data,
                 expectedLabel: TestIdentity.helperMachServiceName,
                 expectedBundleProgram: expectedHelperBundleProgram,
-                expectedMachServiceName: TestIdentity.helperMachServiceName
+                expectedMachServiceName: TestIdentity.helperMachServiceName,
+                expectedAssociatedBundleIdentifiers: TestIdentity.expectedAllowedCallerIdentifiers
             )
             Issue.record("Expected helper plist validation to fail for missing MachServices entry")
         } catch let error as HelperManager.HelperPlistValidationError {
@@ -189,13 +240,62 @@ struct HelperManagerTests {
                 data,
                 expectedLabel: TestIdentity.helperMachServiceName,
                 expectedBundleProgram: expectedHelperBundleProgram,
-                expectedMachServiceName: TestIdentity.helperMachServiceName
+                expectedMachServiceName: TestIdentity.helperMachServiceName,
+                expectedAssociatedBundleIdentifiers: TestIdentity.expectedAllowedCallerIdentifiers
             )
             Issue.record("Expected helper plist validation to fail for disabled MachServices entry")
         } catch let error as HelperManager.HelperPlistValidationError {
             #expect(error == .disabledMachService(TestIdentity.helperMachServiceName))
         } catch {
             Issue.record("Unexpected helper plist validation error: \(error)")
+        }
+    }
+
+    @Test("mismatched AssociatedBundleIdentifiers fail helper plist validation")
+    func mismatchedAssociatedBundleIdentifiersFailValidation() throws {
+        let data = try makeHelperLaunchdPlistData(
+            associatedBundleIdentifiers: [TestIdentity.communityBundleIdentifier]
+        )
+
+        do {
+            try HelperManager.validateBundledHelperLaunchdPlistData(
+                data,
+                expectedLabel: TestIdentity.helperMachServiceName,
+                expectedBundleProgram: expectedHelperBundleProgram,
+                expectedMachServiceName: TestIdentity.helperMachServiceName,
+                expectedAssociatedBundleIdentifiers: TestIdentity.expectedAllowedCallerIdentifiers
+            )
+            Issue.record("Expected helper plist validation to fail for mismatched AssociatedBundleIdentifiers")
+        } catch let error as HelperManager.HelperPlistValidationError {
+            #expect(error == .unexpectedAssociatedBundleIdentifiers([TestIdentity.communityBundleIdentifier]))
+        } catch {
+            Issue.record("Unexpected helper plist validation error: \(error)")
+        }
+    }
+
+    @Test("helper install resources reject mismatched helper metadata")
+    func helperInstallResourcesRejectMismatchedHelperMetadata() throws {
+        let fixture = try makeHelperInstallResourceFixture(helperKind: .regularFile(permissions: 0o755))
+        defer { try? FileManager.default.removeItem(at: fixture.temporaryDirectory) }
+
+        let mismatchedInfo = fixture.helperInfoDictionary.merging([
+            "RockxyAllowedCallerIdentifiers": TestIdentity.communityBundleIdentifier,
+        ]) { _, newValue in newValue }
+
+        do {
+            try HelperManager.validateBundledHelperInstallResources(
+                bundle: fixture.bundle,
+                helperInfoDictionaryProvider: { _ in mismatchedInfo }
+            )
+            Issue.record("Expected helper install resource validation to fail for mismatched helper metadata")
+        } catch let error as HelperManager.HelperInstallPreflightError {
+            #expect(
+                error == .invalidBundledHelperMetadata(
+                    .unexpectedAllowedCallerIdentifiers([TestIdentity.communityBundleIdentifier])
+                )
+            )
+        } catch {
+            Issue.record("Unexpected helper install preflight error: \(error)")
         }
     }
 
@@ -208,7 +308,8 @@ struct HelperManagerTests {
                 malformedData,
                 expectedLabel: TestIdentity.helperMachServiceName,
                 expectedBundleProgram: expectedHelperBundleProgram,
-                expectedMachServiceName: TestIdentity.helperMachServiceName
+                expectedMachServiceName: TestIdentity.helperMachServiceName,
+                expectedAssociatedBundleIdentifiers: TestIdentity.expectedAllowedCallerIdentifiers
             )
             Issue.record("Expected helper plist validation to fail for malformed data")
         } catch let error as HelperManager.HelperPlistValidationError {
@@ -388,6 +489,31 @@ struct HelperManagerTests {
     }
 }
 
+private func hasSignedBundleWithEmbeddedMetadata() -> Bool {
+    signedBundleWithEmbeddedMetadata() != nil
+}
+
+private func builtAppBundleHasReadableHelperMetadata() -> Bool {
+    let appBundle = Bundle(for: AppDelegate.self)
+    let helperBinaryURL = appBundle.bundleURL.appendingPathComponent(
+        HelperManager.bundledHelperBinaryRelativePath
+    )
+    return HelperManager.bundledHelperInfoDictionary(at: helperBinaryURL) != nil
+}
+
+private func signedBundleWithEmbeddedMetadata() -> Bundle? {
+    let bundles = Bundle.allBundles + Bundle.allFrameworks
+    return bundles.first(where: { candidate in
+        guard let executableURL = candidate.executableURL else {
+            return false
+        }
+
+        return Bundle(url: executableURL) == nil
+            && Bundle(path: executableURL.path) == nil
+            && HelperManager.bundledHelperInfoDictionary(at: executableURL) != nil
+    })
+}
+
 private let expectedHelperBundleProgram = "Contents/Library/HelperTools/RockxyHelperTool"
 
 private enum HelperBinaryKind {
@@ -398,10 +524,21 @@ private enum HelperBinaryKind {
 private struct HelperInstallResourceFixture {
     let temporaryDirectory: URL
     let helperBinaryURL: URL
+    let helperInfoDictionary: [String: Any]
     let bundle: Bundle
 }
 
 private func makeHelperInstallResourceFixture(helperKind: HelperBinaryKind) throws -> HelperInstallResourceFixture {
+    try makeHelperInstallResourceFixture(
+        helperKind: helperKind,
+        writesSidecarInfoPlist: false
+    )
+}
+
+private func makeHelperInstallResourceFixture(
+    helperKind: HelperBinaryKind,
+    writesSidecarInfoPlist: Bool
+) throws -> HelperInstallResourceFixture {
     let temporaryDirectory = FileManager.default.temporaryDirectory
         .appendingPathComponent("rockxy-helper-fixture-\(UUID().uuidString)", isDirectory: true)
     let appBundleURL = temporaryDirectory.appendingPathComponent("Rockxy.app", isDirectory: true)
@@ -415,6 +552,7 @@ private func makeHelperInstallResourceFixture(helperKind: HelperBinaryKind) thro
         "RockxyHelperBundleIdentifier": TestIdentity.helperBundleIdentifier,
         "RockxyHelperMachServiceName": TestIdentity.helperMachServiceName,
         "RockxyHelperPlistName": TestIdentity.helperPlistName,
+        "RockxyAllowedCallerIdentifiers": TestIdentity.expectedAllowedCallerIdentifiers.joined(separator: " "),
     ]
     let infoData = try PropertyListSerialization.data(fromPropertyList: info, format: .xml, options: 0)
     try infoData.write(to: contentsURL.appendingPathComponent("Info.plist"))
@@ -429,6 +567,22 @@ private func makeHelperInstallResourceFixture(helperKind: HelperBinaryKind) thro
         try FileManager.default.createDirectory(at: helperBinaryURL, withIntermediateDirectories: true)
     }
 
+    if writesSidecarInfoPlist {
+        let helperInfoData = try PropertyListSerialization.data(
+            fromPropertyList: [
+                "CFBundleIdentifier": TestIdentity.helperBundleIdentifier,
+                "RockxyFamilyNamespace": TestIdentity.familyNamespace,
+                "RockxyHelperBundleIdentifier": TestIdentity.helperBundleIdentifier,
+                "RockxyHelperMachServiceName": TestIdentity.helperMachServiceName,
+                "RockxyAllowedCallerIdentifiers": TestIdentity.expectedAllowedCallerIdentifiers.joined(separator: " "),
+            ],
+            format: .xml,
+            options: 0
+        )
+        let sidecarInfoURL = helperBinaryURL.deletingLastPathComponent().appendingPathComponent("Info.plist")
+        try helperInfoData.write(to: sidecarInfoURL)
+    }
+
     let helperPlistURL = appBundleURL
         .appendingPathComponent("Contents/Library/LaunchDaemons/\(TestIdentity.helperPlistName)")
     try FileManager.default.createDirectory(at: helperPlistURL.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -440,6 +594,13 @@ private func makeHelperInstallResourceFixture(helperKind: HelperBinaryKind) thro
     return HelperInstallResourceFixture(
         temporaryDirectory: temporaryDirectory,
         helperBinaryURL: helperBinaryURL,
+        helperInfoDictionary: [
+            "CFBundleIdentifier": TestIdentity.helperBundleIdentifier,
+            "RockxyFamilyNamespace": TestIdentity.familyNamespace,
+            "RockxyHelperBundleIdentifier": TestIdentity.helperBundleIdentifier,
+            "RockxyHelperMachServiceName": TestIdentity.helperMachServiceName,
+            "RockxyAllowedCallerIdentifiers": TestIdentity.expectedAllowedCallerIdentifiers.joined(separator: " "),
+        ],
         bundle: bundle
     )
 }
@@ -447,7 +608,8 @@ private func makeHelperInstallResourceFixture(helperKind: HelperBinaryKind) thro
 private func makeHelperLaunchdPlistData(
     label: String? = TestIdentity.helperMachServiceName,
     bundleProgram: String? = expectedHelperBundleProgram,
-    machServices: [String: Any]? = [TestIdentity.helperMachServiceName: true]
+    machServices: [String: Any]? = [TestIdentity.helperMachServiceName: true],
+    associatedBundleIdentifiers: [String]? = TestIdentity.expectedAllowedCallerIdentifiers
 )
     throws -> Data
 {
@@ -460,6 +622,9 @@ private func makeHelperLaunchdPlistData(
     }
     if let machServices {
         plist["MachServices"] = machServices
+    }
+    if let associatedBundleIdentifiers {
+        plist["AssociatedBundleIdentifiers"] = associatedBundleIdentifiers
     }
 
     return try PropertyListSerialization.data(

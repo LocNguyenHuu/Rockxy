@@ -44,6 +44,20 @@ enum SigningDiagnostics {
         func helperCertificateChain() -> [Data]?
     }
 
+    nonisolated static func helperExecutableCandidates(
+        bundledHelperURL: URL = Bundle.main.bundleURL
+            .appendingPathComponent(HelperManager.bundledHelperBinaryRelativePath, isDirectory: false),
+        legacyInstalledHelperURL: URL = URL(
+            fileURLWithPath: "/Library/PrivilegedHelperTools/\(RockxyIdentity.current.helperBundleIdentifier)"
+        )
+    ) -> [URL] {
+        if bundledHelperURL == legacyInstalledHelperURL {
+            return [legacyInstalledHelperURL]
+        }
+
+        return [legacyInstalledHelperURL, bundledHelperURL]
+    }
+
     // MARK: - Live Environment
 
     struct LiveEnvironment: Environment {
@@ -69,7 +83,7 @@ enum SigningDiagnostics {
         }
 
         func helperBinaryExists() -> Bool {
-            FileManager.default.fileExists(atPath: helperPath)
+            resolvedHelperExecutableURL != nil
         }
 
         func appSignerSummary() -> String? {
@@ -91,13 +105,24 @@ enum SigningDiagnostics {
         }
 
         func helperCertificateChain() -> [Data]? {
-            certificateChainForPath(helperPath)
+            guard let helperURL = resolvedHelperExecutableURL else {
+                return nil
+            }
+
+            return certificateChainForURL(helperURL)
         }
 
         // MARK: Private
 
-        private let helperPath =
-            "/Library/PrivilegedHelperTools/\(RockxyIdentity.current.helperBundleIdentifier)"
+        private var resolvedHelperExecutableURL: URL? {
+            helperExecutableCandidates.first { candidateURL in
+                FileManager.default.isExecutableFile(atPath: candidateURL.path)
+            }
+        }
+
+        private var helperExecutableCandidates: [URL] {
+            SigningDiagnostics.helperExecutableCandidates()
+        }
 
         private func certificateChainForSelf() -> [Data]? {
             var code: SecCode?
@@ -113,8 +138,7 @@ enum SigningDiagnostics {
             return extractCertificateDERs(from: sc)
         }
 
-        private func certificateChainForPath(_ path: String) -> [Data]? {
-            let url = URL(fileURLWithPath: path)
+        private func certificateChainForURL(_ url: URL) -> [Data]? {
             var staticCode: SecStaticCode?
             guard SecStaticCodeCreateWithPath(url as CFURL, [], &staticCode) == errSecSuccess,
                   let sc = staticCode else

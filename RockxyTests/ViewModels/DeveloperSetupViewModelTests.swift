@@ -199,6 +199,92 @@ struct DeveloperSetupViewModelTests {
         #expect(viewModel.showsAutomationSheet == false)
     }
 
+    @Test("Reachable LAN address prefers a concrete non-wildcard listen address")
+    func reachableLANAddressPrefersConcreteListenAddress() {
+        let reachableAddress = DeveloperSetupViewModel.reachableLANAddress(
+            for: "192.168.1.25",
+            discoverLANAddress: {
+                Issue.record("Concrete listen addresses should not trigger LAN auto-discovery")
+                return "10.0.0.5"
+            }
+        )
+
+        #expect(reachableAddress == "192.168.1.25")
+    }
+
+    @Test("Reachable LAN address skips discovery for loopback-only mode")
+    func reachableLANAddressSkipsDiscoveryForLoopback() {
+        let reachableAddress = DeveloperSetupViewModel.reachableLANAddress(
+            for: "127.0.0.1",
+            discoverLANAddress: {
+                Issue.record("Loopback mode should not trigger LAN auto-discovery")
+                return "10.0.0.5"
+            }
+        )
+
+        #expect(reachableAddress == nil)
+    }
+
+    @Test("Reachable LAN address returns nil for an empty listen address")
+    func reachableLANAddressReturnsNilForEmptyAddress() {
+        let reachableAddress = DeveloperSetupViewModel.reachableLANAddress(
+            for: "",
+            discoverLANAddress: {
+                Issue.record("Empty listen addresses should not trigger LAN auto-discovery")
+                return "10.0.0.5"
+            }
+        )
+
+        #expect(reachableAddress == nil)
+    }
+
+    @Test("Reachable LAN address falls back to discovery for wildcard listen addresses")
+    func reachableLANAddressUsesDiscoveryForWildcardAddress() {
+        let reachableAddress = DeveloperSetupViewModel.reachableLANAddress(
+            for: "0.0.0.0",
+            discoverLANAddress: {
+                "10.0.0.5"
+            }
+        )
+
+        #expect(reachableAddress == "10.0.0.5")
+    }
+
+    @Test("Reachable LAN address normalizes IPv6 wildcard and loopback inputs")
+    func reachableLANAddressNormalizesIPv6WildcardAndLoopbackInputs() {
+        struct TestCase {
+            let listenAddress: String
+            let expectedAddress: String?
+            let shouldDiscover: Bool
+        }
+
+        let cases = [
+            TestCase(listenAddress: "  ::  ", expectedAddress: "10.0.0.5", shouldDiscover: true),
+            TestCase(listenAddress: "  [::]  ", expectedAddress: "10.0.0.5", shouldDiscover: true),
+            TestCase(listenAddress: "  ::1  ", expectedAddress: nil, shouldDiscover: false),
+            TestCase(listenAddress: "  [::1]  ", expectedAddress: nil, shouldDiscover: false),
+            TestCase(listenAddress: "  LOCALHOST  ", expectedAddress: nil, shouldDiscover: false),
+            TestCase(listenAddress: "2001:db8::25", expectedAddress: "2001:db8::25", shouldDiscover: false),
+        ]
+
+        for testCase in cases {
+            var discoveryInvoked = false
+            let reachableAddress = DeveloperSetupViewModel.reachableLANAddress(
+                for: testCase.listenAddress,
+                discoverLANAddress: {
+                    discoveryInvoked = true
+                    if !testCase.shouldDiscover {
+                        Issue.record("LAN discovery should not run for \(testCase.listenAddress)")
+                    }
+                    return "10.0.0.5"
+                }
+            )
+
+            #expect(reachableAddress == testCase.expectedAddress)
+            #expect(discoveryInvoked == testCase.shouldDiscover)
+        }
+    }
+
     @Test("Node.js workflow exposes runtime snippets and validation")
     func nodeWorkflow() {
         let workflow = DeveloperSetupWorkflowCatalog.workflow(for: .nodeJS)

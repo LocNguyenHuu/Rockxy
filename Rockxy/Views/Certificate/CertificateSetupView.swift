@@ -145,7 +145,7 @@ struct CertificateSetupView: View {
                 }
                 await checkCAStatus()
             } catch {
-                statusMessage = error.localizedDescription
+                statusMessage = action.userFacingFailureMessage(for: error)
                 Self.logger.error("Certificate action failed: \(error)")
                 await checkCAStatus()
             }

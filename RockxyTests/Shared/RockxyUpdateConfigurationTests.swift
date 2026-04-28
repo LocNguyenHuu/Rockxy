@@ -75,6 +75,21 @@ struct RockxyUpdateConfigurationTests {
         #expect(!configuration.isConfigured)
     }
 
+    @Test("Manual update checks can stay available when automatic updates are off")
+    func supportsManualChecksWithoutAutomaticUpdates() {
+        let configuration = RockxyUpdateConfiguration(infoDictionary: [
+            "RockxyUpdatesEnabled": "NO",
+            "SUFeedURL": "https://raw.githubusercontent.com/RockxyApp/Rockxy/main/appcast.xml",
+            "SUPublicEDKey": "public-key",
+            "RockxyBuildReleaseDate": "2026-04-25T00:00:00Z",
+        ])
+
+        #expect(!configuration.updatesEnabled)
+        #expect(!configuration.isConfigured)
+        #expect(configuration.supportsUserInitiatedUpdateChecks)
+        #expect(!configuration.supportsAutomaticUpdateChecks)
+    }
+
     @Test("Sparkle config fails closed when the build release date is missing")
     func defaultsReleaseDateToDistantFuture() {
         let configuration = RockxyUpdateConfiguration(infoDictionary: [
@@ -84,6 +99,34 @@ struct RockxyUpdateConfigurationTests {
         ])
 
         #expect(configuration.buildReleaseDate == .distantFuture)
+    }
+
+    @Test(
+        "Release guidance points dry runs at publish confirm",
+        .enabled(
+            if: repoContainsFile("scripts/rockxy-release.sh"),
+            "Requires local release scripts checked out in the repo"
+        )
+    )
+    func releaseGuidanceMentionsPublishConfirm() throws {
+        let script = try loadRepoFile("scripts/rockxy-release.sh")
+
+        #expect(script.contains("scripts/rockxy-publish.sh --confirm"))
+    }
+
+    @Test("Developer template inherits LocalDev defaults")
+    func developerTemplateIncludesLocalDevDefaults() throws {
+        let template = try loadRepoFile("Configuration/Developer.xcconfig.template")
+
+        #expect(template.contains("#include \"LocalDev.xcconfig\""))
+    }
+
+    @Test("LocalDev keeps manual update feed while disabling automatic checks")
+    func localDevKeepsManualUpdateFeed() throws {
+        let localDev = try loadRepoFile("Configuration/LocalDev.xcconfig")
+
+        #expect(localDev.contains("ROCKXY_UPDATES_ENABLED = NO"))
+        #expect(localDev.contains("ROCKXY_SPARKLE_FEED_URL = $(ROCKXY_PUBLIC_APPCAST_FEED_URL)"))
     }
 }
 
@@ -106,5 +149,82 @@ struct AppUpdaterTests {
         }
 
         #expect(!updater.canCheckForUpdates)
+    }
+
+    @Test("Manual-only updater keeps user-initiated checks available")
+    func manualOnlyUpdaterAvailability() {
+        let configuration = RockxyUpdateConfiguration(infoDictionary: [
+            "RockxyUpdatesEnabled": "NO",
+            "SUFeedURL": "https://raw.githubusercontent.com/RockxyApp/Rockxy/main/appcast.xml",
+            "SUPublicEDKey": "public-key",
+            "RockxyBuildReleaseDate": "2026-04-25T00:00:00Z",
+        ])
+        let updater = AppUpdater(configuration: configuration)
+
+        #expect(!updater.isConfigured)
+        #expect(updater.supportsManualChecks)
+        #expect(!updater.supportsAutomaticChecks)
+        #expect(updater.canInitiateUpdateCheck)
+    }
+
+    @Test("Manual-only updater still allows user-initiated checks after startup path")
+    func manualOnlyUpdaterRemainsInitiableAfterStartupPath() {
+        let configuration = RockxyUpdateConfiguration(infoDictionary: [
+            "RockxyUpdatesEnabled": "NO",
+            "SUFeedURL": "https://raw.githubusercontent.com/RockxyApp/Rockxy/main/appcast.xml",
+            "SUPublicEDKey": "public-key",
+            "RockxyBuildReleaseDate": "2026-04-25T00:00:00Z",
+        ])
+        let updater = AppUpdater(configuration: configuration)
+
+        updater.startIfConfigured()
+
+        #expect(updater.supportsManualChecks)
+        #expect(updater.canInitiateUpdateCheck)
+    }
+}
+
+private func loadRepoFile(_ relativePath: String) throws -> String {
+    try String(
+        contentsOf: try repoRootURL().appendingPathComponent(relativePath),
+        encoding: .utf8
+    )
+}
+
+private func repoContainsFile(_ relativePath: String) -> Bool {
+    let rootURL: URL
+    do {
+        rootURL = try repoRootURL()
+    } catch {
+        return false
+    }
+
+    return FileManager.default.fileExists(atPath: rootURL.appendingPathComponent(relativePath).path)
+}
+
+private func repoRootURL() throws -> URL {
+    let fileManager = FileManager.default
+    var candidateDirectory = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+
+    while true {
+        let gitMarker = candidateDirectory.appendingPathComponent(".git").path
+        let xcodeProjectMarker = candidateDirectory.appendingPathComponent("Rockxy.xcodeproj").path
+
+        if fileManager.fileExists(atPath: gitMarker) || fileManager.fileExists(atPath: xcodeProjectMarker) {
+            return candidateDirectory
+        }
+
+        let parentDirectory = candidateDirectory.deletingLastPathComponent()
+        guard parentDirectory.path != candidateDirectory.path else {
+            throw NSError(
+                domain: "RockxyUpdateConfigurationTests",
+                code: 1,
+                userInfo: [
+                    NSLocalizedDescriptionKey: "Unable to locate the Rockxy repository root while loading repository fixtures.",
+                ]
+            )
+        }
+
+        candidateDirectory = parentDirectory
     }
 }

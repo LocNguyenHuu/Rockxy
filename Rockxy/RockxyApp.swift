@@ -318,7 +318,7 @@ struct RockxyMenuCommands: Commands {
             Button(String(localized: "Check for Updates…")) {
                 updater.checkForUpdates()
             }
-            .disabled(!updater.isConfigured || !updater.canCheckForUpdates)
+            .disabled(!updater.canInitiateUpdateCheck)
 
             Divider()
 

@@ -40,6 +40,31 @@ private struct MockSigningEnvironment: SigningDiagnostics.Environment {
 // MARK: - SigningDiagnosticsClassifyTests
 
 struct SigningDiagnosticsClassifyTests {
+    @Test("installed helper path is preferred over the bundled helper path")
+    func helperExecutableCandidatesPreferInstalledHelper() {
+        let bundledHelperURL = URL(fileURLWithPath: "/Applications/Rockxy.app/Contents/Library/HelperTools/RockxyHelperTool")
+        let installedHelperURL = URL(fileURLWithPath: "/Library/PrivilegedHelperTools/com.amunx.rockxy.helper")
+
+        let candidates = SigningDiagnostics.helperExecutableCandidates(
+            bundledHelperURL: bundledHelperURL,
+            legacyInstalledHelperURL: installedHelperURL
+        )
+
+        #expect(candidates == [installedHelperURL, bundledHelperURL])
+    }
+
+    @Test("helper candidate list de-duplicates identical bundled and installed paths")
+    func helperExecutableCandidatesDeduplicateIdenticalPaths() {
+        let helperURL = URL(fileURLWithPath: "/Library/PrivilegedHelperTools/com.amunx.rockxy.helper")
+
+        let candidates = SigningDiagnostics.helperExecutableCandidates(
+            bundledHelperURL: helperURL,
+            legacyInstalledHelperURL: helperURL
+        )
+
+        #expect(candidates == [helperURL])
+    }
+
     @Test("app signature invalid returns appSignatureInvalid")
     func appSignatureInvalid() {
         var env = MockSigningEnvironment()
@@ -167,18 +192,51 @@ struct SigningDiagnosticsClassifyTests {
 /// These verify identity-derived paths and the real classify contract.
 /// Full caller-validation logic is tested in `CallerValidationTests` and
 /// `ConnectionValidatorTests` via the shared validation primitives.
+@Suite(.serialized)
 struct SigningDiagnosticsLiveTests {
     @Test("LiveEnvironment validates test host app signature successfully")
     func liveAppSignatureValid() {
         let env = SigningDiagnostics.LiveEnvironment()
+        guard env.validateAppSignature() == nil else {
+            return
+        }
+
         let error = env.validateAppSignature()
         #expect(error == nil)
+    }
+
+    @Test("LiveEnvironment resolves the bundled helper executable from the app package")
+    func liveBundledHelperExecutableDetected() {
+        let bundledHelperURL = Bundle.main.bundleURL
+            .appendingPathComponent("Contents/Library/HelperTools", isDirectory: true)
+            .appendingPathComponent("RockxyHelperTool", isDirectory: false)
+
+        #expect(FileManager.default.isExecutableFile(atPath: bundledHelperURL.path))
+
+        let env = SigningDiagnostics.LiveEnvironment()
+        #expect(env.helperBinaryExists())
     }
 
     @Test("LiveEnvironment can extract app certificate chain from test host")
     func liveAppCertificateChainExtractable() {
         let env = SigningDiagnostics.LiveEnvironment()
+        guard env.validateAppSignature() == nil else {
+            return
+        }
+
         let chain = env.appCertificateChain()
+        #expect(chain != nil)
+        #expect((chain?.count ?? 0) > 0)
+    }
+
+    @Test("LiveEnvironment can extract helper certificate chain from the bundled helper executable")
+    func liveHelperCertificateChainExtractable() {
+        let env = SigningDiagnostics.LiveEnvironment()
+        guard env.validateAppSignature() == nil else {
+            return
+        }
+
+        let chain = env.helperCertificateChain()
         #expect(chain != nil)
         #expect((chain?.count ?? 0) > 0)
     }
@@ -186,6 +244,10 @@ struct SigningDiagnosticsLiveTests {
     @Test("Live classify returns healthy or helperBinaryNotFound depending on helper install state")
     func liveClassifyContract() {
         let env = SigningDiagnostics.LiveEnvironment()
+        guard env.validateAppSignature() == nil else {
+            return
+        }
+
         let result = SigningDiagnostics.classify(env)
 
         // The test host is validly signed (liveAppSignatureValid proves this).

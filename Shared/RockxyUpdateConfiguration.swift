@@ -2,7 +2,7 @@ import Foundation
 import os
 
 /// Bundle-driven Sparkle configuration. Missing or placeholder values are treated
-/// as disabled so local and test builds do not perform accidental update checks.
+/// as disabled so local and test builds do not perform accidental automatic checks.
 struct RockxyUpdateConfiguration {
     // MARK: Lifecycle
 
@@ -38,7 +38,9 @@ struct RockxyUpdateConfiguration {
         ) {
             buildReleaseDate = parsedBuildReleaseDate
         } else {
-            Self.logger.error("Missing or invalid RockxyBuildReleaseDate; failing update eligibility closed.")
+            if updatesEnabled {
+                Self.logger.error("Missing or invalid RockxyBuildReleaseDate; failing update eligibility closed.")
+            }
             buildReleaseDate = .distantFuture
         }
     }
@@ -55,7 +57,15 @@ struct RockxyUpdateConfiguration {
     let buildReleaseDate: Date
 
     var isConfigured: Bool {
+        supportsAutomaticUpdateChecks
+    }
+
+    var supportsAutomaticUpdateChecks: Bool {
         updatesEnabled && feedURL != nil && !publicEDKey.isEmpty
+    }
+
+    var supportsUserInitiatedUpdateChecks: Bool {
+        feedURL != nil && !publicEDKey.isEmpty
     }
 
     // MARK: Private

@@ -111,6 +111,13 @@ struct DeveloperSetupRuntimeIntegrationTests {
 
     @Test("Go runtime traffic is captured end-to-end")
     func goRuntimeTrafficIsCaptured() async throws {
+        guard let go = try? runtimeExecutable(
+            name: "go",
+            additionalCandidates: ["/opt/homebrew/bin/go", "/usr/local/bin/go"]
+        ) else {
+            return
+        }
+
         try await assertRuntimeProbe(
             runtimeName: "Go",
             requestPath: "/developer-setup/go",
@@ -154,10 +161,7 @@ struct DeveloperSetupRuntimeIntegrationTests {
                 """.write(to: sourceURL, atomically: true, encoding: .utf8)
 
                 return ProcessInvocation(
-                    executableURL: try runtimeExecutable(
-                        name: "go",
-                        additionalCandidates: ["/opt/homebrew/bin/go", "/usr/local/bin/go"]
-                    ),
+                    executableURL: go,
                     arguments: ["run", sourceURL.path]
                 )
             }
@@ -542,6 +546,46 @@ struct DeveloperSetupRuntimeIntegrationTests {
         )
     }
 
+    @Test("process cancellation force-terminates runtimes that ignore SIGTERM")
+    func processCancellationForceTerminatesIgnoredSigterm() async throws {
+        let workingDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("DeveloperSetupCancellation-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: workingDirectory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: workingDirectory) }
+
+        let scriptURL = workingDirectory.appendingPathComponent("ignore-term.py")
+        try """
+        import signal
+        import time
+
+        signal.signal(signal.SIGTERM, lambda signum, frame: None)
+
+        while True:
+            time.sleep(1)
+        """.write(to: scriptURL, atomically: true, encoding: .utf8)
+
+        let task = Task {
+            try await runProcess(
+                executableURL: URL(fileURLWithPath: "/usr/bin/python3"),
+                arguments: [scriptURL.path],
+                workingDirectory: workingDirectory,
+                timeout: .seconds(30)
+            )
+        }
+
+        try await Task.sleep(for: .milliseconds(200))
+        task.cancel()
+
+        do {
+            _ = try await task.value
+            Issue.record("Expected cancelling runProcess to throw CancellationError")
+        } catch is CancellationError {
+            // Expected
+        } catch {
+            Issue.record("Expected CancellationError, got \(error)")
+        }
+    }
+
     // MARK: Private
 
     private func assertRuntimeProbe(
@@ -601,15 +645,16 @@ struct DeveloperSetupRuntimeIntegrationTests {
                 "\(runtimeName) probe failed.\nstdout:\n\(result.stdout)\nstderr:\n\(result.stderr)"
             )
 
+            let captureBudget = TimeoutBudget(timeout: captureTimeout)
             let capturedTransaction = try await transactionRecorder.waitForTransaction(
                 host: expectedCapturedHost,
                 method: expectedCapturedMethod,
                 path: allowAnyCapturedPath ? nil : (expectedCapturedPath ?? requestPath),
-                timeout: captureTimeout
+                budget: captureBudget
             )
             let upstreamRequest = try await upstreamRecorder.waitForRequest(
                 path: requestPath,
-                timeout: captureTimeout
+                budget: captureBudget
             )
 
             #expect(capturedTransaction.request.method == expectedCapturedMethod)
@@ -795,16 +840,46 @@ struct DeveloperSetupRuntimeIntegrationTests {
             return data
         }
 
-        let deadline = ContinuousClock().now + timeout
-        while process.isRunning {
-            if ContinuousClock().now >= deadline {
-                process.terminate()
-                process.waitUntilExit()
+        let budget = TimeoutBudget(timeout: timeout)
+        func terminateProcessForCancellation() {
+            defer {
                 stdoutReader.cancel()
                 stderrReader.cancel()
+            }
+
+            if process.isRunning {
+                process.terminate()
+                let gracePeriodDeadline = Date().addingTimeInterval(1.0)
+                while process.isRunning, Date() < gracePeriodDeadline {
+                    Thread.sleep(forTimeInterval: 0.05)
+                }
+                if process.isRunning {
+                    let processIdentifier = process.processIdentifier
+                    if processIdentifier > 0, process.isRunning {
+                        Darwin.kill(processIdentifier, SIGKILL)
+                    }
+                }
+                process.waitUntilExit()
+            }
+        }
+
+        while process.isRunning {
+            guard !budget.hasExpired else {
+                terminateProcessForCancellation()
                 throw RuntimeProbeError.processTimedOut(executableURL.lastPathComponent)
             }
-            try? await Task.sleep(for: .milliseconds(100))
+
+            if Task.isCancelled {
+                terminateProcessForCancellation()
+                throw CancellationError()
+            }
+
+            do {
+                try await budget.sleep(step: .milliseconds(100))
+            } catch is CancellationError {
+                terminateProcessForCancellation()
+                throw CancellationError()
+            }
         }
 
         let stdoutData = (try? await stdoutReader.value) ?? Data()
@@ -864,15 +939,14 @@ private final class TransactionRecorder: @unchecked Sendable {
         host: String,
         method: String,
         path: String?,
-        timeout: Duration = .seconds(10)
+        budget: TimeoutBudget
     ) async throws -> HTTPTransaction {
-        let deadline = ContinuousClock().now + timeout
-
-        while ContinuousClock().now < deadline {
+        while !budget.hasExpired {
+            try Task.checkCancellation()
             if let transaction = matchingTransaction(host: host, method: method, path: path) {
                 return transaction
             }
-            try? await Task.sleep(for: .milliseconds(50))
+            try await budget.sleep(step: .milliseconds(50))
         }
 
         throw RuntimeProbeError.captureTimedOut(path ?? host)
@@ -906,14 +980,13 @@ private final class UpstreamRequestRecorder: @unchecked Sendable {
         lock.unlock()
     }
 
-    func waitForRequest(path: String, timeout: Duration = .seconds(10)) async throws -> UpstreamRequest {
-        let deadline = ContinuousClock().now + timeout
-
-        while ContinuousClock().now < deadline {
+    func waitForRequest(path: String, budget: TimeoutBudget) async throws -> UpstreamRequest {
+        while !budget.hasExpired {
+            try Task.checkCancellation()
             if let request = matchingRequest(path: path) {
                 return request
             }
-            try? await Task.sleep(for: .milliseconds(50))
+            try await budget.sleep(step: .milliseconds(50))
         }
 
         throw RuntimeProbeError.upstreamTimedOut(path)
@@ -927,6 +1000,28 @@ private final class UpstreamRequestRecorder: @unchecked Sendable {
 
     private let lock = NSLock()
     private var requests: [UpstreamRequest] = []
+}
+
+private final class TimeoutBudget: @unchecked Sendable {
+    init(timeout: Duration, clock: ContinuousClock = ContinuousClock()) {
+        self.clock = clock
+        deadline = clock.now + timeout
+    }
+
+    var hasExpired: Bool {
+        clock.now >= deadline
+    }
+
+    func sleep(step: Duration) async throws {
+        let remaining = deadline - clock.now
+        guard remaining > .zero else {
+            return
+        }
+        try await Task.sleep(for: min(step, remaining))
+    }
+
+    private let clock: ContinuousClock
+    private let deadline: ContinuousClock.Instant
 }
 
 // MARK: - LocalHTTPProbeServer

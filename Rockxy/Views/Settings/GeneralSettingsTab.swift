@@ -236,7 +236,7 @@ struct GeneralSettingsTab: View {
                 }
                 await checkCAStatus()
             } catch {
-                certificateStatus = .error(error.localizedDescription)
+                certificateStatus = .error(action.userFacingFailureMessage(for: error))
                 Self.logger.error("Certificate action failed: \(error)")
                 await checkCAStatus()
             }

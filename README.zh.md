@@ -39,19 +39,19 @@
 ---
 
 <!-- BEGIN GENERATED: latest-release -->
-## Latest Tagged Release
+## 最新标签版本
 
 **v0.12.0** — 2026-04-28
 
-### Fixed
+### 修复
 
 - Fixed Homebrew/public app bundles that could fail helper installation with "unable to read plist" by validating and packaging the bundled helper launchd plist correctly (issue #53).
 
-### Changed
+### 变更
 
 - Added a Star History chart to all README translations.
 
-See [CHANGELOG.md](CHANGELOG.md) for the full release history.
+完整发布历史请参阅 [CHANGELOG.md](CHANGELOG.md)。
 <!-- END GENERATED: latest-release -->
 
 ## 当前分支亮点

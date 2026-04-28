@@ -42,7 +42,11 @@ final class AppUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
         sparkleCancellables = []
         super.init()
 
-        if configuration.isConfigured {
+        if configuration.supportsUserInitiatedUpdateChecks, !configuration.supportsAutomaticUpdateChecks {
+            Self.installManualOnlyOverrides()
+        }
+
+        if configuration.supportsUserInitiatedUpdateChecks {
             let userDriver = RockxyUpdateUserDriver(
                 hostBundle: .main,
                 configuration: configuration
@@ -55,7 +59,6 @@ final class AppUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
                 delegate: self
             )
             bindSparkleState()
-            refreshSparkleState()
         }
     }
 
@@ -64,10 +67,10 @@ final class AppUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
     static let shared = AppUpdater(configuration: .current)
 
     static let fullChangelogURL: URL = {
-        if let url = URL(string: "https://github.com/RockxyApp/Rockxy/releases") {
-            return url
+        guard let url = URL(string: "https://github.com/RockxyApp/Rockxy/releases") else {
+            preconditionFailure("Invalid full changelog URL")
         }
-        return URL(fileURLWithPath: "/")
+        return url
     }()
 
     @Published private(set) var canCheckForUpdates = false
@@ -82,7 +85,23 @@ final class AppUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
     let configuration: RockxyUpdateConfiguration
 
     var isConfigured: Bool {
-        updater != nil
+        supportsAutomaticChecks
+    }
+
+    var supportsManualChecks: Bool {
+        configuration.supportsUserInitiatedUpdateChecks
+    }
+
+    var supportsAutomaticChecks: Bool {
+        configuration.supportsAutomaticUpdateChecks
+    }
+
+    var canInitiateUpdateCheck: Bool {
+        guard supportsManualChecks else {
+            return false
+        }
+
+        return !hasStartedUpdater || canCheckForUpdates
     }
 
     var currentVersionSummary: String {
@@ -90,8 +109,12 @@ final class AppUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
     }
 
     var updateAvailabilitySummary: String {
-        if isConfigured {
+        if supportsAutomaticChecks {
             return String(localized: "Signed updates are enabled for this build.")
+        } else if supportsManualChecks {
+            return String(
+                localized: "Manual update checks are available in this local build. Automatic checks stay off while developing in Xcode."
+            )
         } else {
             return String(localized: "Software updates are unavailable in this local build.")
         }
@@ -110,28 +133,31 @@ final class AppUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
     }
 
     func startIfConfigured() {
-        guard let updater else {
-            Self.logger.info("Sparkle updater skipped: feed or public key is not configured.")
+        guard supportsAutomaticChecks else {
+            if supportsManualChecks {
+                Self.logger.info("Sparkle automatic checks skipped for this build; manual checks remain available.")
+            } else {
+                Self.logger.info("Sparkle updater skipped: feed or public key is not configured.")
+            }
             return
         }
-        guard !hasStartedUpdater else {
-            return
-        }
-
-        hasStartedUpdater = true
 
         do {
-            try updater.start()
-            refreshSparkleState()
-            Self.logger.info("Sparkle updater started.")
+            try ensureUpdaterStarted()
         } catch {
-            hasStartedUpdater = false
-            Self.logger.error("Sparkle updater failed to start: \(error.localizedDescription)")
+            presentUpdaterStartError(error)
         }
     }
 
     func checkForUpdates() {
-        guard let updater else {
+        guard let updater, supportsManualChecks else {
+            return
+        }
+
+        do {
+            try ensureUpdaterStarted()
+        } catch {
+            presentUpdaterStartError(error)
             return
         }
 
@@ -144,7 +170,7 @@ final class AppUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
     }
 
     func setAutomaticallyChecksForUpdates(_ enabled: Bool) {
-        guard let updater else {
+        guard let updater, supportsAutomaticChecks else {
             return
         }
 
@@ -153,7 +179,7 @@ final class AppUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
     }
 
     func setAutomaticallyDownloadsUpdates(_ enabled: Bool) {
-        guard let updater, updater.allowsAutomaticUpdates else {
+        guard let updater, supportsAutomaticChecks, updater.allowsAutomaticUpdates else {
             return
         }
 
@@ -162,7 +188,7 @@ final class AppUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
     }
 
     func setSendsSystemProfile(_ enabled: Bool) {
-        guard let updater else {
+        guard let updater, supportsAutomaticChecks else {
             return
         }
 
@@ -171,7 +197,7 @@ final class AppUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
     }
 
     func setUpdateCheckInterval(_ interval: TimeInterval) {
-        guard let updater else {
+        guard let updater, supportsAutomaticChecks else {
             return
         }
 
@@ -191,6 +217,42 @@ final class AppUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
     private var hasStartedUpdater = false
     private var updateCheckGate: (@MainActor (SPUUpdateCheck) -> String?)?
     private var sparkleCancellables: [AnyCancellable]
+
+    private static func installManualOnlyOverrides(defaults: UserDefaults = .standard) {
+        var argumentDomain = defaults.volatileDomain(forName: UserDefaults.argumentDomain)
+        argumentDomain["SUEnableAutomaticChecks"] = false
+        argumentDomain["SUAllowsAutomaticUpdates"] = false
+        defaults.setVolatileDomain(argumentDomain, forName: UserDefaults.argumentDomain)
+    }
+
+    private func ensureUpdaterStarted() throws {
+        guard let updater else {
+            throw NSError(
+                domain: "Rockxy.AppUpdater",
+                code: 0,
+                userInfo: [
+                    NSLocalizedDescriptionKey: String(
+                        localized: "Software updates are not configured for this build."
+                    )
+                ]
+            )
+        }
+        guard !hasStartedUpdater else {
+            return
+        }
+
+        hasStartedUpdater = true
+
+        do {
+            try updater.start()
+            refreshSparkleState()
+            Self.logger.info("Sparkle updater started.")
+        } catch {
+            hasStartedUpdater = false
+            Self.logger.error("Sparkle updater failed to start: \(error.localizedDescription)")
+            throw error
+        }
+    }
 
     private func bindSparkleState() {
         guard let updater else {
@@ -259,6 +321,18 @@ final class AppUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
         lastUpdateCheckDate = updater.lastUpdateCheckDate
         updateCheckInterval = updater.updateCheckInterval
         sessionInProgress = updater.sessionInProgress
+    }
+
+    private func presentUpdaterStartError(_ error: Error) {
+        let nsError = error as NSError
+        guard let userDriver else {
+            Self.logger.error(
+                "Unable to present updater start error because the Sparkle user driver is unavailable. domain=\(nsError.domain, privacy: .public) code=\(nsError.code, privacy: .public) message=\(nsError.localizedDescription, privacy: .public)"
+            )
+            return
+        }
+
+        userDriver.controller.showError(nsError) {}
     }
 
     func updater(_ updater: SPUUpdater, mayPerform updateCheck: SPUUpdateCheck) throws {
