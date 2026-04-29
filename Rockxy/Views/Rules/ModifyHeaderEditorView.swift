@@ -41,20 +41,24 @@ final class EditableHeaderOperation: Identifiable {
     var headerValue: String
 
     var isValid: Bool {
-        guard !headerName.isEmpty else {
-            return false
+        validationMessage == nil
+    }
+
+    var validationMessage: String? {
+        guard !headerName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return String(localized: "Header Name is required")
         }
-        if type != .remove, headerValue.isEmpty {
-            return false
+        if type != .remove, headerValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return String(localized: "Header Value is required for \(type.rawValue.capitalized)")
         }
-        return true
+        return nil
     }
 
     func toHeaderOperation() -> HeaderOperation {
         HeaderOperation(
             type: type,
-            headerName: headerName,
-            headerValue: type == .remove ? nil : headerValue,
+            headerName: headerName.trimmingCharacters(in: .whitespacesAndNewlines),
+            headerValue: type == .remove ? nil : headerValue.trimmingCharacters(in: .whitespacesAndNewlines),
             phase: phase
         )
     }
@@ -72,11 +76,11 @@ struct ModifyHeaderEditorView: View {
     @Binding var operations: [EditableHeaderOperation]
 
     var allValid: Bool {
-        !operations.isEmpty && operations.allSatisfy(\.isValid)
+        !operations.isEmpty && operations.allSatisfy { $0.validationMessage == nil }
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: Theme.Layout.sectionSpacing) {
             helperText
 
             if operations.isEmpty {
@@ -92,6 +96,11 @@ struct ModifyHeaderEditorView: View {
     }
 
     // MARK: Private
+
+    private static let phaseWidth: CGFloat = 92
+    private static let operationWidth: CGFloat = 104
+    private static let minFieldWidth: CGFloat = 150
+    private static let removeWidth: CGFloat = 24
 
     private var helperText: some View {
         HStack(spacing: 6) {
@@ -116,7 +125,7 @@ struct ModifyHeaderEditorView: View {
     }
 
     private var operationsTable: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 6) {
             headerRow
 
             ForEach(operations) { operation in
@@ -126,17 +135,17 @@ struct ModifyHeaderEditorView: View {
     }
 
     private var headerRow: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 8) {
             Text(String(localized: "Phase"))
-                .frame(width: 70, alignment: .leading)
+                .frame(width: Self.phaseWidth, alignment: .leading)
             Text(String(localized: "Operation"))
-                .frame(width: 110, alignment: .leading)
+                .frame(width: Self.operationWidth, alignment: .leading)
             Text(String(localized: "Header Name"))
-                .frame(minWidth: 100, alignment: .leading)
+                .frame(minWidth: Self.minFieldWidth, maxWidth: .infinity, alignment: .leading)
             Text(String(localized: "Header Value"))
-                .frame(minWidth: 100, alignment: .leading)
+                .frame(minWidth: Self.minFieldWidth, maxWidth: .infinity, alignment: .leading)
             Spacer()
-                .frame(width: 24)
+                .frame(width: Self.removeWidth)
         }
         .font(.caption)
         .fontWeight(.semibold)
@@ -154,35 +163,30 @@ struct ModifyHeaderEditorView: View {
         }
         .buttonStyle(.borderless)
         .controlSize(.small)
-        .padding(.horizontal, 4)
+        .padding(.horizontal, 2)
     }
 
     @ViewBuilder private var validationMessages: some View {
-        let invalidOps = operations.enumerated().filter { !$0.element.isValid }
+        let invalidOps = operations.enumerated().compactMap { index, op -> (Int, String)? in
+            guard let message = op.validationMessage else {
+                return nil
+            }
+            return (index, message)
+        }
         if !invalidOps.isEmpty {
-            VStack(alignment: .leading, spacing: 2) {
-                ForEach(invalidOps, id: \.offset) { index, op in
-                    if op.headerName.isEmpty {
-                        Text(String(localized: "Row \(index + 1): Header Name is required"))
-                            .font(.caption)
-                            .foregroundStyle(.red)
-                    } else if op.type != .remove, op.headerValue.isEmpty {
-                        Text(
-                            String(
-                                localized: "Row \(index + 1): Header Value is required for \(op.type.rawValue.capitalized)"
-                            )
-                        )
+            VStack(alignment: .leading, spacing: 3) {
+                ForEach(invalidOps, id: \.0) { index, message in
+                    Text(String(localized: "Row \(index + 1): \(message)"))
                         .font(.caption)
                         .foregroundStyle(.red)
-                    }
                 }
             }
-            .padding(.horizontal, 4)
+            .padding(.horizontal, 2)
         }
     }
 
     private func operationRow(_ operation: EditableHeaderOperation) -> some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 8) {
             Picker("", selection: Binding(
                 get: { operation.phase },
                 set: { operation.phase = $0 }
@@ -192,7 +196,8 @@ struct ModifyHeaderEditorView: View {
                 Text(String(localized: "Both")).tag(HeaderModifyPhase.both)
             }
             .labelsHidden()
-            .frame(width: 70)
+            .pickerStyle(.menu)
+            .frame(width: Self.phaseWidth)
             .controlSize(.small)
 
             Picker("", selection: Binding(
@@ -204,8 +209,8 @@ struct ModifyHeaderEditorView: View {
                 Text(String(localized: "Replace")).tag(HeaderOperationType.replace)
             }
             .labelsHidden()
-            .pickerStyle(.segmented)
-            .frame(width: 110)
+            .pickerStyle(.menu)
+            .frame(width: Self.operationWidth)
             .controlSize(.small)
 
             TextField(
@@ -218,9 +223,12 @@ struct ModifyHeaderEditorView: View {
             .font(.system(.body, design: .monospaced))
             .textFieldStyle(.roundedBorder)
             .controlSize(.small)
+            .frame(minWidth: Self.minFieldWidth)
 
             TextField(
-                String(localized: "Header value"),
+                operation.type == .remove
+                    ? String(localized: "Not used")
+                    : String(localized: "Header value"),
                 text: Binding(
                     get: { operation.headerValue },
                     set: { operation.headerValue = $0 }
@@ -231,6 +239,7 @@ struct ModifyHeaderEditorView: View {
             .controlSize(.small)
             .disabled(operation.type == .remove)
             .opacity(operation.type == .remove ? 0.4 : 1.0)
+            .frame(minWidth: Self.minFieldWidth)
 
             Button(role: .destructive) {
                 withAnimation(.easeInOut(duration: 0.2)) {
@@ -241,10 +250,9 @@ struct ModifyHeaderEditorView: View {
                     .font(.caption)
             }
             .buttonStyle(.borderless)
-            .frame(width: 24)
+            .frame(width: Self.removeWidth)
         }
-        .padding(.horizontal, 4)
-        .padding(.vertical, 2)
+        .padding(.horizontal, 2)
     }
 }
 

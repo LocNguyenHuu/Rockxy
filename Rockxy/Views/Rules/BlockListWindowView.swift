@@ -43,24 +43,11 @@ final class BlockListViewModel {
         blockAction: BlockActionType,
         includeSubpaths: Bool
     ) {
-        let escapedPattern: String
-        switch matchType {
-        case .wildcard:
-            var pattern = NSRegularExpression.escapedPattern(for: urlPattern)
-                .replacingOccurrences(of: "\\*", with: ".*")
-                .replacingOccurrences(of: "\\?", with: ".")
-            if includeSubpaths {
-                if !pattern.hasSuffix(".*") {
-                    pattern += ".*"
-                }
-            } else {
-                pattern += "($|[?#])"
-            }
-            escapedPattern = pattern
-        case .regex:
-            escapedPattern = urlPattern
-        }
-
+        let escapedPattern = RulePatternBuilder.regexSource(
+            rawPattern: urlPattern,
+            matchType: matchType,
+            includeSubpaths: includeSubpaths
+        )
         let displayName = ruleName.isEmpty ? urlPattern : ruleName
 
         let rule = ProxyRule(
