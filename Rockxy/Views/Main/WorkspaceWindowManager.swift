@@ -1,16 +1,15 @@
 @preconcurrency import AppKit
 import os
-import SwiftUI
 
 // MARK: - RockxyWorkspaceWindowManager
 
-/// AppKit-backed window tab coordinator for the main Rockxy workspace.
+/// AppKit-backed workspace tab coordinator for Rockxy's main window.
 ///
-/// Workspace capacity and edition behavior stay in `WorkspaceStore` and
-/// `AppPolicy`; this type only presents already-created workspaces as native
-/// macOS window tabs.
+/// Capacity and edition behavior remain owned by `WorkspaceStore` and
+/// `AppPolicy`. This type only presents existing workspaces in a native
+/// titlebar accessory and routes user interaction back to the shared store.
 @MainActor
-final class RockxyWorkspaceWindowManager: NSObject, NSMenuDelegate {
+final class RockxyWorkspaceWindowManager: NSObject {
     // MARK: Lifecycle
 
     override private init() {}
@@ -22,40 +21,35 @@ final class RockxyWorkspaceWindowManager: NSObject, NSMenuDelegate {
     static let mainWindowIdentifier = NSUserInterfaceItemIdentifier("main")
     static let tabbingIdentifier = "\(RockxyIdentity.current.logSubsystem).mainWorkspace"
 
+    var canCreateWorkspaceTab: Bool {
+        coordinator?.workspaceStore.canCreateWorkspace == true
+    }
+
+    var canRenameWorkspaceTab: Bool {
+        guard let coordinator else {
+            return false
+        }
+        return coordinator.workspaceStore.workspaces.contains {
+            $0.id == coordinator.workspaceStore.activeWorkspaceID
+        }
+    }
+
     func registerPrimaryWindow(_ window: NSWindow, coordinator: MainContentCoordinator) {
-        let workspaceID = coordinator.workspaceStore.workspaces.first(where: { !$0.isClosable })?.id
-            ?? coordinator.workspaceStore.activeWorkspaceID
+        self.coordinator = coordinator
+        primaryWindow = window
         configure(window)
-        register(window: window, workspaceID: workspaceID, coordinator: coordinator)
+        installObserversIfNeeded(for: window)
+        updateTabAccessory()
+        updateWindowTitles(coordinator: coordinator)
     }
 
     func openWorkspaceTab(coordinator: MainContentCoordinator, workspaceID: UUID) {
         guard coordinator.workspaceStore.workspaces.contains(where: { $0.id == workspaceID }) else {
             return
         }
-
         self.coordinator = coordinator
         coordinator.workspaceStore.selectWorkspace(id: workspaceID)
-
-        let controller = WorkspaceTabWindowController(coordinator: coordinator, workspaceID: workspaceID)
-        guard let window = controller.window else {
-            Self.logger.error("Failed to create workspace tab window")
-            return
-        }
-
-        retain(controller: controller, window: window)
-        register(window: window, workspaceID: workspaceID, coordinator: coordinator)
-
-        if let sibling = findSibling(excluding: window) {
-            let target = sibling.tabbedWindows?.last ?? sibling
-            target.addTabbedWindow(window, ordered: .above)
-            window.makeKeyAndOrderFront(nil)
-        } else {
-            window.center()
-            window.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
-        }
-        syncWorkspaceOrderFromNativeTabs(around: window, coordinator: coordinator)
+        updateTabAccessory()
         updateWindowTitles(coordinator: coordinator)
     }
 
@@ -69,109 +63,69 @@ final class RockxyWorkspaceWindowManager: NSObject, NSMenuDelegate {
         prepareWorkspaceContent(workspace, coordinator: coordinator)
     }
 
-    var canCreateWorkspaceTab: Bool {
-        coordinator?.workspaceStore.canCreateWorkspace == true
-    }
-
     func closeCurrentWorkspaceTab(coordinator: MainContentCoordinator) {
-        syncWorkspaceOrderFromNativeTabs(coordinator: coordinator)
-        let activeWorkspace = coordinator.workspaceStore.activeWorkspace
-        guard activeWorkspace.isClosable else {
-            return
-        }
-
-        if let keyWindow = NSApp.keyWindow,
-           workspaceID(for: keyWindow) == activeWorkspace.id {
-            keyWindow.close()
-            return
-        }
-
-        if let window = window(forWorkspaceID: activeWorkspace.id) {
-            window.close()
-            return
-        }
-
-        coordinator.workspaceStore.closeWorkspace(id: activeWorkspace.id)
-        updateWindowTitles(coordinator: coordinator)
+        let workspaceID = coordinator.workspaceStore.activeWorkspaceID
+        closeWorkspace(workspaceID)
     }
 
     func selectWorkspaceTab(at index: Int, coordinator: MainContentCoordinator) {
-        syncWorkspaceOrderFromNativeTabs(coordinator: coordinator)
-        guard let keyWindow = NSApp.keyWindow,
-              let tabbedWindows = keyWindow.tabbedWindows,
-              index >= 0,
-              index < tabbedWindows.count else {
-            coordinator.workspaceStore.selectWorkspace(at: index)
-            updateWindowTitles(coordinator: coordinator)
+        guard index >= 0, index < coordinator.workspaceStore.workspaces.count else {
             return
         }
-        tabbedWindows[index].makeKeyAndOrderFront(nil)
+        self.coordinator = coordinator
+        coordinator.workspaceStore.selectWorkspace(at: index)
+        updateTabAccessory()
+        updateWindowTitles(coordinator: coordinator)
     }
 
     func selectPreviousWorkspaceTab(coordinator: MainContentCoordinator) {
-        syncWorkspaceOrderFromNativeTabs(coordinator: coordinator)
-        guard visibleTabbedWindowCount > 1 else {
-            coordinator.workspaceStore.selectPreviousWorkspace()
-            updateWindowTitles(coordinator: coordinator)
-            return
-        }
-        NSApp.sendAction(#selector(NSWindow.selectPreviousTab(_:)), to: nil, from: nil)
+        self.coordinator = coordinator
+        coordinator.workspaceStore.selectPreviousWorkspace()
+        updateTabAccessory()
+        updateWindowTitles(coordinator: coordinator)
     }
 
     func selectNextWorkspaceTab(coordinator: MainContentCoordinator) {
-        syncWorkspaceOrderFromNativeTabs(coordinator: coordinator)
-        guard visibleTabbedWindowCount > 1 else {
-            coordinator.workspaceStore.selectNextWorkspace()
-            updateWindowTitles(coordinator: coordinator)
-            return
-        }
-        NSApp.sendAction(#selector(NSWindow.selectNextTab(_:)), to: nil, from: nil)
+        self.coordinator = coordinator
+        coordinator.workspaceStore.selectNextWorkspace()
+        updateTabAccessory()
+        updateWindowTitles(coordinator: coordinator)
     }
 
     func handleWindowDidBecomeKey(_ window: NSWindow) {
-        guard let coordinator,
-              let workspaceID = workspaceID(for: window) else {
+        guard window === primaryWindow else {
             return
         }
-        syncWorkspaceOrderFromNativeTabs(around: window, coordinator: coordinator)
-        coordinator.workspaceStore.selectWorkspace(id: workspaceID)
-        updateWindowTitles(coordinator: coordinator)
+        updateTabAccessory()
+        if let coordinator {
+            updateWindowTitles(coordinator: coordinator)
+        }
     }
 
     func handleWindowWillClose(_ window: NSWindow) {
-        let key = ObjectIdentifier(window)
-        let workspaceID = workspacesByWindow[key]
-        release(windowKey: key)
-        workspacesByWindow.removeValue(forKey: key)
-
-        guard let coordinator,
-              let workspaceID,
-              let workspace = coordinator.workspaceStore.workspaces.first(where: { $0.id == workspaceID }),
-              workspace.isClosable else {
+        guard window === primaryWindow else {
             return
         }
-
-        syncWorkspaceOrderFromNativeTabs(coordinator: coordinator)
-        coordinator.workspaceStore.closeWorkspace(id: workspaceID)
-        updateWindowTitles(coordinator: coordinator)
+        removeAccessory(for: window)
+        removeObservers(for: window)
+        primaryWindow = nil
+        coordinator = nil
     }
 
     func updateWindowTitles(coordinator: MainContentCoordinator) {
-        for window in windows {
-            guard let workspaceID = workspaceID(for: window),
-                  let workspace = coordinator.workspaceStore.workspaces.first(where: { $0.id == workspaceID }) else {
-                continue
-            }
-            window.title = workspace.title
-        }
+        primaryWindow?.title = coordinator.workspaceStore.activeWorkspace.title
     }
 
     func beginRenameForActiveWorkspace(coordinator: MainContentCoordinator) {
-        guard let window = window(forWorkspaceID: coordinator.workspaceStore.activeWorkspaceID) ?? NSApp.keyWindow,
-              let workspaceID = workspaceID(for: window) else {
+        self.coordinator = coordinator
+        beginInlineRename(workspaceID: coordinator.workspaceStore.activeWorkspaceID)
+    }
+
+    func beginRenameForCurrentWorkspace() {
+        guard let coordinator else {
             return
         }
-        beginRename(window: window, workspaceID: workspaceID, coordinator: coordinator)
+        beginInlineRename(workspaceID: coordinator.workspaceStore.activeWorkspaceID)
     }
 
     func prepareWorkspaceContent(_ workspace: WorkspaceState, coordinator: MainContentCoordinator) {
@@ -187,57 +141,20 @@ final class RockxyWorkspaceWindowManager: NSObject, NSMenuDelegate {
 
     // MARK: Private
 
-    private static let logger = Logger(subsystem: RockxyIdentity.current.logSubsystem, category: "NativeWorkspaceTabs")
+    private static let logger = Logger(subsystem: RockxyIdentity.current.logSubsystem, category: "WorkspaceTabs")
 
     private weak var coordinator: MainContentCoordinator?
-    private var controllers: [ObjectIdentifier: WorkspaceTabWindowController] = [:]
-    private var workspacesByWindow: [ObjectIdentifier: UUID] = [:]
+    private weak var primaryWindow: NSWindow?
+    private var accessoryControllers: [ObjectIdentifier: WorkspaceTabBarAccessoryController] = [:]
     private var observersByWindow: [ObjectIdentifier: [NSObjectProtocol]] = [:]
-    private var tabInteractionMonitor: Any?
-    private var renameSession: WorkspaceTabRenameSession?
-    private var pendingMouseDown: WorkspaceTabMouseDown?
-    private var isTrackingTabContextMenu = false
-    private var pendingContextMenuRenameWorkspaceID: UUID?
-
-    private var windows: [NSWindow] {
-        NSApp.windows.filter { $0.identifier == Self.mainWindowIdentifier }
-    }
-
-    private var visibleTabbedWindowCount: Int {
-        guard let keyWindow = NSApp.keyWindow else {
-            return 0
-        }
-        return (keyWindow.tabbedWindows ?? [keyWindow]).filter(\.isVisible).count
-    }
 
     private func configure(_ window: NSWindow) {
         window.identifier = Self.mainWindowIdentifier
         window.toolbarStyle = .unified
         window.titleVisibility = .hidden
-        window.tabbingMode = .preferred
+        window.tabbingMode = .disallowed
         window.tabbingIdentifier = Self.tabbingIdentifier
         window.collectionBehavior.insert([.fullScreenPrimary, .managed])
-    }
-
-    private func register(window: NSWindow, workspaceID: UUID, coordinator: MainContentCoordinator) {
-        self.coordinator = coordinator
-        configure(window)
-        let key = ObjectIdentifier(window)
-        workspacesByWindow[key] = workspaceID
-        installObserversIfNeeded(for: window)
-        installTabInteractionMonitorIfNeeded()
-        updateWindowTitles(coordinator: coordinator)
-    }
-
-    private func installTabInteractionMonitorIfNeeded() {
-        guard tabInteractionMonitor == nil else {
-            return
-        }
-        tabInteractionMonitor = NSEvent.addLocalMonitorForEvents(
-            matching: [.leftMouseDown, .leftMouseUp, .rightMouseDown]
-        ) { @MainActor [weak self] event in
-            self?.handleTabMouseEvent(event) ?? event
-        }
     }
 
     private func installObserversIfNeeded(for window: NSWindow) {
@@ -275,430 +192,431 @@ final class RockxyWorkspaceWindowManager: NSObject, NSMenuDelegate {
         observersByWindow[key] = [didBecomeKey, willClose]
     }
 
-    private func retain(controller: WorkspaceTabWindowController, window: NSWindow) {
-        controllers[ObjectIdentifier(window)] = controller
-    }
-
-    private func release(windowKey: ObjectIdentifier) {
-        if let observers = observersByWindow.removeValue(forKey: windowKey) {
-            for observer in observers {
-                NotificationCenter.default.removeObserver(observer)
-            }
-        }
-        if renameSession?.windowKey == windowKey {
-            renameSession?.cancel()
-            renameSession = nil
-        }
-        controllers.removeValue(forKey: windowKey)
-    }
-
-    private func workspaceID(for window: NSWindow) -> UUID? {
-        workspacesByWindow[ObjectIdentifier(window)]
-    }
-
-    private func syncWorkspaceOrderFromNativeTabs(
-        around window: NSWindow? = nil,
-        coordinator: MainContentCoordinator
-    ) {
-        guard let window = window ?? NSApp.keyWindow else {
+    private func removeObservers(for window: NSWindow) {
+        let key = ObjectIdentifier(window)
+        guard let observers = observersByWindow.removeValue(forKey: key) else {
             return
         }
-        let orderedIDs = (window.tabbedWindows ?? [window]).compactMap { workspaceID(for: $0) }
-        guard orderedIDs.count > 1 else {
+        for observer in observers {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
+
+    private func updateTabAccessory(forceVisible: Bool = false) {
+        guard let window = primaryWindow,
+              let coordinator else {
             return
         }
-        coordinator.workspaceStore.reorderWorkspaces(toWorkspaceIDs: orderedIDs)
-    }
 
-    private func window(forWorkspaceID targetWorkspaceID: UUID) -> NSWindow? {
-        windows.first { workspaceID(for: $0) == targetWorkspaceID }
-    }
-
-    private func beginRename(window: NSWindow, workspaceID: UUID, coordinator: MainContentCoordinator) {
-        guard let workspace = coordinator.workspaceStore.workspaces.first(where: { $0.id == workspaceID }) else {
+        let shouldShow = forceVisible || coordinator.workspaceStore.workspaces.count > 1
+        guard shouldShow else {
+            removeAccessory(for: window)
             return
         }
-        renameSession?.commit()
-        syncWorkspaceOrderFromNativeTabs(around: window, coordinator: coordinator)
-        renameSession = WorkspaceTabRenameSession(
-            window: window,
-            workspace: workspace,
-            coordinator: coordinator,
-            frame: editorFrame(for: window)
-        ) { [weak self] in
-            self?.renameSession = nil
+
+        let controller = accessoryController(for: window)
+        controller.update(coordinator: coordinator)
+    }
+
+    private func accessoryController(for window: NSWindow) -> WorkspaceTabBarAccessoryController {
+        let key = ObjectIdentifier(window)
+        if let controller = accessoryControllers[key] {
+            return controller
+        }
+
+        let controller = WorkspaceTabBarAccessoryController(manager: self)
+        accessoryControllers[key] = controller
+        window.addTitlebarAccessoryViewController(controller)
+        return controller
+    }
+
+    private func removeAccessory(for window: NSWindow) {
+        let key = ObjectIdentifier(window)
+        guard let controller = accessoryControllers.removeValue(forKey: key) else {
+            return
+        }
+        controller.endEditing(commit: true)
+        if let index = window.titlebarAccessoryViewControllers.firstIndex(where: { $0 === controller }) {
+            window.removeTitlebarAccessoryViewController(at: index)
         }
     }
 
-    private func handleTabMouseEvent(_ event: NSEvent) -> NSEvent? {
-        guard !isTrackingTabContextMenu else {
-            return event
-        }
-
-        if let renameSession, !renameSession.contains(event: event) {
-            renameSession.commit()
-            self.renameSession = nil
-        }
-
-        guard let target = tabHitTarget(for: event) else {
-            if event.type == .leftMouseUp {
-                pendingMouseDown = nil
-            }
-            return event
-        }
-
-        switch event.type {
-        case .leftMouseDown:
-            pendingMouseDown = WorkspaceTabMouseDown(target: target, location: event.locationInWindow)
-            return event
-        case .leftMouseUp:
-            defer { pendingMouseDown = nil }
-            guard event.clickCount == 2,
-                  pendingMouseDown?.workspaceID == target.workspaceID,
-                  let downLocation = pendingMouseDown?.location,
-                  distance(from: downLocation, to: event.locationInWindow) <= 6 else {
-                return event
-            }
-            DispatchQueue.main.async { [weak self] in
-                MainActor.assumeIsolated {
-                    target.window.makeKeyAndOrderFront(nil)
-                    self?.beginRename(
-                        window: target.window,
-                        workspaceID: target.workspaceID,
-                        coordinator: target.coordinator
-                    )
-                }
-            }
-            return nil
-        case .rightMouseDown:
-            showTabContextMenu(for: target, event: event)
-            return nil
-        default:
-            return event
-        }
-    }
-
-    private func tabHitTarget(for event: NSEvent) -> WorkspaceTabHitTarget? {
-        guard let sourceWindow = event.window,
-              sourceWindow.identifier == Self.mainWindowIdentifier,
+    private func beginInlineRename(workspaceID: UUID) {
+        guard let window = primaryWindow,
               let coordinator,
-              isLocationInTabStrip(event.locationInWindow, window: sourceWindow),
-              let targetWindow = tabWindow(at: event.locationInWindow, in: sourceWindow),
-              let workspaceID = workspaceID(for: targetWindow) else {
-            return nil
+              coordinator.workspaceStore.workspaces.contains(where: { $0.id == workspaceID }) else {
+            return
         }
-        return WorkspaceTabHitTarget(
-            sourceWindow: sourceWindow,
-            window: targetWindow,
-            workspaceID: workspaceID,
-            coordinator: coordinator
-        )
+
+        updateTabAccessory(forceVisible: true)
+        let controller = accessoryController(for: window)
+        controller.update(coordinator: coordinator)
+        controller.beginRename(workspaceID: workspaceID)
     }
 
-    private func showTabContextMenu(for target: WorkspaceTabHitTarget, event: NSEvent) {
-        guard let view = target.sourceWindow.contentView else {
+    fileprivate func selectWorkspace(_ workspaceID: UUID) {
+        guard let coordinator,
+              coordinator.workspaceStore.workspaces.contains(where: { $0.id == workspaceID }) else {
+            return
+        }
+        coordinator.workspaceStore.selectWorkspace(id: workspaceID)
+        updateTabAccessory()
+        updateWindowTitles(coordinator: coordinator)
+    }
+
+    fileprivate func closeWorkspace(_ workspaceID: UUID) {
+        guard let coordinator,
+              let workspace = coordinator.workspaceStore.workspaces.first(where: { $0.id == workspaceID }),
+              workspace.isClosable else {
+            return
+        }
+        coordinator.workspaceStore.closeWorkspace(id: workspaceID)
+        updateTabAccessory()
+        updateWindowTitles(coordinator: coordinator)
+    }
+
+    fileprivate func createWorkspace() {
+        openNewWorkspaceTabFromNativeControl()
+    }
+
+    fileprivate func renameWorkspace(_ workspaceID: UUID, to title: String) {
+        guard let coordinator,
+              coordinator.workspaceStore.workspaces.contains(where: { $0.id == workspaceID }) else {
+            return
+        }
+        coordinator.workspaceStore.renameWorkspace(id: workspaceID, to: title)
+        updateTabAccessory(forceVisible: coordinator.workspaceStore.workspaces.count > 1)
+        updateWindowTitles(coordinator: coordinator)
+    }
+
+    @discardableResult
+    fileprivate func moveWorkspace(_ workspaceID: UUID, toInsertionIndex insertionIndex: Int) -> Bool {
+        guard let coordinator,
+              let sourceIndex = coordinator.workspaceStore.workspaces.firstIndex(where: { $0.id == workspaceID }) else {
+            return false
+        }
+
+        var destinationIndex = insertionIndex
+        if destinationIndex > sourceIndex {
+            destinationIndex -= 1
+        }
+        destinationIndex = min(max(destinationIndex, 0), coordinator.workspaceStore.workspaces.count - 1)
+        guard destinationIndex != sourceIndex else {
+            return false
+        }
+        coordinator.workspaceStore.moveWorkspace(from: sourceIndex, to: destinationIndex)
+        updateTabAccessory()
+        updateWindowTitles(coordinator: coordinator)
+        return true
+    }
+}
+
+// MARK: - WorkspaceTabBarAccessoryController
+
+@MainActor
+private final class WorkspaceTabBarAccessoryController: NSTitlebarAccessoryViewController {
+    // MARK: Lifecycle
+
+    init(manager: RockxyWorkspaceWindowManager) {
+        tabBarView = WorkspaceTabBarView(manager: manager)
+        super.init(nibName: nil, bundle: nil)
+        layoutAttribute = .bottom
+        view = tabBarView
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("WorkspaceTabBarAccessoryController does not support NSCoder init")
+    }
+
+    // MARK: Internal
+
+    func update(coordinator: MainContentCoordinator) {
+        tabBarView.update(coordinator: coordinator)
+    }
+
+    func beginRename(workspaceID: UUID) {
+        tabBarView.beginRename(workspaceID: workspaceID)
+    }
+
+    func endEditing(commit: Bool) {
+        tabBarView.endEditing(commit: commit)
+    }
+
+    // MARK: Private
+
+    private let tabBarView: WorkspaceTabBarView
+}
+
+// MARK: - WorkspaceTabBarView
+
+@MainActor
+private final class WorkspaceTabBarView: NSView, NSTextFieldDelegate {
+    // MARK: Lifecycle
+
+    init(manager: RockxyWorkspaceWindowManager) {
+        self.manager = manager
+        super.init(frame: NSRect(x: 0, y: 0, width: 900, height: Self.barHeight))
+        autoresizingMask = [.width]
+        wantsLayer = false
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("WorkspaceTabBarView does not support NSCoder init")
+    }
+
+    // MARK: Internal
+
+    override var isFlipped: Bool {
+        true
+    }
+
+    override var mouseDownCanMoveWindow: Bool {
+        false
+    }
+
+    override var intrinsicContentSize: NSSize {
+        NSSize(width: NSView.noIntrinsicMetric, height: Self.barHeight)
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let trackingArea {
+            removeTrackingArea(trackingArea)
+        }
+        let nextTrackingArea = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseMoved, .mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect],
+            owner: self
+        )
+        trackingArea = nextTrackingArea
+        addTrackingArea(nextTrackingArea)
+    }
+
+    override func layout() {
+        super.layout()
+        recalculateFrames()
+        if let editingWorkspaceID,
+           let field = editField,
+           let frame = tabFrames[editingWorkspaceID] {
+            field.frame = editorFrame(in: frame)
+        }
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        recalculateFrames()
+        drawBackground()
+        drawSeparator()
+        drawTabs()
+        drawAddButton()
+    }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
+        true
+    }
+
+    override func mouseMoved(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        let hoverID = workspaceID(at: point)
+        let addHovered = addButtonFrame.contains(point)
+        if hoverID != hoveredWorkspaceID || addHovered != isAddButtonHovered {
+            hoveredWorkspaceID = hoverID
+            isAddButtonHovered = addHovered
+            needsDisplay = true
+        }
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        hoveredWorkspaceID = nil
+        isAddButtonHovered = false
+        needsDisplay = true
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        if commitEditingIfNeeded(forClickAt: point) {
+            return
+        }
+
+        if addButtonFrame.contains(point) {
+            manager.createWorkspace()
+            return
+        }
+
+        if let closeID = closeWorkspaceID(at: point) {
+            manager.closeWorkspace(closeID)
+            return
+        }
+
+        guard let workspaceID = workspaceID(at: point) else {
+            return
+        }
+        mouseDownWorkspaceID = workspaceID
+        mouseDownPoint = point
+        manager.selectWorkspace(workspaceID)
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        guard editField == nil,
+              let mouseDownWorkspaceID,
+              let mouseDownPoint else {
+            return
+        }
+
+        let point = convert(event.locationInWindow, from: nil)
+        if draggingWorkspaceID == nil,
+           distance(from: mouseDownPoint, to: point) >= Self.dragThreshold {
+            draggingWorkspaceID = mouseDownWorkspaceID
+        }
+
+        guard let draggingWorkspaceID else {
+            return
+        }
+
+        draggingPoint = point
+        let insertionIndex = insertionIndex(at: point)
+        dropInsertionIndex = insertionIndex
+        if insertionIndex != lastAppliedInsertionIndex {
+            lastAppliedInsertionIndex = insertionIndex
+            if manager.moveWorkspace(draggingWorkspaceID, toInsertionIndex: insertionIndex) {
+                recalculateFrames()
+            }
+        }
+        needsDisplay = true
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        if let draggingWorkspaceID {
+            let insertionIndex = dropInsertionIndex ?? insertionIndex(at: point)
+            clearDragState()
+            manager.moveWorkspace(draggingWorkspaceID, toInsertionIndex: insertionIndex)
+            return
+        }
+
+        defer {
+            mouseDownWorkspaceID = nil
+            mouseDownPoint = nil
+        }
+        guard event.clickCount == 2,
+              let workspaceID = workspaceID(at: point),
+              workspaceID == mouseDownWorkspaceID else {
+            return
+        }
+        beginRename(workspaceID: workspaceID)
+    }
+
+    override func rightMouseDown(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        if commitEditingIfNeeded(forClickAt: point) {
+            return
+        }
+        guard let workspaceID = workspaceID(at: point),
+              let coordinator else {
             return
         }
 
         let menu = NSMenu()
-        menu.delegate = self
         let renameItem = NSMenuItem(
             title: String(localized: "Rename Tab"),
-            action: #selector(handleRenameTabMenuItem(_:)),
+            action: #selector(renameTabFromMenu(_:)),
             keyEquivalent: ""
         )
         renameItem.target = self
-        renameItem.representedObject = target.workspaceID
+        renameItem.representedObject = workspaceID
         menu.addItem(renameItem)
 
-        if let workspace = target.coordinator.workspaceStore.workspaces.first(where: { $0.id == target.workspaceID }),
-           workspace.isClosable {
+        if coordinator.workspaceStore.workspaces.first(where: { $0.id == workspaceID })?.isClosable == true {
             let closeItem = NSMenuItem(
                 title: String(localized: "Close Tab"),
-                action: #selector(handleCloseTabMenuItem(_:)),
+                action: #selector(closeTabFromMenu(_:)),
                 keyEquivalent: ""
             )
             closeItem.target = self
-            closeItem.representedObject = target.workspaceID
+            closeItem.representedObject = workspaceID
             menu.addItem(closeItem)
         }
 
-        if target.coordinator.workspaceStore.canCreateWorkspace {
+        if coordinator.workspaceStore.canCreateWorkspace {
             menu.addItem(.separator())
             let newItem = NSMenuItem(
                 title: String(localized: "New Tab"),
-                action: #selector(handleNewTabMenuItem(_:)),
+                action: #selector(newTabFromMenu(_:)),
                 keyEquivalent: ""
             )
             newItem.target = self
             menu.addItem(newItem)
         }
 
-        isTrackingTabContextMenu = true
-        let location = event.locationInWindow
-        DispatchQueue.main.async {
-            menu.popUp(positioning: nil, at: location, in: view)
-        }
+        NSMenu.popUpContextMenu(menu, with: event, for: self)
     }
 
-    private func isLocationInTabStrip(_ location: NSPoint, window: NSWindow) -> Bool {
-        let leftInset: CGFloat = 76
-        let rightInset: CGFloat = 52
-        let tabbedWindowCount = window.tabbedWindows?.count ?? 1
-        let contentTop = window.contentLayoutRect.maxY
-        return tabbedWindowCount > 1
-            && location.y >= contentTop
-            && location.y <= window.frame.height
-            && location.x >= leftInset
-            && location.x <= window.frame.width - rightInset
-    }
-
-    private func tabWindow(at location: NSPoint, in window: NSWindow) -> NSWindow? {
-        let tabbedWindows = window.tabbedWindows ?? [window]
-        guard !tabbedWindows.isEmpty else {
-            return nil
-        }
-        let leftInset: CGFloat = 76
-        let rightInset: CGFloat = 52
-        let availableWidth = max(1, window.frame.width - leftInset - rightInset)
-        let index = min(
-            max(Int((location.x - leftInset) / (availableWidth / CGFloat(tabbedWindows.count))), 0),
-            tabbedWindows.count - 1
-        )
-        return tabbedWindows[index]
-    }
-
-    private func editorFrame(for window: NSWindow) -> NSRect {
-        let tabbedWindows = window.tabbedWindows ?? [window]
-        let index = tabbedWindows.firstIndex(of: window) ?? 0
-        let leftInset: CGFloat = 76
-        let rightInset: CGFloat = 52
-        let availableWidth = max(120, window.frame.width - leftInset - rightInset)
-        let tabWidth = availableWidth / CGFloat(max(tabbedWindows.count, 1))
-        let horizontalPadding: CGFloat = 12
-        let width = max(86, min(tabWidth - horizontalPadding * 2, 260))
-        let x = window.frame.minX + leftInset + tabWidth * CGFloat(index) + horizontalPadding
-        let titlebarHeight = max(28, window.frame.height - window.contentLayoutRect.maxY)
-        let y = window.frame.minY + window.contentLayoutRect.maxY + max(4, (titlebarHeight - 24) / 2)
-        return NSRect(x: x, y: y, width: width, height: 24)
-    }
-
-    @objc private func handleRenameTabMenuItem(_ sender: NSMenuItem) {
-        guard let workspaceID = sender.representedObject as? UUID else {
-            return
-        }
-        pendingContextMenuRenameWorkspaceID = workspaceID
-    }
-
-    @objc private func handleCloseTabMenuItem(_ sender: NSMenuItem) {
-        guard let workspaceID = sender.representedObject as? UUID,
-              let window = window(forWorkspaceID: workspaceID),
-              let coordinator else {
-            return
-        }
-        window.makeKeyAndOrderFront(nil)
-        coordinator.workspaceStore.selectWorkspace(id: workspaceID)
-        closeCurrentWorkspaceTab(coordinator: coordinator)
-    }
-
-    @objc private func handleNewTabMenuItem(_ sender: NSMenuItem) {
-        openNewWorkspaceTabFromNativeControl()
-    }
-
-    func menuDidClose(_ menu: NSMenu) {
-        isTrackingTabContextMenu = false
-        guard let workspaceID = pendingContextMenuRenameWorkspaceID else {
-            return
-        }
-        pendingContextMenuRenameWorkspaceID = nil
-        DispatchQueue.main.async { [weak self] in
-            MainActor.assumeIsolated {
-                guard let self,
-                      let coordinator = self.coordinator,
-                      let window = self.window(forWorkspaceID: workspaceID) else {
-                    return
-                }
-                window.makeKeyAndOrderFront(nil)
-                self.beginRename(window: window, workspaceID: workspaceID, coordinator: coordinator)
-            }
-        }
-    }
-
-    private func distance(from lhs: NSPoint, to rhs: NSPoint) -> CGFloat {
-        let dx = lhs.x - rhs.x
-        let dy = lhs.y - rhs.y
-        return sqrt(dx * dx + dy * dy)
-    }
-
-    private func findSibling(excluding window: NSWindow) -> NSWindow? {
-        windows.first { candidate in
-            candidate !== window
-                && candidate.isVisible
-                && candidate.tabbingIdentifier == Self.tabbingIdentifier
-        }
-    }
-}
-
-// MARK: - WorkspaceTabWindowController
-
-@MainActor
-private final class WorkspaceTabWindow: NSWindow {
-    override func performClose(_ sender: Any?) {
-        if let coordinator = RockxyWorkspaceWindowManager.shared.currentCoordinator {
-            RockxyWorkspaceWindowManager.shared.closeCurrentWorkspaceTab(coordinator: coordinator)
-        } else {
-            super.performClose(sender)
-        }
-    }
-}
-
-@MainActor
-final class WorkspaceTabWindowController: NSWindowController {
-    // MARK: Lifecycle
-
-    init(coordinator: MainContentCoordinator, workspaceID: UUID) {
-        let window = WorkspaceTabWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 1_180, height: 760),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
-            backing: .buffered,
-            defer: false
-        )
-        window.minSize = NSSize(width: 900, height: 620)
-        window.isRestorable = false
-        window.isReleasedWhenClosed = false
-        window.contentViewController = NSHostingController(
-            rootView: ContentView(
-                coordinator: coordinator,
-                managesLifecycle: false,
-                representedWorkspaceID: workspaceID
-            )
-        )
-
-        super.init(window: window)
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) {
-        fatalError("WorkspaceTabWindowController does not support NSCoder init")
-    }
-}
-
-// MARK: - WorkspaceTabHitTarget
-
-private struct WorkspaceTabHitTarget {
-    let sourceWindow: NSWindow
-    let window: NSWindow
-    let workspaceID: UUID
-    let coordinator: MainContentCoordinator
-}
-
-private struct WorkspaceTabMouseDown {
-    let workspaceID: UUID
-    let location: NSPoint
-
-    init(target: WorkspaceTabHitTarget, location: NSPoint) {
-        self.workspaceID = target.workspaceID
-        self.location = location
-    }
-}
-
-// MARK: - WorkspaceTabRenameSession
-
-@MainActor
-private final class WorkspaceTabRenameSession: NSObject, NSTextFieldDelegate {
-    // MARK: Lifecycle
-
-    init(
-        window: NSWindow,
-        workspace: WorkspaceState,
-        coordinator: MainContentCoordinator,
-        frame: NSRect,
-        onFinish: @escaping () -> Void
-    ) {
-        self.windowKey = ObjectIdentifier(window)
-        self.workspace = workspace
+    func update(coordinator: MainContentCoordinator) {
         self.coordinator = coordinator
-        self.originalTitle = workspace.title
-        self.onFinish = onFinish
+        recalculateFrames()
+        needsDisplay = true
+    }
 
-        let panel = WorkspaceTabRenamePanel(
-            contentRect: frame,
-            styleMask: [.borderless],
-            backing: .buffered,
-            defer: false
-        )
-        panel.isReleasedWhenClosed = false
-        panel.backgroundColor = .clear
-        panel.isOpaque = false
-        panel.hasShadow = false
-        panel.level = .floating
+    func beginRename(workspaceID: UUID) {
+        guard let coordinator,
+              let workspace = coordinator.workspaceStore.workspaces.first(where: { $0.id == workspaceID }) else {
+            return
+        }
 
-        let field = WorkspaceTabRenameField(frame: NSRect(origin: .zero, size: frame.size))
+        recalculateFrames()
+        guard let tabFrame = tabFrames[workspaceID] else {
+            return
+        }
+
+        endEditing(commit: true)
+        editingWorkspaceID = workspaceID
+        originalTitle = workspace.title
+
+        let field = WorkspaceInlineTabTextField(frame: editorFrame(in: tabFrame))
         field.stringValue = workspace.title
         field.font = .systemFont(ofSize: 13, weight: .medium)
         field.alignment = .center
-        field.isBordered = true
-        field.isBezeled = true
-        field.bezelStyle = .roundedBezel
-        field.backgroundColor = .controlBackgroundColor
-        field.textColor = .labelColor
-        field.focusRingType = .default
-
-        super.init()
-
-        self.panel = panel
-        self.field = field
-        panel.onResignKey = { [weak self] in
-            self?.commit()
-        }
         field.delegate = self
-        field.onCommit = { [weak self] in self?.commit() }
-        field.onCancel = { [weak self] in self?.cancel() }
-        panel.contentView = field
-
-        window.addChildWindow(panel, ordered: .above)
-        panel.makeKeyAndOrderFront(nil)
-        panel.makeFirstResponder(field)
+        field.onCommit = { [weak self] in self?.endEditing(commit: true) }
+        field.onCancel = { [weak self] in self?.endEditing(commit: false) }
+        editField = field
+        addSubview(field)
+        window?.makeFirstResponder(field)
         if let editor = field.currentEditor() {
             editor.selectedRange = NSRange(location: field.stringValue.utf16.count, length: 0)
         }
+        installEditingMonitor()
+        needsDisplay = true
     }
 
-    // MARK: Internal
-
-    let windowKey: ObjectIdentifier
-
-    func contains(event: NSEvent) -> Bool {
-        event.window === panel
-    }
-
-    func commit() {
-        guard !isFinished else {
+    func endEditing(commit: Bool) {
+        guard let editingWorkspaceID,
+              let field = editField else {
             return
         }
-        isFinished = true
-        let title = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
-        workspace.title = title.isEmpty ? originalTitle : title
-        if let coordinator {
-            RockxyWorkspaceWindowManager.shared.updateWindowTitles(coordinator: coordinator)
-        }
-        close()
-    }
+        removeEditingMonitor()
 
-    func cancel() {
-        guard !isFinished else {
-            return
+        let fallbackTitle = originalTitle
+        let committedTitle: String
+        if commit {
+            let trimmed = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            committedTitle = trimmed.isEmpty ? fallbackTitle : trimmed
+        } else {
+            committedTitle = fallbackTitle
         }
-        isFinished = true
-        workspace.title = originalTitle
-        if let coordinator {
-            RockxyWorkspaceWindowManager.shared.updateWindowTitles(coordinator: coordinator)
-        }
-        close()
+
+        self.editingWorkspaceID = nil
+        originalTitle = ""
+        editField = nil
+        field.removeFromSuperview()
+        manager.renameWorkspace(editingWorkspaceID, to: committedTitle)
+        needsDisplay = true
     }
 
     func controlTextDidEndEditing(_ notification: Notification) {
-        commit()
+        endEditing(commit: true)
     }
 
     func control(
@@ -708,10 +626,10 @@ private final class WorkspaceTabRenameSession: NSObject, NSTextFieldDelegate {
     ) -> Bool {
         switch commandSelector {
         case #selector(NSResponder.insertNewline(_:)):
-            commit()
+            endEditing(commit: true)
             return true
         case #selector(NSResponder.cancelOperation(_:)):
-            cancel()
+            endEditing(commit: false)
             return true
         default:
             return false
@@ -720,41 +638,508 @@ private final class WorkspaceTabRenameSession: NSObject, NSTextFieldDelegate {
 
     // MARK: Private
 
+    private static let barHeight: CGFloat = 36
+    private static let leftInset: CGFloat = 74
+    private static let rightInset: CGFloat = 12
+    private static let minimumTabWidth: CGFloat = 82
+    private static let maximumTabWidth: CGFloat = 220
+    private static let addButtonSize: CGFloat = 28
+    private static let dragThreshold: CGFloat = 4
+
+    private weak var manager: RockxyWorkspaceWindowManager!
     private weak var coordinator: MainContentCoordinator?
-    private let workspace: WorkspaceState
-    private let originalTitle: String
-    private let onFinish: () -> Void
-    private var isFinished = false
-    private var panel: WorkspaceTabRenamePanel!
-    private var field: WorkspaceTabRenameField!
+    private var trackingArea: NSTrackingArea?
+    private var tabFrames: [UUID: NSRect] = [:]
+    private var closeFrames: [UUID: NSRect] = [:]
+    private var addButtonFrame = NSRect.zero
+    private var hoveredWorkspaceID: UUID?
+    private var isAddButtonHovered = false
+    private var mouseDownWorkspaceID: UUID?
+    private var mouseDownPoint: NSPoint?
+    private var draggingWorkspaceID: UUID?
+    private var draggingPoint: NSPoint?
+    private var dropInsertionIndex: Int?
+    private var lastAppliedInsertionIndex: Int?
+    private var editingWorkspaceID: UUID?
+    private var originalTitle = ""
+    private var editField: WorkspaceInlineTabTextField?
+    private var editMonitor: Any?
 
-    private func close() {
-        panel.parent?.removeChildWindow(panel)
-        panel.close()
-        onFinish()
+    private func recalculateFrames() {
+        guard let coordinator else {
+            tabFrames.removeAll()
+            closeFrames.removeAll()
+            addButtonFrame = .zero
+            return
+        }
+
+        let workspaces = coordinator.workspaceStore.workspaces
+        let addX = max(Self.leftInset, bounds.maxX - Self.rightInset - Self.addButtonSize - 8)
+        addButtonFrame = NSRect(
+            x: addX,
+            y: 4,
+            width: Self.addButtonSize,
+            height: Self.addButtonSize
+        )
+
+        let availableWidth = max(
+            Self.minimumTabWidth,
+            addButtonFrame.minX - Self.leftInset - 6
+        )
+        let tabWidth = min(
+            Self.maximumTabWidth,
+            max(Self.minimumTabWidth, availableWidth / CGFloat(max(workspaces.count, 1)))
+        )
+
+        tabFrames.removeAll(keepingCapacity: true)
+        closeFrames.removeAll(keepingCapacity: true)
+
+        for (index, workspace) in workspaces.enumerated() {
+            let frame = NSRect(
+                x: Self.leftInset + CGFloat(index) * tabWidth,
+                y: 4,
+                width: tabWidth,
+                height: Self.barHeight - 8
+            )
+            tabFrames[workspace.id] = frame
+            if workspace.isClosable {
+                closeFrames[workspace.id] = NSRect(
+                    x: frame.maxX - 26,
+                    y: frame.midY - 7,
+                    width: 14,
+                    height: 14
+                )
+            }
+        }
+    }
+
+    private func drawBackground() {
+        NSColor.clear.setFill()
+        bounds.fill()
+
+        let stripWidth = max(0, addButtonFrame.minX - Self.leftInset - 4)
+        guard stripWidth > 0 else {
+            return
+        }
+
+        let stripRect = NSRect(
+            x: Self.leftInset - 8,
+            y: 4,
+            width: stripWidth + 8,
+            height: 28
+        )
+        let path = NSBezierPath(roundedRect: stripRect, xRadius: 14, yRadius: 14)
+        tabBarFillColor.setFill()
+        path.fill()
+    }
+
+    private func drawSeparator() {
+        NSColor.separatorColor.withAlphaComponent(0.34).setFill()
+        NSRect(x: 0, y: bounds.maxY - 1, width: bounds.width, height: 1).fill()
+    }
+
+    private func drawTabs() {
+        guard let coordinator else {
+            return
+        }
+
+        let workspaces = coordinator.workspaceStore.workspaces
+        let activeWorkspaceID = coordinator.workspaceStore.activeWorkspaceID
+        for workspace in workspaces where workspace.id != activeWorkspaceID {
+            drawWorkspaceTab(workspace, activeWorkspaceID: activeWorkspaceID)
+        }
+        for workspace in workspaces where workspace.id == activeWorkspaceID {
+            drawWorkspaceTab(workspace, activeWorkspaceID: activeWorkspaceID)
+        }
+
+        if let draggingWorkspaceID,
+           let draggingPoint,
+           let workspace = workspaces.first(where: { $0.id == draggingWorkspaceID }),
+           let sourceFrame = tabFrames[draggingWorkspaceID] {
+            drawDragGhost(workspace.title, sourceFrame: sourceFrame, at: draggingPoint)
+        }
+
+        if let dropInsertionIndex {
+            drawInsertionMarker(at: dropInsertionIndex)
+        }
+    }
+
+    private func drawWorkspaceTab(_ workspace: WorkspaceState, activeWorkspaceID: UUID) {
+        guard let frame = tabFrames[workspace.id] else {
+            return
+        }
+        let isActive = workspace.id == activeWorkspaceID
+        let isDragging = workspace.id == draggingWorkspaceID
+        drawTabBackground(in: frame, isActive: isActive, isHovered: workspace.id == hoveredWorkspaceID)
+        if editingWorkspaceID != workspace.id {
+            drawTitle(
+                workspace.title,
+                in: titleFrame(for: frame, workspace: workspace),
+                isActive: isActive,
+                alpha: isDragging ? 0.28 : 1
+            )
+        }
+        if let closeFrame = closeFrames[workspace.id],
+           isActive || workspace.id == hoveredWorkspaceID,
+           !isDragging {
+            drawCloseGlyph(in: closeFrame, isActive: isActive, isHovered: workspace.id == hoveredWorkspaceID)
+        }
+        drawInactiveDividerIfNeeded(after: workspace, frame: frame, isActive: isActive)
+    }
+
+    private func drawTabBackground(in frame: NSRect, isActive: Bool, isHovered: Bool) {
+        let rect = frame.insetBy(dx: 0.5, dy: 0)
+        let path = NSBezierPath(roundedRect: rect, xRadius: 14, yRadius: 14)
+        if isActive {
+            NSGraphicsContext.saveGraphicsState()
+            let shadow = NSShadow()
+            shadow.shadowBlurRadius = 3
+            shadow.shadowOffset = NSSize(width: 0, height: -0.5)
+            shadow.shadowColor = NSColor.black.withAlphaComponent(isDarkAppearance ? 0.28 : 0.12)
+            shadow.set()
+            selectedTabFillColor.setFill()
+            path.fill()
+            NSGraphicsContext.restoreGraphicsState()
+
+            selectedTabStrokeColor.setStroke()
+            path.lineWidth = 0.7
+            path.stroke()
+        } else if isHovered {
+            hoverTabFillColor.setFill()
+            path.fill()
+        }
+    }
+
+    private func drawTitle(_ title: String, in frame: NSRect, isActive: Bool, alpha: CGFloat = 1) {
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.alignment = .center
+        paragraph.lineBreakMode = .byTruncatingMiddle
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 13, weight: isActive ? .medium : .regular),
+            .foregroundColor: (isActive ? NSColor.labelColor : NSColor.secondaryLabelColor).withAlphaComponent(alpha),
+            .paragraphStyle: paragraph
+        ]
+        let attributed = NSAttributedString(string: title, attributes: attributes)
+        let textHeight = attributed.size().height
+        attributed.draw(in: NSRect(
+            x: frame.minX,
+            y: frame.midY - textHeight / 2,
+            width: frame.width,
+            height: textHeight + 2
+        ))
+    }
+
+    private func drawInactiveDividerIfNeeded(after workspace: WorkspaceState, frame: NSRect, isActive: Bool) {
+        guard let coordinator,
+              !isActive,
+              workspace.id != hoveredWorkspaceID,
+              workspace.id != draggingWorkspaceID,
+              let index = coordinator.workspaceStore.workspaces.firstIndex(where: { $0.id == workspace.id }),
+              index < coordinator.workspaceStore.workspaces.count - 1 else {
+            return
+        }
+
+        let nextWorkspace = coordinator.workspaceStore.workspaces[index + 1]
+        guard nextWorkspace.id != coordinator.workspaceStore.activeWorkspaceID,
+              nextWorkspace.id != hoveredWorkspaceID,
+              nextWorkspace.id != draggingWorkspaceID else {
+            return
+        }
+
+        dividerColor.setFill()
+        NSRect(x: frame.maxX - 0.5, y: frame.minY + 6, width: 1, height: frame.height - 12).fill()
+    }
+
+    private func drawCloseGlyph(in frame: NSRect, isActive: Bool, isHovered: Bool) {
+        if isHovered {
+            let hoverPath = NSBezierPath(ovalIn: frame.insetBy(dx: -1, dy: -1))
+            NSColor.labelColor.withAlphaComponent(isDarkAppearance ? 0.16 : 0.08).setFill()
+            hoverPath.fill()
+        }
+
+        let color = isActive ? NSColor.secondaryLabelColor : NSColor.tertiaryLabelColor
+        color.setStroke()
+        let path = NSBezierPath()
+        path.lineWidth = 1.35
+        path.lineCapStyle = .round
+        path.move(to: NSPoint(x: frame.minX + 4, y: frame.minY + 4))
+        path.line(to: NSPoint(x: frame.maxX - 4, y: frame.maxY - 4))
+        path.move(to: NSPoint(x: frame.maxX - 4, y: frame.minY + 4))
+        path.line(to: NSPoint(x: frame.minX + 4, y: frame.maxY - 4))
+        path.stroke()
+    }
+
+    private func drawAddButton() {
+        let canCreate = coordinator?.workspaceStore.canCreateWorkspace == true
+        let path = NSBezierPath(ovalIn: addButtonFrame)
+        let fillAlpha: CGFloat = {
+            if !canCreate {
+                return isDarkAppearance ? 0.08 : 0.04
+            }
+            return isAddButtonHovered ? (isDarkAppearance ? 0.22 : 0.12) : (isDarkAppearance ? 0.14 : 0.075)
+        }()
+        NSColor.labelColor.withAlphaComponent(fillAlpha).setFill()
+        path.fill()
+        NSColor.separatorColor.withAlphaComponent(canCreate ? 0.30 : 0.16).setStroke()
+        path.lineWidth = 0.7
+        path.stroke()
+
+        (canCreate ? NSColor.secondaryLabelColor : NSColor.tertiaryLabelColor).setStroke()
+        let plus = NSBezierPath()
+        plus.lineWidth = 1.55
+        plus.lineCapStyle = .round
+        plus.move(to: NSPoint(x: addButtonFrame.midX - 5, y: addButtonFrame.midY))
+        plus.line(to: NSPoint(x: addButtonFrame.midX + 5, y: addButtonFrame.midY))
+        plus.move(to: NSPoint(x: addButtonFrame.midX, y: addButtonFrame.midY - 5))
+        plus.line(to: NSPoint(x: addButtonFrame.midX, y: addButtonFrame.midY + 5))
+        plus.stroke()
+    }
+
+    private func drawDragGhost(_ title: String, sourceFrame: NSRect, at point: NSPoint) {
+        let width = sourceFrame.width
+        let rect = NSRect(
+            x: min(max(Self.leftInset, point.x - width / 2), bounds.maxX - Self.rightInset - Self.addButtonSize - width - 10),
+            y: sourceFrame.minY,
+            width: width,
+            height: sourceFrame.height
+        )
+        let path = NSBezierPath(roundedRect: rect.insetBy(dx: 1, dy: 0), xRadius: 14, yRadius: 14)
+        NSGraphicsContext.saveGraphicsState()
+        let shadow = NSShadow()
+        shadow.shadowBlurRadius = 6
+        shadow.shadowOffset = NSSize(width: 0, height: -1)
+        shadow.shadowColor = NSColor.black.withAlphaComponent(isDarkAppearance ? 0.34 : 0.18)
+        shadow.set()
+        selectedTabFillColor.withAlphaComponent(0.95).setFill()
+        path.fill()
+        NSGraphicsContext.restoreGraphicsState()
+        selectedTabStrokeColor.setStroke()
+        path.lineWidth = 0.7
+        path.stroke()
+        drawTitle(title, in: rect.insetBy(dx: 12, dy: 0), isActive: true)
+    }
+
+    private func drawInsertionMarker(at insertionIndex: Int) {
+        guard let markerX = insertionMarkerX(for: insertionIndex) else {
+            return
+        }
+        let markerRect = NSRect(x: markerX - 1, y: 8, width: 2, height: Self.barHeight - 16)
+        let path = NSBezierPath(roundedRect: markerRect, xRadius: 1, yRadius: 1)
+        NSColor.controlAccentColor.withAlphaComponent(0.9).setFill()
+        path.fill()
+    }
+
+    private var isDarkAppearance: Bool {
+        effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+    }
+
+    private var tabBarFillColor: NSColor {
+        if isDarkAppearance {
+            return NSColor.windowBackgroundColor.withAlphaComponent(0.24)
+        }
+        return NSColor.windowBackgroundColor.withAlphaComponent(0.58)
+    }
+
+    private var selectedTabFillColor: NSColor {
+        if isDarkAppearance {
+            return NSColor.controlBackgroundColor.withAlphaComponent(0.84)
+        }
+        return NSColor.textBackgroundColor.withAlphaComponent(0.92)
+    }
+
+    private var selectedTabStrokeColor: NSColor {
+        if isDarkAppearance {
+            return NSColor.white.withAlphaComponent(0.12)
+        }
+        return NSColor.separatorColor.withAlphaComponent(0.36)
+    }
+
+    private var hoverTabFillColor: NSColor {
+        NSColor.labelColor.withAlphaComponent(isDarkAppearance ? 0.08 : 0.045)
+    }
+
+    private var dividerColor: NSColor {
+        NSColor.separatorColor.withAlphaComponent(isDarkAppearance ? 0.24 : 0.30)
+    }
+
+    private func titleFrame(for frame: NSRect, workspace: WorkspaceState) -> NSRect {
+        let leftPadding: CGFloat = 12
+        let rightPadding: CGFloat = workspace.isClosable ? 30 : 12
+        return NSRect(
+            x: frame.minX + leftPadding,
+            y: frame.minY,
+            width: max(1, frame.width - leftPadding - rightPadding),
+            height: frame.height
+        )
+    }
+
+    private func editorFrame(in tabFrame: NSRect) -> NSRect {
+        let leftPadding: CGFloat = 12
+        let hasCloseButton = editingWorkspaceID.map { closeFrames[$0] != nil } ?? false
+        let rightPadding: CGFloat = hasCloseButton ? 30 : 12
+        return NSRect(
+            x: tabFrame.minX + leftPadding,
+            y: tabFrame.minY,
+            width: max(1, tabFrame.width - leftPadding - rightPadding),
+            height: tabFrame.height
+        )
+        .insetBy(dx: 0, dy: 4)
+    }
+
+    private func workspaceID(at point: NSPoint) -> UUID? {
+        tabFrames.first { $0.value.contains(point) }?.key
+    }
+
+    private func closeWorkspaceID(at point: NSPoint) -> UUID? {
+        closeFrames.first { $0.value.contains(point) }?.key
+    }
+
+    private func insertionIndex(at point: NSPoint) -> Int {
+        guard let coordinator else {
+            return 0
+        }
+
+        for (index, workspace) in coordinator.workspaceStore.workspaces.enumerated() {
+            guard let frame = tabFrames[workspace.id] else {
+                continue
+            }
+            if point.x < frame.midX {
+                return index
+            }
+        }
+        return coordinator.workspaceStore.workspaces.count
+    }
+
+    private func insertionMarkerX(for insertionIndex: Int) -> CGFloat? {
+        guard let coordinator,
+              !coordinator.workspaceStore.workspaces.isEmpty else {
+            return nil
+        }
+
+        if insertionIndex <= 0,
+           let first = coordinator.workspaceStore.workspaces.first,
+           let frame = tabFrames[first.id] {
+            return frame.minX + 2
+        }
+
+        if insertionIndex >= coordinator.workspaceStore.workspaces.count,
+           let last = coordinator.workspaceStore.workspaces.last,
+           let frame = tabFrames[last.id] {
+            return frame.maxX - 2
+        }
+
+        let workspace = coordinator.workspaceStore.workspaces[insertionIndex]
+        return tabFrames[workspace.id]?.minX
+    }
+
+    private func clearDragState() {
+        draggingWorkspaceID = nil
+        draggingPoint = nil
+        dropInsertionIndex = nil
+        lastAppliedInsertionIndex = nil
+        mouseDownWorkspaceID = nil
+        mouseDownPoint = nil
+        needsDisplay = true
+    }
+
+    private func distance(from lhs: NSPoint, to rhs: NSPoint) -> CGFloat {
+        let dx = lhs.x - rhs.x
+        let dy = lhs.y - rhs.y
+        return sqrt(dx * dx + dy * dy)
+    }
+
+    private func commitEditingIfNeeded(forClickAt point: NSPoint) -> Bool {
+        guard let field = editField else {
+            return false
+        }
+        if field.frame.contains(point) {
+            return false
+        }
+        endEditing(commit: true)
+        return true
+    }
+
+    private func installEditingMonitor() {
+        removeEditingMonitor()
+        editMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] nsEvent in
+            guard let self else {
+                return nsEvent
+            }
+            nonisolated(unsafe) let event = nsEvent
+            nonisolated(unsafe) var handledEvent: NSEvent?
+            MainActor.assumeIsolated {
+                handledEvent = self.handleEditingMonitorEvent(event)
+            }
+            return handledEvent
+        }
+    }
+
+    private func removeEditingMonitor() {
+        if let editMonitor {
+            NSEvent.removeMonitor(editMonitor)
+            self.editMonitor = nil
+        }
+    }
+
+    private func handleEditingMonitorEvent(_ event: NSEvent) -> NSEvent? {
+        guard let field = editField else {
+            return event
+        }
+        if event.window === window {
+            let point = convert(event.locationInWindow, from: nil)
+            if field.frame.contains(point) {
+                return event
+            }
+        }
+        endEditing(commit: true)
+        return event
+    }
+
+    @objc private func renameTabFromMenu(_ sender: NSMenuItem) {
+        guard let workspaceID = sender.representedObject as? UUID else {
+            return
+        }
+        beginRename(workspaceID: workspaceID)
+    }
+
+    @objc private func closeTabFromMenu(_ sender: NSMenuItem) {
+        guard let workspaceID = sender.representedObject as? UUID else {
+            return
+        }
+        manager.closeWorkspace(workspaceID)
+    }
+
+    @objc private func newTabFromMenu(_ sender: NSMenuItem) {
+        manager.createWorkspace()
     }
 }
 
-@MainActor
-private final class WorkspaceTabRenamePanel: NSPanel {
-    var onResignKey: (() -> Void)?
-
-    override var canBecomeKey: Bool {
-        true
-    }
-
-    override var canBecomeMain: Bool {
-        false
-    }
-
-    override func resignKey() {
-        super.resignKey()
-        onResignKey?()
-    }
-}
+// MARK: - WorkspaceInlineTabTextField
 
 @MainActor
-private final class WorkspaceTabRenameField: NSTextField {
+private final class WorkspaceInlineTabTextField: NSTextField {
+    // MARK: Lifecycle
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        isBordered = true
+        isBezeled = true
+        bezelStyle = .roundedBezel
+        drawsBackground = true
+        backgroundColor = .controlBackgroundColor
+        textColor = .labelColor
+        focusRingType = .none
+        lineBreakMode = .byTruncatingMiddle
+        setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("WorkspaceInlineTabTextField does not support NSCoder init")
+    }
+
+    // MARK: Internal
+
     var onCommit: (() -> Void)?
     var onCancel: (() -> Void)?
 
@@ -767,11 +1152,5 @@ private final class WorkspaceTabRenameField: NSTextField {
         default:
             super.keyDown(with: event)
         }
-    }
-}
-
-private extension RockxyWorkspaceWindowManager {
-    var currentCoordinator: MainContentCoordinator? {
-        coordinator
     }
 }

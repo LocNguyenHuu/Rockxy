@@ -346,10 +346,14 @@ struct RockxyMenuCommands: Commands {
             .disabled(actions?.canCloseWorkspaceTab != true)
 
             Button(String(localized: "Rename Tab…")) {
-                actions?.renameWorkspaceTab()
+                if let actions {
+                    actions.renameWorkspaceTab()
+                } else {
+                    RockxyWorkspaceWindowManager.shared.beginRenameForCurrentWorkspace()
+                }
             }
             .keyboardShortcut("r", modifiers: [.command, .shift])
-            .disabled(actions?.canRenameWorkspaceTab != true)
+            .disabled(!(actions?.canRenameWorkspaceTab ?? RockxyWorkspaceWindowManager.shared.canRenameWorkspaceTab))
 
             Button(String(localized: "New Session")) {
                 actions?.clearSession()
