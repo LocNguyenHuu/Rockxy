@@ -400,21 +400,3 @@ struct AppInfo: Identifiable {
         name
     }
 }
-
-// MARK: - DomainNode
-
-/// Represents a single domain in the sidebar source list, tracking its aggregate request count.
-struct DomainNode: Identifiable, Hashable {
-    let id: String
-    let domain: String
-    var requestCount: Int
-    var children: [DomainNode]
-
-    static func == (lhs: DomainNode, rhs: DomainNode) -> Bool {
-        lhs.id == rhs.id
-    }
-
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-}

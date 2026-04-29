@@ -330,12 +330,8 @@ extension MainContentCoordinator {
     // MARK: - Sorting
 
     func sortDomainTreeAlphabetically() {
-        domainTree.sort { $0.domain.localizedCaseInsensitiveCompare($1.domain) == .orderedAscending }
+        refreshDomainTree(for: activeWorkspace, alphabetical: true)
         // Rebuild index map after sort
-        domainIndexMap.removeAll()
-        for (index, node) in domainTree.enumerated() {
-            domainIndexMap[node.domain] = index
-        }
         Self.logger.info("Sorted domain tree alphabetically")
     }
 
@@ -357,7 +353,14 @@ extension MainContentCoordinator {
     }
 
     func exportTransactionsForDomain(_ domain: String) {
-        let domainTransactions = transactions.filter { $0.request.host == domain }
+        exportTransactionsForDomain(domain, pathPrefix: nil)
+    }
+
+    func exportTransactionsForDomain(_ domain: String, pathPrefix: String?) {
+        let domainTransactions = transactions.filter {
+            DomainGrouping.host($0.request.host, matchesDomain: domain)
+                && DomainGrouping.path($0.request.path, matchesPrefix: pathPrefix)
+        }
         guard !domainTransactions.isEmpty else {
             return
         }
@@ -373,7 +376,11 @@ extension MainContentCoordinator {
         }
 
         let panel = NSSavePanel()
-        panel.nameFieldStringValue = "\(domain).har"
+        let suffix = pathPrefix?
+            .replacingOccurrences(of: "/", with: "-")
+            .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+        let fileName = suffix.map { "\(domain)-\($0).har" } ?? "\(domain).har"
+        panel.nameFieldStringValue = fileName
         panel.allowedContentTypes = [.har]
 
         guard panel.runModal() == .OK, let url = panel.url else {
@@ -434,29 +441,28 @@ extension MainContentCoordinator {
     // MARK: - Delete / Remove
 
     func removeDomainFromSidebar(_ domain: String) {
-        transactions.removeAll { $0.request.host == domain }
+        removeDomainFromSidebar(domain, pathPrefix: nil)
+    }
+
+    func removeDomainFromSidebar(_ domain: String, pathPrefix: String?) {
+        transactions.removeAll {
+            DomainGrouping.host($0.request.host, matchesDomain: domain)
+                && DomainGrouping.path($0.request.path, matchesPrefix: pathPrefix)
+        }
         rebuildObservedDomainsByApp()
 
-        if let index = domainIndexMap[domain] {
-            domainTree.remove(at: index)
-            domainIndexMap.removeValue(forKey: domain)
-            // Rebuild index map
-            domainIndexMap.removeAll()
-            for (i, node) in domainTree.enumerated() {
-                domainIndexMap[node.domain] = i
-            }
-        }
-
-        // Remove from app nodes' domain lists
-        for i in appNodes.indices {
-            appNodes[i].domains.removeAll { $0 == domain }
-        }
-
-        // Clear selection if it was this domain
-        if case .domainNode(domain) = sidebarSelection {
+        // Clear selection if it was removed by this action.
+        switch sidebarSelection {
+        case let .domainNode(selectedDomain) where selectedDomain == domain && pathPrefix == nil:
             sidebarSelection = nil
+        case let .domainPath(selectedDomain, selectedPath)
+            where selectedDomain == domain && selectedPath == pathPrefix:
+            sidebarSelection = nil
+        default:
+            break
         }
 
+        rebuildSidebarIndexes()
         recomputeFilteredTransactions()
         Self.logger.info("Removed domain from sidebar: \(domain)")
     }

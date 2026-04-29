@@ -176,6 +176,31 @@ struct FilteringTests {
         #expect(coordinator.filteredTransactions[0].id == match.id)
     }
 
+    @Test("Sidebar domain filter does not match partial host suffixes")
+    func sidebarDomainFilterRequiresBoundary() {
+        let coordinator = MainContentCoordinator()
+        let match = TestFixtures.makeTransaction(url: "https://api.example.com/test")
+        let noMatch = TestFixtures.makeTransaction(url: "https://badexample.com/test")
+        coordinator.transactions = [match, noMatch]
+        coordinator.filterCriteria.sidebarDomain = "example.com"
+        coordinator.recomputeFilteredTransactions()
+        #expect(coordinator.filteredTransactions.count == 1)
+        #expect(coordinator.filteredTransactions[0].id == match.id)
+    }
+
+    @Test("Sidebar path filter narrows selected domain group")
+    func sidebarPathFilter() {
+        let coordinator = MainContentCoordinator()
+        let users = TestFixtures.makeTransaction(url: "https://api.example.com/v1/users")
+        let events = TestFixtures.makeTransaction(url: "https://api.example.com/v1/events")
+        let otherPath = TestFixtures.makeTransaction(url: "https://api.example.com/v2/users")
+        coordinator.transactions = [users, events, otherPath]
+        coordinator.filterCriteria.sidebarDomain = "api.example.com"
+        coordinator.filterCriteria.sidebarPathPrefix = "/v1"
+        coordinator.recomputeFilteredTransactions()
+        #expect(coordinator.filteredTransactions.map(\.id) == [users.id, events.id])
+    }
+
     @Test("Sidebar app filters by exact match")
     func sidebarAppFilter() {
         let coordinator = MainContentCoordinator()

@@ -1,3 +1,4 @@
+import AppKit
 import os
 import ServiceManagement
 import SwiftUI
@@ -433,19 +434,6 @@ struct AdvancedProxySettingsView: View {
                 }
                 .disabled(helperManager.isBusy)
 
-                Button(String(localized: "Reset Registration")) {
-                    Task {
-                        do {
-                            try await helperManager.forceResetRegistration()
-                        } catch {
-                            Self.logger.error(
-                                "Failed to force-reset helper: \(error.localizedDescription)"
-                            )
-                        }
-                    }
-                }
-                .disabled(helperManager.isBusy)
-
             case .installedCompatible:
                 Button(String(localized: "Check Again")) {
                     Task { await helperManager.checkStatus() }
@@ -503,6 +491,13 @@ struct AdvancedProxySettingsView: View {
                     .disabled(helperManager.isBusy)
                 }
             }
+
+            Button(role: .destructive) {
+                HelperRecoveryPresenter.presentForceReset()
+            } label: {
+                Text(String(localized: "Force Reset…"))
+            }
+            .disabled(helperManager.isBusy)
         }
     }
 

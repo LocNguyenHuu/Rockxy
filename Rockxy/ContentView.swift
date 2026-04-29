@@ -46,12 +46,7 @@ struct ContentView: View {
         .toolbar {
             ProxyToolbarContent(coordinator: coordinator)
         }
-        .onReceive(NotificationCenter.default.publisher(for: .breakpointHit)) { _ in
-            openWindow(id: "breakpoints")
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .openDiffWindow)) { _ in
-            openWindow(id: "diff")
-        }
+        .modifier(ContentWindowNotificationHandlers(coordinator: coordinator, openWindow: openWindow))
         .onAppear {
             guard !ProcessInfo.processInfo.isTestHost else {
                 return
@@ -76,32 +71,6 @@ struct ContentView: View {
             coordinator.setupRulesObserver()
             coordinator.setupSSLProxyingObserver()
             coordinator.loadInitialRules()
-        }
-        .onReceive(NotificationCenter.default.publisher(
-            for: RockxyIdentity.current.notificationName("openCustomColumnsWindow")
-        )) { _ in
-            openWindow(id: "customColumns")
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .openComposeWindow)) { _ in
-            openWindow(id: "compose")
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .openBlockListWindow)) { _ in
-            openWindow(id: "blockList")
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .openAllowListWindow)) { _ in
-            openWindow(id: "allowList")
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .openMapLocalWindow)) { _ in
-            openWindow(id: "mapLocal")
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .openMapRemoteWindow)) { _ in
-            openWindow(id: "mapRemote")
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .openNetworkConditionsWindow)) { _ in
-            openWindow(id: "networkConditions")
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .openBreakpointRulesWindow)) { _ in
-            openWindow(id: "breakpointRules")
         }
         .modifier(ScriptingWindowOpeners(openWindow: openWindow))
         .alert(
@@ -180,6 +149,52 @@ struct ContentView: View {
         case nil:
             break
         }
+    }
+}
+
+// MARK: - Content Window Notification Handlers
+
+private struct ContentWindowNotificationHandlers: ViewModifier {
+    let coordinator: MainContentCoordinator
+    let openWindow: OpenWindowAction
+
+    func body(content: Content) -> some View {
+        content
+            .onReceive(NotificationCenter.default.publisher(for: .breakpointHit)) { _ in
+                openWindow(id: "breakpoints")
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .openDiffWindow)) { _ in
+                openWindow(id: "diff")
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .stopProxyRequested)) { _ in
+                coordinator.stopProxy()
+            }
+            .onReceive(NotificationCenter.default.publisher(
+                for: RockxyIdentity.current.notificationName("openCustomColumnsWindow")
+            )) { _ in
+                openWindow(id: "customColumns")
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .openComposeWindow)) { _ in
+                openWindow(id: "compose")
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .openBlockListWindow)) { _ in
+                openWindow(id: "blockList")
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .openAllowListWindow)) { _ in
+                openWindow(id: "allowList")
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .openMapLocalWindow)) { _ in
+                openWindow(id: "mapLocal")
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .openMapRemoteWindow)) { _ in
+                openWindow(id: "mapRemote")
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .openNetworkConditionsWindow)) { _ in
+                openWindow(id: "networkConditions")
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .openBreakpointRulesWindow)) { _ in
+                openWindow(id: "breakpointRules")
+            }
     }
 }
 

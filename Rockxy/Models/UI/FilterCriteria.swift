@@ -28,14 +28,15 @@ struct FilterCriteria {
     var searchField: FilterField = .url
     var isSearchEnabled: Bool = true
     var sidebarDomain: String?
+    var sidebarPathPrefix: String?
     var sidebarApp: String?
     var sidebarScope: SidebarScope = .allTraffic
 
     var isEmpty: Bool {
         (!isSearchEnabled || searchText.isEmpty) && methods.isEmpty && statusCodes.isEmpty
             && contentTypes.isEmpty && domains.isEmpty && logLevels.isEmpty
-            && activeProtocolFilters.isEmpty && sidebarDomain == nil && sidebarApp == nil
-            && sidebarScope == .allTraffic
+            && activeProtocolFilters.isEmpty && sidebarDomain == nil
+            && sidebarPathPrefix == nil && sidebarApp == nil && sidebarScope == .allTraffic
     }
 
     var activeFilterCount: Int {
@@ -53,6 +54,9 @@ struct FilterCriteria {
             count += 1
         }
         if sidebarDomain != nil {
+            count += 1
+        }
+        if sidebarPathPrefix != nil {
             count += 1
         }
         if sidebarApp != nil {

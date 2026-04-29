@@ -365,11 +365,11 @@ struct HelperManagerTests {
         #expect(probe == .xpcFailure)
     }
 
-    @Test("decideRecovery returns attemptReRegistration for xpcFailure")
+    @Test("decideRecovery surfaces unreachable for xpcFailure")
     @MainActor
     func decideRecoveryXpcFailure() {
         let action = HelperManager.decideRecovery(probe: .xpcFailure)
-        #expect(action == .attemptReRegistration)
+        #expect(action == .surfaceUnreachable)
     }
 
     // MARK: - Subtype-Only Change Detection
@@ -464,6 +464,84 @@ struct HelperManagerTests {
         #expect(message.contains("Login Items"))
     }
 
+    // MARK: - Hard Force Remove Script
+
+    @Test("hard force remove script clears launchd and privileged helper locations")
+    func hardForceRemoveScriptClearsHelperArtifacts() {
+        let script = HelperManager.forceRemoveShellScript(
+            identity: makeForceRemoveIdentity(),
+            resetBackgroundItems: false
+        )
+
+        #expect(script.contains("/bin/launchctl bootout system/'\(TestIdentity.helperMachServiceName)'"))
+        #expect(script.contains("/usr/bin/pkill -f '[R]ockxyHelperTool'"))
+        #expect(!script.contains("/usr/bin/pkill -f 'RockxyHelperTool'"))
+        #expect(script.contains("/bin/rm -f '/Library/PrivilegedHelperTools/\(TestIdentity.helperMachServiceName)'"))
+        #expect(script.contains("/bin/rm -f '/Library/LaunchDaemons/\(TestIdentity.helperPlistName)'"))
+        #expect(script.contains("/bin/launchctl print system/'\(TestIdentity.helperMachServiceName)'"))
+        #expect(script.contains("direct-proxy-watchdog"))
+        #expect(script.contains("proxy-backup-direct.plist"))
+        #expect(!script.contains("sfltool resetbtm"))
+    }
+
+    @Test("hard force remove command reports signal termination clearly")
+    func hardForceRemoveSignalFailureMessage() {
+        let error = HelperManager.ForceRemoveError.commandTerminated(signal: 15, output: "")
+
+        #expect(error.localizedDescription.contains("signal 15"))
+    }
+
+    @Test("hard force remove script only resets Background Items when explicitly requested")
+    func hardForceRemoveScriptIncludesBTMResetOnlyWhenRequested() {
+        let script = HelperManager.forceRemoveShellScript(
+            identity: makeForceRemoveIdentity(),
+            resetBackgroundItems: true
+        )
+
+        #expect(script.contains("/usr/bin/sfltool resetbtm"))
+    }
+
+    @Test("privileged AppleScript wraps force remove command with administrator approval")
+    func privilegedAppleScriptUsesAdministratorPrivileges() {
+        let script = HelperManager.privilegedAppleScript(for: "echo \"Rockxy\"")
+
+        #expect(script.contains("do shell script"))
+        #expect(script.contains("with administrator privileges"))
+        #expect(script.contains("\\\"Rockxy\\\""))
+    }
+
+    // MARK: - Xcode Legacy Helper Install Fallback
+
+    @Test("legacy install fallback is limited to Xcode DerivedData app bundles")
+    func legacyInstallFallbackDetectionIsXcodeOnly() {
+        let xcodeBundle = URL(
+            fileURLWithPath: "/Users/test/Library/Developer/Xcode/DerivedData/Rockxy-abc/Build/Products/Debug/Rockxy.app"
+        )
+        let releaseBundle = URL(fileURLWithPath: "/Applications/Rockxy.app")
+
+        #expect(HelperManager.shouldUseLegacyInstallFallbackForCurrentBundle(bundleURL: xcodeBundle))
+        #expect(!HelperManager.shouldUseLegacyInstallFallbackForCurrentBundle(bundleURL: releaseBundle))
+    }
+
+    @Test("legacy install script bootstraps the shared helper identity for Xcode runs")
+    func legacyInstallScriptBootstrapsSharedHelperIdentity() {
+        let identity = makeForceRemoveIdentity()
+        let helperPath = "/tmp/Rockxy.app/Contents/Library/HelperTools/RockxyHelperTool"
+        let script = HelperManager.legacyInstallShellScript(
+            identity: identity,
+            bundledHelperPath: helperPath
+        )
+
+        let installedHelperPath = "/Library/PrivilegedHelperTools/\(TestIdentity.helperMachServiceName)"
+        let plistPath = "/Library/LaunchDaemons/\(TestIdentity.helperPlistName)"
+
+        #expect(script.contains("/usr/bin/install -o root -g wheel -m 755 '\(helperPath)' '\(installedHelperPath)'"))
+        #expect(script.contains("/bin/launchctl bootstrap system '\(plistPath)'"))
+        #expect(script.contains("/bin/launchctl kickstart -k system/'\(TestIdentity.helperMachServiceName)'"))
+        #expect(script.contains("direct-proxy-watchdog"))
+        #expect(script.contains("proxy-backup-direct.plist"))
+    }
+
     // MARK: - Uninstall Registration Status Reset
 
     @Test("injecting notInstalled state resets registrationStatus via injectHelperStateForTests")
@@ -515,6 +593,18 @@ private func signedBundleWithEmbeddedMetadata() -> Bundle? {
 }
 
 private let expectedHelperBundleProgram = "Contents/Library/HelperTools/RockxyHelperTool"
+
+private func makeForceRemoveIdentity() -> RockxyIdentity {
+    RockxyIdentity(infoDictionary: [
+        "CFBundleDisplayName": "Rockxy",
+        "CFBundleIdentifier": TestIdentity.communityBundleIdentifier,
+        "RockxyFamilyNamespace": TestIdentity.familyNamespace,
+        "RockxyHelperBundleIdentifier": TestIdentity.helperBundleIdentifier,
+        "RockxyHelperMachServiceName": TestIdentity.helperMachServiceName,
+        "RockxyHelperPlistName": TestIdentity.helperPlistName,
+        "RockxyAllowedCallerIdentifiers": TestIdentity.expectedAllowedCallerIdentifiers.joined(separator: " "),
+    ])
+}
 
 private enum HelperBinaryKind {
     case regularFile(permissions: Int)

@@ -31,7 +31,7 @@ final class TrafficDomainSnapshot {
             $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
         }
         var seen = Set<String>()
-        domains = domainTree.map(\.domain)
+        domains = domainTree.flatMap(Self.flattenDomains)
             .filter { seen.insert($0).inserted }
             .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
     }
@@ -39,5 +39,10 @@ final class TrafficDomainSnapshot {
     func reset() {
         appEntries = []
         domains = []
+    }
+
+    private static func flattenDomains(from node: DomainNode) -> [String] {
+        let ownValue = node.kind == .path ? [] : [node.selectionDomain]
+        return ownValue + node.children.flatMap(flattenDomains)
     }
 }

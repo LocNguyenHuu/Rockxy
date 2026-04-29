@@ -136,6 +136,7 @@ struct SidebarView: View {
 
     @State private var sidebarFilterText = ""
     @State private var isAddFavoritePresented = false
+    @State private var expandedDomainNodeIDs: Set<String> = []
 
     private var sidebarBinding: Binding<SidebarItem?> {
         Binding(
@@ -280,6 +281,15 @@ struct SidebarView: View {
             }
             .tag(item)
             .contextMenu { domainContextMenu(domain) }
+        case let .domainPath(domain, pathPrefix):
+            Label {
+                Text("\(domain)\(pathPrefix)")
+                    .lineLimit(1)
+            } icon: {
+                Image(systemName: "link")
+            }
+            .tag(item)
+            .contextMenu { domainContextMenu(domain, pathPrefix: pathPrefix) }
         case let .app(name, _):
             Label {
                 Text(name)
@@ -299,44 +309,109 @@ struct SidebarView: View {
 
     // MARK: - Helpers
 
-    @ViewBuilder
-    private func domainRow(_ node: DomainNode) -> some View {
+    private func domainRow(_ node: DomainNode) -> AnyView {
         if node.children.isEmpty {
-            domainLabel(node.domain, requestCount: node.requestCount)
+            return AnyView(domainLabel(node))
         } else {
-            DisclosureGroup {
-                ForEach(node.children) { child in
-                    domainLabel(child.domain, requestCount: child.requestCount)
+            return AnyView(
+                DisclosureGroup(isExpanded: domainExpansionBinding(for: node.id)) {
+                    ForEach(node.children) { child in
+                        domainRow(child)
+                    }
+                } label: {
+                    domainLabel(node)
                 }
-            } label: {
-                domainLabel(node.domain, requestCount: node.requestCount)
-            }
+            )
         }
     }
 
     private func domainLabel(_ domain: String, requestCount: Int) -> some View {
+        domainLabel(
+            DomainNode(
+                id: domain,
+                domain: domain,
+                requestCount: requestCount,
+                children: [],
+                filterDomain: domain
+            )
+        )
+    }
+
+    private func domainLabel(_ node: DomainNode) -> some View {
         Label {
-            HStack(spacing: 4) {
-                Text(domain)
-                if coordinator.isSSLProxyingEnabled(for: domain) {
+            HStack(spacing: 5) {
+                Text(node.domain)
+                    .foregroundStyle(node.kind == .path ? .secondary : .primary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+
+                if coordinator.isSSLProxyingEnabled(for: node.selectionDomain), node.kind != .path {
                     Image(systemName: "lock.shield.fill")
                         .font(.caption2)
                         .foregroundStyle(.green)
                 }
+
+                if node.errorCount > 0 {
+                    Label("\(node.errorCount)", systemImage: "exclamationmark.triangle.fill")
+                        .labelStyle(.titleAndIcon)
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                        .help(String(localized: "\(node.errorCount) failed or error responses"))
+                }
             }
         } icon: {
-            Image(systemName: "globe")
+            Image(systemName: domainIconName(for: node.kind))
+                .foregroundStyle(node.kind == .path ? .secondary : .primary)
         }
-        .badge(requestCount)
-        .tag(SidebarItem.domainNode(domain: domain))
-        .contextMenu { domainContextMenu(domain) }
+        .badge(node.requestCount)
+        .tag(sidebarItem(for: node))
+        .contextMenu { domainContextMenu(node.selectionDomain, pathPrefix: node.pathPrefix) }
+        .help(domainHelpText(for: node))
+    }
+
+    private func domainExpansionBinding(for nodeID: String) -> Binding<Bool> {
+        Binding {
+            expandedDomainNodeIDs.contains(nodeID)
+        } set: { isExpanded in
+            if isExpanded {
+                expandedDomainNodeIDs.insert(nodeID)
+            } else {
+                expandedDomainNodeIDs.remove(nodeID)
+            }
+        }
+    }
+
+    private func sidebarItem(for node: DomainNode) -> SidebarItem {
+        if let pathPrefix = node.pathPrefix {
+            return .domainPath(domain: node.selectionDomain, pathPrefix: pathPrefix)
+        }
+        return .domainNode(domain: node.selectionDomain)
+    }
+
+    private func domainIconName(for kind: DomainNode.Kind) -> String {
+        switch kind {
+        case .domain:
+            "globe"
+        case .host:
+            "network"
+        case .path:
+            "link"
+        }
+    }
+
+    private func domainHelpText(for node: DomainNode) -> String {
+        if let pathPrefix = node.pathPrefix {
+            return "\(node.selectionDomain)\(pathPrefix)"
+        }
+        return node.selectionDomain
     }
 
     // MARK: - Context Menus
 
     @ViewBuilder
-    private func domainContextMenu(_ domain: String) -> some View {
-        let item = SidebarItem.domainNode(domain: domain)
+    private func domainContextMenu(_ domain: String, pathPrefix: String? = nil) -> some View {
+        let item = pathPrefix.map { SidebarItem.domainPath(domain: domain, pathPrefix: $0) }
+            ?? SidebarItem.domainNode(domain: domain)
         let isPinned = coordinator.isFavorite(item)
 
         Button {
@@ -351,7 +426,9 @@ struct SidebarView: View {
         Button {
             var filter = FilterCriteria.empty
             filter.sidebarDomain = domain
-            let ws = coordinator.workspaceStore.createWorkspace(title: domain, filter: filter)
+            filter.sidebarPathPrefix = pathPrefix
+            let title = pathPrefix.map { "\(domain)\($0)" } ?? domain
+            let ws = coordinator.workspaceStore.createWorkspace(title: title, filter: filter)
             coordinator.recomputeFilteredTransactions(for: ws)
             coordinator.rebuildSidebarIndexes(for: ws)
         } label: {
@@ -445,12 +522,15 @@ struct SidebarView: View {
 
         Menu {
             Button {
-                coordinator.copyDomainToClipboard(domain)
+                coordinator.copyDomainToClipboard(pathPrefix.map { "\(domain)\($0)" } ?? domain)
             } label: {
-                Label(String(localized: "Copy Domain"), systemImage: "doc.on.doc")
+                Label(
+                    pathPrefix == nil ? String(localized: "Copy Domain") : String(localized: "Copy Path Filter"),
+                    systemImage: "doc.on.doc"
+                )
             }
             Button {
-                coordinator.exportTransactionsForDomain(domain)
+                coordinator.exportTransactionsForDomain(domain, pathPrefix: pathPrefix)
             } label: {
                 Label(String(localized: "Export Transactions"), systemImage: "square.and.arrow.up")
             }
@@ -461,7 +541,7 @@ struct SidebarView: View {
         Divider()
 
         Button(role: .destructive) {
-            coordinator.removeDomainFromSidebar(domain)
+            coordinator.removeDomainFromSidebar(domain, pathPrefix: pathPrefix)
         } label: {
             Label(String(localized: "Delete"), systemImage: "trash")
         }

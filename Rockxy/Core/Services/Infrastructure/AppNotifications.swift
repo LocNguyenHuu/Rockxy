@@ -8,6 +8,7 @@ extension Notification.Name {
 
     static let proxyDidStart = identity.notificationName("proxyDidStart")
     static let proxyDidStop = identity.notificationName("proxyDidStop")
+    static let stopProxyRequested = identity.notificationName("stopProxyRequested")
     static let systemProxyDidChange = identity.notificationName("systemProxyDidChange")
     static let certificateStatusChanged = identity.notificationName("certificateStatusChanged")
     static let helperStatusChanged = identity.notificationName("helperStatusChanged")

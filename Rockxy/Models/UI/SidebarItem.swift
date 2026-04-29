@@ -9,6 +9,7 @@ import Foundation
 /// log streams, and analytics sections.
 enum SidebarItem: Hashable, Codable {
     case domainNode(domain: String)
+    case domainPath(domain: String, pathPrefix: String)
     case app(name: String, bundleId: String?)
     case filter(name: String)
     case ruleGroup

@@ -691,6 +691,15 @@ struct RockxyMenuCommands: Commands {
 
             Divider()
 
+            Button(String(localized: "Force Reset Rockxy Helper…")) {
+                let commandActions = actions
+                HelperRecoveryPresenter.presentForceReset {
+                    commandActions?.stopProxy()
+                }
+            }
+
+            Divider()
+
             Button(String(localized: "Homepage…")) {
                 openURL(ProjectLinks.homepage)
             }

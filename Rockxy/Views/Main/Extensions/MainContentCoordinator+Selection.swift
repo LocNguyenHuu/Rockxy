@@ -22,6 +22,7 @@ extension MainContentCoordinator {
 
         guard let item else {
             filterCriteria.sidebarDomain = nil
+            filterCriteria.sidebarPathPrefix = nil
             filterCriteria.sidebarApp = nil
             filterCriteria.sidebarScope = .allTraffic
             recomputeFilteredTransactions()
@@ -31,46 +32,60 @@ extension MainContentCoordinator {
         switch item {
         case let .domainNode(domain):
             filterCriteria.sidebarDomain = domain
+            filterCriteria.sidebarPathPrefix = nil
+            filterCriteria.sidebarApp = nil
+            filterCriteria.sidebarScope = .allTraffic
+            recomputeFilteredTransactions()
+        case let .domainPath(domain, pathPrefix):
+            filterCriteria.sidebarDomain = domain
+            filterCriteria.sidebarPathPrefix = pathPrefix
             filterCriteria.sidebarApp = nil
             filterCriteria.sidebarScope = .allTraffic
             recomputeFilteredTransactions()
         case let .app(name, _):
             filterCriteria.sidebarDomain = nil
+            filterCriteria.sidebarPathPrefix = nil
             filterCriteria.sidebarApp = name
             filterCriteria.sidebarScope = .allTraffic
             recomputeFilteredTransactions()
         case .allApps,
              .allDomains:
             filterCriteria.sidebarDomain = nil
+            filterCriteria.sidebarPathPrefix = nil
             filterCriteria.sidebarApp = nil
             filterCriteria.sidebarScope = .allTraffic
             recomputeFilteredTransactions()
         case .allSaved:
             filterCriteria.sidebarDomain = nil
+            filterCriteria.sidebarPathPrefix = nil
             filterCriteria.sidebarApp = nil
             filterCriteria.sidebarScope = .saved
             selectedTransaction = nil
             recomputeFilteredTransactions()
         case .allPinned:
             filterCriteria.sidebarDomain = nil
+            filterCriteria.sidebarPathPrefix = nil
             filterCriteria.sidebarApp = nil
             filterCriteria.sidebarScope = .pinned
             selectedTransaction = nil
             recomputeFilteredTransactions()
         case let .pinnedTransaction(id):
             filterCriteria.sidebarDomain = nil
+            filterCriteria.sidebarPathPrefix = nil
             filterCriteria.sidebarApp = nil
             filterCriteria.sidebarScope = .pinned
             recomputeFilteredTransactions()
             selectedTransaction = transaction(for: id)
         case let .savedTransaction(id):
             filterCriteria.sidebarDomain = nil
+            filterCriteria.sidebarPathPrefix = nil
             filterCriteria.sidebarApp = nil
             filterCriteria.sidebarScope = .saved
             recomputeFilteredTransactions()
             selectedTransaction = transaction(for: id)
         default:
             filterCriteria.sidebarDomain = nil
+            filterCriteria.sidebarPathPrefix = nil
             filterCriteria.sidebarApp = nil
             filterCriteria.sidebarScope = .allTraffic
             recomputeFilteredTransactions()

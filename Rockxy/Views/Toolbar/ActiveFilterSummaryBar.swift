@@ -17,10 +17,12 @@ struct ActiveFilterSummaryBar: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 6) {
                     if let domain = coordinator.filterCriteria.sidebarDomain {
+                        let pathPrefix = coordinator.filterCriteria.sidebarPathPrefix ?? ""
                         FilterChip(
-                            label: String(localized: "Domain: \(domain)"),
+                            label: String(localized: "Domain: \(domain)\(pathPrefix)"),
                             onRemove: {
                                 coordinator.filterCriteria.sidebarDomain = nil
+                                coordinator.filterCriteria.sidebarPathPrefix = nil
                                 coordinator.sidebarSelection = nil
                                 coordinator.recomputeFilteredTransactions()
                             }
@@ -111,6 +113,7 @@ struct ActiveFilterSummaryBar: View {
 
     private var hasActiveFilters: Bool {
         coordinator.filterCriteria.sidebarDomain != nil
+            || coordinator.filterCriteria.sidebarPathPrefix != nil
             || coordinator.filterCriteria.sidebarApp != nil
             || coordinator.filterCriteria.sidebarScope == .saved
             || coordinator.filterCriteria.sidebarScope == .pinned

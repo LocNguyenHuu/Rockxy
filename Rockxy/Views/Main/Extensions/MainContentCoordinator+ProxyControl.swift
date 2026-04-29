@@ -360,23 +360,7 @@ extension MainContentCoordinator {
     }
 
     func updateDomainTree(for transaction: HTTPTransaction) {
-        let domain = transaction.request.host
-        guard !domain.isEmpty else {
-            return
-        }
-
-        if let index = domainIndexMap[domain] {
-            domainTree[index].requestCount += 1
-        } else {
-            let node = DomainNode(
-                id: domain,
-                domain: domain,
-                requestCount: 1,
-                children: []
-            )
-            domainIndexMap[domain] = domainTree.count
-            domainTree.append(node)
-        }
+        updateDomainTree(for: transaction, in: activeWorkspace)
     }
 
     func updateAppNodes(for transaction: HTTPTransaction) {

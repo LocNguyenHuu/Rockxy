@@ -96,11 +96,12 @@ extension MainContentCoordinator {
                 return false
             }
             if let sidebarDomain = filterCriteria.sidebarDomain {
-                guard transaction.request.host.hasSuffix(sidebarDomain)
-                    || transaction.request.host == sidebarDomain else
-                {
+                guard DomainGrouping.host(transaction.request.host, matchesDomain: sidebarDomain) else {
                     return false
                 }
+            }
+            if !DomainGrouping.path(transaction.request.path, matchesPrefix: filterCriteria.sidebarPathPrefix) {
+                return false
             }
             if let sidebarApp = filterCriteria.sidebarApp {
                 guard transaction.clientApp == sidebarApp else {
@@ -211,11 +212,12 @@ extension MainContentCoordinator {
                 return false
             }
             if let sidebarDomain = workspace.filterCriteria.sidebarDomain {
-                guard transaction.request.host.hasSuffix(sidebarDomain)
-                    || transaction.request.host == sidebarDomain else
-                {
+                guard DomainGrouping.host(transaction.request.host, matchesDomain: sidebarDomain) else {
                     return false
                 }
+            }
+            if !DomainGrouping.path(transaction.request.path, matchesPrefix: workspace.filterCriteria.sidebarPathPrefix) {
+                return false
             }
             if let sidebarApp = workspace.filterCriteria.sidebarApp {
                 guard transaction.clientApp == sidebarApp else {

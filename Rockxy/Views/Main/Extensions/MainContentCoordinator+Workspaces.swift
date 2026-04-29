@@ -24,9 +24,10 @@ extension MainContentCoordinator {
     func updateAllWorkspaces(with batch: [HTTPTransaction]) {
         for workspace in workspaceStore.workspaces {
             for transaction in batch {
-                updateDomainTree(for: transaction, in: workspace)
+                updateDomainGroupingIndex(for: transaction, in: workspace)
                 updateAppNodes(for: transaction, in: workspace)
             }
+            refreshDomainTree(for: workspace)
             appendFilteredTransactions(batch, to: workspace)
         }
         TrafficDomainSnapshot.shared.update(appNodes: appNodes, domainTree: domainTree)
@@ -35,23 +36,33 @@ extension MainContentCoordinator {
     // MARK: - Per-Workspace Sidebar
 
     func updateDomainTree(for transaction: HTTPTransaction, in workspace: WorkspaceState) {
+        updateDomainGroupingIndex(for: transaction, in: workspace)
+        refreshDomainTree(for: workspace)
+    }
+
+    func updateDomainGroupingIndex(for transaction: HTTPTransaction, in workspace: WorkspaceState) {
         let domain = transaction.request.host
         guard !domain.isEmpty else {
             return
         }
 
         if let sidebarDomain = workspace.filterCriteria.sidebarDomain {
-            guard domain.hasSuffix(sidebarDomain) || domain == sidebarDomain else {
+            guard DomainGrouping.host(domain, matchesDomain: sidebarDomain) else {
+                return
+            }
+            if !DomainGrouping.path(transaction.request.path, matchesPrefix: workspace.filterCriteria.sidebarPathPrefix) {
                 return
             }
         }
 
-        if let index = workspace.domainIndexMap[domain] {
-            workspace.domainTree[index].requestCount += 1
-        } else {
-            let node = DomainNode(id: domain, domain: domain, requestCount: 1, children: [])
-            workspace.domainIndexMap[domain] = workspace.domainTree.count
-            workspace.domainTree.append(node)
+        workspace.domainGroupingIndex.add(transaction)
+    }
+
+    func refreshDomainTree(for workspace: WorkspaceState, alphabetical: Bool = false) {
+        workspace.domainTree = workspace.domainGroupingIndex.makeTree(alphabetical: alphabetical)
+        workspace.domainIndexMap.removeAll(keepingCapacity: true)
+        for (index, node) in workspace.domainTree.enumerated() {
+            workspace.domainIndexMap[node.selectionDomain] = index
         }
     }
 
@@ -81,12 +92,14 @@ extension MainContentCoordinator {
     func rebuildSidebarIndexes(for workspace: WorkspaceState) {
         workspace.domainTree.removeAll()
         workspace.domainIndexMap.removeAll()
+        workspace.domainGroupingIndex.removeAll()
         workspace.appNodes.removeAll()
         workspace.appNodeIndexMap.removeAll()
         for transaction in transactions {
-            updateDomainTree(for: transaction, in: workspace)
+            updateDomainGroupingIndex(for: transaction, in: workspace)
             updateAppNodes(for: transaction, in: workspace)
         }
+        refreshDomainTree(for: workspace)
         TrafficDomainSnapshot.shared.update(appNodes: appNodes, domainTree: domainTree)
     }
 

@@ -439,6 +439,7 @@
 				DCA9D0092F700000005B1552 /* Embed Helper Tool */,
 				DCA9D0102F700001005B1552 /* Copy LaunchDaemon Plist */,
 				DCA9D0212F700100005B1552 /* Generate Helper LaunchDaemon Plist */,
+				9E4B01973C7D49B7A8A83E54 /* Prepare MCP Tool Embed */,
 				861B86028DECFA198C672853 /* Embed MCP Tool */,
 			);
 			buildRules = (
@@ -615,6 +616,21 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		9E4B01973C7D49B7A8A83E54 /* Prepare MCP Tool Embed */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Prepare MCP Tool Embed";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -e\n\ncase \"$TARGET_BUILD_DIR\" in\n    */DerivedData/*/Build/Products/*) ;;\n    *) exit 0 ;;\nesac\n\nDEST=\"${TARGET_BUILD_DIR}/${EXECUTABLE_FOLDER_PATH}/rockxy-mcp\"\n\n# Xcode can fail to replace the embedded CLI if an MCP client still has the\n# previous DerivedData copy running. Stop only the bridge from this build bundle.\nif [ -n \"$DEST\" ]; then\n    /usr/bin/pkill -f \"$DEST\" 2>/dev/null || true\nfi\n\nif [ -e \"$DEST\" ]; then\n    /bin/chmod u+w \"$DEST\" 2>/dev/null || true\n    /bin/rm -f \"$DEST\"\nfi\n";
+		};
 		DCA9D0212F700100005B1552 /* Generate Helper LaunchDaemon Plist */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
