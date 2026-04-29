@@ -120,10 +120,12 @@ struct MainContentCommandActions {
     }
 
     func toggleSourceList() {
-        NSApp.keyWindow?.firstResponder?.tryToPerform(
-            #selector(NSSplitViewController.toggleSidebar(_:)),
-            with: nil
-        )
+        withAnimation(.smooth(duration: 0.18)) {
+            NSApp.keyWindow?.firstResponder?.tryToPerform(
+                #selector(NSSplitViewController.toggleSidebar(_:)),
+                with: nil
+            )
+        }
     }
 
     func toggleFilterBar() {
