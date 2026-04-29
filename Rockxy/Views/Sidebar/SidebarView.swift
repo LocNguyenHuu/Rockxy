@@ -173,6 +173,9 @@ struct SidebarView: View {
                                 .foregroundStyle(.orange)
                         }
                         .tag(SidebarItem.pinnedTransaction(id: transaction.id))
+                        .contextMenu {
+                            favoriteTransactionContextMenu(transaction, section: .pinned)
+                        }
                     }
                 }
             } label: {
@@ -198,6 +201,9 @@ struct SidebarView: View {
                             Image(systemName: "tray.full.fill")
                         }
                         .tag(SidebarItem.savedTransaction(id: transaction.id))
+                        .contextMenu {
+                            favoriteTransactionContextMenu(transaction, section: .saved)
+                        }
                     }
                 }
             } label: {
@@ -548,6 +554,129 @@ struct SidebarView: View {
             coordinator.removeDomainFromSidebar(domain, pathPrefix: pathPrefix)
         } label: {
             Label(String(localized: "Delete"), systemImage: "trash")
+        }
+    }
+
+    @ViewBuilder
+    private func favoriteTransactionContextMenu(
+        _ transaction: HTTPTransaction,
+        section: FavoriteTransactionSection
+    ) -> some View {
+        let model = FavoriteTransactionContextMenuModel(
+            transaction: transaction,
+            section: section,
+            isSSLProxyingEnabled: coordinator.isSSLProxyingEnabled(for: transaction.request.host)
+        )
+
+        Button {
+            coordinator.openFavoriteTransactionInNewTab(transaction)
+        } label: {
+            Label(String(localized: "Open in New Tab"), systemImage: "plus.rectangle.on.rectangle")
+        }
+        .disabled(!coordinator.workspaceStore.canCreateWorkspace)
+
+        Button {
+            coordinator.copyURL(for: transaction)
+        } label: {
+            Label(String(localized: "Copy URL"), systemImage: "doc.on.doc")
+        }
+
+        Button {
+            coordinator.copyCURL(for: transaction)
+        } label: {
+            Label(String(localized: "Copy cURL"), systemImage: "terminal")
+        }
+
+        Divider()
+
+        Button {
+            coordinator.toggleSSLProxying(for: transaction)
+        } label: {
+            Label(model.sslProxyingTitle, systemImage: "lock.shield")
+        }
+        .disabled(!model.canToggleSSLProxying)
+        .help(model.sslProxyingDisabledReason ?? "")
+
+        Menu {
+            favoriteTransactionToolsMenu(transaction, options: model.tools)
+        } label: {
+            Label(String(localized: "Tools"), systemImage: "wrench.and.screwdriver")
+        }
+
+        Menu {
+            favoriteTransactionExportMenu(transaction, options: model.exports)
+        } label: {
+            Label(String(localized: "Export"), systemImage: "square.and.arrow.up")
+        }
+
+        Divider()
+
+        Button(role: .destructive) {
+            coordinator.removeFavoriteTransaction(transaction, from: section)
+        } label: {
+            Label(model.deleteTitle, systemImage: "trash")
+        }
+    }
+
+    @ViewBuilder
+    private func favoriteTransactionToolsMenu(
+        _ transaction: HTTPTransaction,
+        options: [FavoriteTransactionMenuOption<FavoriteTransactionToolAction>]
+    ) -> some View {
+        ForEach(options, id: \.action) { option in
+            if option.action == .mapLocal || option.action == .blockList
+                || option.action == .networkConditions
+            {
+                Divider()
+            }
+
+            Button {
+                performFavoriteTransactionTool(option.action, for: transaction)
+            } label: {
+                Label(option.title, systemImage: option.systemImage)
+            }
+            .disabled(!option.isEnabled)
+            .help(option.disabledReason ?? "")
+        }
+    }
+
+    @ViewBuilder
+    private func favoriteTransactionExportMenu(
+        _ transaction: HTTPTransaction,
+        options: [FavoriteTransactionMenuOption<FavoriteTransactionExportFormat>]
+    ) -> some View {
+        ForEach(options, id: \.action) { option in
+            if option.action == .requestBody {
+                Divider()
+            }
+
+            Button {
+                coordinator.exportFavoriteTransaction(transaction, as: option.action)
+            } label: {
+                Label(option.title, systemImage: option.systemImage)
+            }
+            .disabled(!option.isEnabled)
+            .help(option.disabledReason ?? "")
+        }
+    }
+
+    private func performFavoriteTransactionTool(
+        _ action: FavoriteTransactionToolAction,
+        for transaction: HTTPTransaction
+    ) {
+        switch action {
+        case .breakpoint:
+            coordinator.createBreakpointRule(for: transaction)
+        case .mapLocal:
+            coordinator.createMapLocalRule(for: transaction)
+        case .mapRemote:
+            coordinator.createMapRemoteRule(for: transaction)
+        case .blockList:
+            coordinator.createBlockRule(for: transaction)
+        case .allowList:
+            coordinator.createAllowListRule(for: transaction)
+        case .networkConditions:
+            coordinator.createNetworkConditionsRule(for: transaction)
         }
     }
 
