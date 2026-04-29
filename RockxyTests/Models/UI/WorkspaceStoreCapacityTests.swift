@@ -12,6 +12,7 @@ struct WorkspaceStoreCapacityTests {
         _ = store.createWorkspace(title: "Tab 2")
         // 1 default + 2 created = 3 (at limit)
         #expect(store.workspaces.count == 3)
+        #expect(store.canCreateWorkspace == false)
 
         let extra = store.createWorkspace(title: "Over limit")
         #expect(store.workspaces.count == 3)
@@ -22,9 +23,11 @@ struct WorkspaceStoreCapacityTests {
     @MainActor
     func duplicateAtCapacity() {
         let store = WorkspaceStore(maxWorkspaces: 2)
+        #expect(store.canCreateWorkspace == true)
         _ = store.createWorkspace(title: "Tab 1")
         // 1 default + 1 created = 2 (at limit)
         #expect(store.workspaces.count == 2)
+        #expect(store.canCreateWorkspace == false)
 
         let dup = store.duplicateWorkspace(id: store.workspaces[1].id)
         #expect(dup == nil)

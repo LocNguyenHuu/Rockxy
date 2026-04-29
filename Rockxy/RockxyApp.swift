@@ -28,6 +28,7 @@ struct RockxyApp: App {
                 coordinator: mainCoordinator
             )
         }
+        .windowToolbarStyle(.unified)
         .commands {
             RockxyMenuCommands(lifecycleState: lifecycleState)
         }

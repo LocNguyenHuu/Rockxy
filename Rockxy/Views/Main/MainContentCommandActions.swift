@@ -157,25 +157,29 @@ struct MainContentCommandActions {
     // MARK: - Workspace Tabs
 
     func newWorkspaceTab() {
+        guard coordinator.workspaceStore.canCreateWorkspace else {
+            return
+        }
         let ws = coordinator.workspaceStore.createWorkspace()
         coordinator.recomputeFilteredTransactions(for: ws)
         coordinator.rebuildSidebarIndexes(for: ws)
+        RockxyWorkspaceWindowManager.shared.openWorkspaceTab(coordinator: coordinator, workspaceID: ws.id)
     }
 
     func closeWorkspaceTab() {
-        coordinator.workspaceStore.closeWorkspace(id: coordinator.activeWorkspace.id)
+        RockxyWorkspaceWindowManager.shared.closeCurrentWorkspaceTab(coordinator: coordinator)
     }
 
     func selectWorkspaceTab(at index: Int) {
-        coordinator.workspaceStore.selectWorkspace(at: index)
+        RockxyWorkspaceWindowManager.shared.selectWorkspaceTab(at: index, coordinator: coordinator)
     }
 
     func previousWorkspaceTab() {
-        coordinator.workspaceStore.selectPreviousWorkspace()
+        RockxyWorkspaceWindowManager.shared.selectPreviousWorkspaceTab(coordinator: coordinator)
     }
 
     func nextWorkspaceTab() {
-        coordinator.workspaceStore.selectNextWorkspace()
+        RockxyWorkspaceWindowManager.shared.selectNextWorkspaceTab(coordinator: coordinator)
     }
 }
 

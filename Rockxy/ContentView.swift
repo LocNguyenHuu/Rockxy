@@ -1,3 +1,4 @@
+import AppKit
 import Combine
 import SwiftUI
 
@@ -9,18 +10,20 @@ import SwiftUI
 struct ContentView: View {
     // MARK: Lifecycle
 
-    init(coordinator: MainContentCoordinator) {
+    init(
+        coordinator: MainContentCoordinator,
+        managesLifecycle: Bool = true,
+        representedWorkspaceID: UUID? = nil
+    ) {
         _coordinator = Bindable(coordinator)
+        self.managesLifecycle = managesLifecycle
+        self.representedWorkspaceID = representedWorkspaceID
     }
 
     // MARK: Internal
 
     var body: some View {
         VStack(spacing: 0) {
-            if coordinator.workspaceStore.workspaces.count > 1 {
-                WorkspaceTabStrip(coordinator: coordinator)
-            }
-
             NavigationSplitView(columnVisibility: $columnVisibility) {
                 SidebarView(coordinator: coordinator)
                     .navigationSplitViewColumnWidth(min: 200, ideal: 250, max: 350)
@@ -42,13 +45,24 @@ struct ContentView: View {
             }
             .id(coordinator.activeWorkspace.id)
         }
+        .background {
+            WorkspaceWindowAccessor(
+                coordinator: coordinator,
+                representedWorkspaceID: representedWorkspaceID
+            )
+            .frame(width: 0, height: 0)
+        }
         .focusedSceneValue(\.commandActions, MainContentCommandActions(coordinator: coordinator))
         .toolbar {
             ProxyToolbarContent(coordinator: coordinator)
         }
-        .modifier(ContentWindowNotificationHandlers(coordinator: coordinator, openWindow: openWindow))
+        .modifier(ConditionalContentWindowNotificationHandlers(
+            isEnabled: managesLifecycle,
+            coordinator: coordinator,
+            openWindow: openWindow
+        ))
         .onAppear {
-            guard !ProcessInfo.processInfo.isTestHost else {
+            guard managesLifecycle, !ProcessInfo.processInfo.isTestHost else {
                 return
             }
             coordinator.configureSharedGates()
@@ -56,7 +70,7 @@ struct ContentView: View {
             coordinator.attachToMCPServer(MCPServerCoordinator.shared)
         }
         .onDisappear {
-            guard !ProcessInfo.processInfo.isTestHost else {
+            guard managesLifecycle, !ProcessInfo.processInfo.isTestHost else {
                 return
             }
             coordinator.detachFromMCPServer(MCPServerCoordinator.shared)
@@ -64,7 +78,7 @@ struct ContentView: View {
         .task {
             // Skip startup tasks when running as a test host to avoid actor
             // contention between the app's loadInitialRules and test suites.
-            guard !ProcessInfo.processInfo.isTestHost else {
+            guard managesLifecycle, !ProcessInfo.processInfo.isTestHost else {
                 return
             }
             coordinator.readiness.startObserving()
@@ -72,7 +86,13 @@ struct ContentView: View {
             coordinator.setupSSLProxyingObserver()
             coordinator.loadInitialRules()
         }
-        .modifier(ScriptingWindowOpeners(openWindow: openWindow))
+        .modifier(ConditionalScriptingWindowOpeners(isEnabled: managesLifecycle, openWindow: openWindow))
+        .onChange(of: coordinator.workspaceStore.activeWorkspaceID) { _, _ in
+            RockxyWorkspaceWindowManager.shared.updateWindowTitles(coordinator: coordinator)
+        }
+        .onChange(of: coordinator.workspaceStore.workspaces.map(\.title)) { _, _ in
+            RockxyWorkspaceWindowManager.shared.updateWindowTitles(coordinator: coordinator)
+        }
         .alert(
             String(localized: "Proxy Error"),
             isPresented: Binding(
@@ -125,6 +145,8 @@ struct ContentView: View {
     @Environment(\.openSettings) private var openSettings
     @Bindable private var coordinator: MainContentCoordinator
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
+    private let managesLifecycle: Bool
+    private let representedWorkspaceID: UUID?
 
     private func handleSystemProxyWarningAction(_ action: SystemProxyWarning.Action?) {
         switch action {
@@ -148,6 +170,77 @@ struct ContentView: View {
             }
         case nil:
             break
+        }
+    }
+}
+
+// MARK: - Workspace Window Accessor
+
+private struct WorkspaceWindowAccessor: NSViewRepresentable {
+    let coordinator: MainContentCoordinator
+    let representedWorkspaceID: UUID?
+
+    func makeNSView(context: Context) -> WorkspaceWindowAnchorView {
+        let view = WorkspaceWindowAnchorView()
+        view.coordinator = coordinator
+        view.representedWorkspaceID = representedWorkspaceID
+        return view
+    }
+
+    func updateNSView(_ nsView: WorkspaceWindowAnchorView, context: Context) {
+        nsView.coordinator = coordinator
+        nsView.representedWorkspaceID = representedWorkspaceID
+        nsView.attachIfReady()
+    }
+}
+
+@MainActor
+private final class WorkspaceWindowAnchorView: NSView {
+    weak var coordinator: MainContentCoordinator?
+    var representedWorkspaceID: UUID?
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        attachIfReady()
+    }
+
+    func attachIfReady() {
+        guard representedWorkspaceID == nil,
+              let window,
+              let coordinator else {
+            return
+        }
+        RockxyWorkspaceWindowManager.shared.registerPrimaryWindow(window, coordinator: coordinator)
+    }
+}
+
+// MARK: - Conditional Lifecycle Modifiers
+
+private struct ConditionalContentWindowNotificationHandlers: ViewModifier {
+    let isEnabled: Bool
+    let coordinator: MainContentCoordinator
+    let openWindow: OpenWindowAction
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if isEnabled {
+            content.modifier(ContentWindowNotificationHandlers(coordinator: coordinator, openWindow: openWindow))
+        } else {
+            content
+        }
+    }
+}
+
+private struct ConditionalScriptingWindowOpeners: ViewModifier {
+    let isEnabled: Bool
+    let openWindow: OpenWindowAction
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if isEnabled {
+            content.modifier(ScriptingWindowOpeners(openWindow: openWindow))
+        } else {
+            content
         }
     }
 }

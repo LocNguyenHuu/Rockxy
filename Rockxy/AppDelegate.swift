@@ -45,6 +45,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         false
     }
 
+    @objc func newWindowForTab(_ sender: Any?) {
+        RockxyWorkspaceWindowManager.shared.openNewWorkspaceTabFromNativeControl()
+    }
+
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         let showAlert = UserDefaults.standard.bool(forKey: Self.identity.defaultsKey("showAlertOnQuit"))
         if showAlert {
