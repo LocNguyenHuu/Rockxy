@@ -484,9 +484,7 @@ private final class WorkspaceTabBarView: NSView, NSTextFieldDelegate {
         dropInsertionIndex = insertionIndex
         if insertionIndex != lastAppliedInsertionIndex {
             lastAppliedInsertionIndex = insertionIndex
-            if manager.moveWorkspace(draggingWorkspaceID, toInsertionIndex: insertionIndex) {
-                recalculateFrames()
-            }
+            animateDragPreview(for: draggingWorkspaceID, insertionIndex: insertionIndex)
         }
         needsDisplay = true
     }
@@ -785,20 +783,22 @@ private final class WorkspaceTabBarView: NSView, NSTextFieldDelegate {
         guard let frame = currentFrame(for: workspace.id) else {
             return
         }
+        if workspace.id == draggingWorkspaceID {
+            return
+        }
         let isActive = workspace.id == activeWorkspaceID
-        let isDragging = workspace.id == draggingWorkspaceID
         drawTabBackground(in: frame, isActive: isActive, isHovered: workspace.id == hoveredWorkspaceID)
         if editingWorkspaceID != workspace.id {
             drawTitle(
                 workspace.title,
                 in: titleFrame(for: frame, workspace: workspace),
                 isActive: isActive,
-                alpha: isDragging ? 0.28 : 1
+                alpha: 1
             )
         }
         if workspace.isClosable,
            isActive || workspace.id == hoveredWorkspaceID,
-           !isDragging {
+           workspace.id != draggingWorkspaceID {
             let closeFrame = closeFrame(in: frame)
             drawCloseGlyph(in: closeFrame, isActive: isActive, isHovered: workspace.id == hoveredWorkspaceID)
         }
@@ -849,6 +849,7 @@ private final class WorkspaceTabBarView: NSView, NSTextFieldDelegate {
 
     private func drawInactiveDividerIfNeeded(after workspace: WorkspaceState, frame: NSRect, isActive: Bool) {
         guard let coordinator,
+              draggingWorkspaceID == nil,
               !isActive,
               workspace.id != hoveredWorkspaceID,
               workspace.id != draggingWorkspaceID,
@@ -1107,6 +1108,44 @@ private final class WorkspaceTabBarView: NSView, NSTextFieldDelegate {
         return tabFrames[workspace.id]?.minX
     }
 
+    private func animateDragPreview(for workspaceID: UUID, insertionIndex: Int) {
+        guard !tabFrames.isEmpty else {
+            return
+        }
+
+        let previousFrames = currentTabFramesForDrawing()
+        let targetFrames = dragPreviewFrames(for: workspaceID, insertionIndex: insertionIndex)
+        animateTabFrameChanges(from: previousFrames, to: targetFrames)
+    }
+
+    private func dragPreviewFrames(for workspaceID: UUID, insertionIndex: Int) -> [UUID: NSRect] {
+        guard let coordinator,
+              let sourceIndex = coordinator.workspaceStore.workspaces.firstIndex(where: { $0.id == workspaceID }) else {
+            return tabFrames
+        }
+
+        let workspaces = coordinator.workspaceStore.workspaces
+        var destinationIndex = insertionIndex
+        if destinationIndex > sourceIndex {
+            destinationIndex -= 1
+        }
+        destinationIndex = min(max(destinationIndex, 0), workspaces.count - 1)
+
+        var previewOrder = workspaces.map(\.id)
+        let draggedID = previewOrder.remove(at: sourceIndex)
+        previewOrder.insert(draggedID, at: destinationIndex)
+
+        var frames: [UUID: NSRect] = [:]
+        frames.reserveCapacity(previewOrder.count)
+        for (index, previewID) in previewOrder.enumerated() {
+            let positionID = workspaces[index].id
+            if let frame = tabFrames[positionID] {
+                frames[previewID] = frame
+            }
+        }
+        return frames
+    }
+
     private func clearDragState() {
         draggingWorkspaceID = nil
         draggingPoint = nil
@@ -1184,7 +1223,20 @@ private final class WorkspaceTabBarView: NSView, NSTextFieldDelegate {
         needsDisplay = true
 
         if progress >= 1 {
-            stopTabFrameAnimation(snapToTarget: true)
+            finishTabFrameAnimation()
+        }
+    }
+
+    private func finishTabFrameAnimation() {
+        let finalFrames = tabAnimationTargetFrames
+        tabAnimationTimer?.invalidate()
+        tabAnimationTimer = nil
+        tabAnimationStartFrames.removeAll(keepingCapacity: true)
+        tabAnimationTargetFrames.removeAll(keepingCapacity: true)
+        if framesApproximatelyMatch(finalFrames, tabFrames) {
+            presentedTabFrames.removeAll(keepingCapacity: true)
+        } else {
+            presentedTabFrames = finalFrames
         }
     }
 
@@ -1205,6 +1257,21 @@ private final class WorkspaceTabBarView: NSView, NSTextFieldDelegate {
             width: startFrame.width + (targetFrame.width - startFrame.width) * progress,
             height: startFrame.height + (targetFrame.height - startFrame.height) * progress
         )
+    }
+
+    private func framesApproximatelyMatch(_ lhs: [UUID: NSRect], _ rhs: [UUID: NSRect]) -> Bool {
+        guard lhs.keys == rhs.keys else {
+            return false
+        }
+        return lhs.allSatisfy { workspaceID, lhsFrame in
+            guard let rhsFrame = rhs[workspaceID] else {
+                return false
+            }
+            return abs(lhsFrame.minX - rhsFrame.minX) <= 0.5
+                && abs(lhsFrame.minY - rhsFrame.minY) <= 0.5
+                && abs(lhsFrame.width - rhsFrame.width) <= 0.5
+                && abs(lhsFrame.height - rhsFrame.height) <= 0.5
+        }
     }
 
     private func easeOutQuart(_ progress: CGFloat) -> CGFloat {
