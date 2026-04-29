@@ -118,13 +118,33 @@ struct FavoriteTransactionContextMenuTests {
     func openInNewTabUsesExactURLFilter() {
         let coordinator = MainContentCoordinator()
         let transaction = TestFixtures.makeTransaction(url: "https://api.example.com/v1/users?page=1")
+        transaction.isPinned = true
+        coordinator.transactions = [transaction]
 
-        coordinator.openFavoriteTransactionInNewTab(transaction)
+        coordinator.openFavoriteTransactionInNewTab(transaction, from: .pinned)
 
         #expect(coordinator.workspaceStore.workspaces.count == 2)
         let workspace = coordinator.workspaceStore.workspaces[1]
+        #expect(workspace.filterCriteria.sidebarScope == .pinned)
         #expect(workspace.filterCriteria.searchField == .url)
         #expect(workspace.filterCriteria.searchText == transaction.request.url.absoluteString)
+        #expect(workspace.filteredTransactions.map(\.id) == [transaction.id])
+        #expect(workspace.filteredRows.map(\.id) == [transaction.id])
+    }
+
+    @Test("Open in new tab displays persisted-only Saved rows")
+    func openInNewTabDisplaysPersistedOnlySavedRows() {
+        let coordinator = MainContentCoordinator()
+        let transaction = TestFixtures.makeTransaction(url: "https://api.example.com/persisted")
+        transaction.isSaved = true
+        coordinator.persistedFavorites = [transaction]
+
+        coordinator.openFavoriteTransactionInNewTab(transaction, from: .saved)
+
+        let workspace = coordinator.workspaceStore.workspaces[1]
+        #expect(workspace.filterCriteria.sidebarScope == .saved)
+        #expect(workspace.filteredTransactions.map(\.id) == [transaction.id])
+        #expect(workspace.filteredRows.map(\.id) == [transaction.id])
     }
 
     @Test("Export payloads serialize supported formats and reject missing bodies")

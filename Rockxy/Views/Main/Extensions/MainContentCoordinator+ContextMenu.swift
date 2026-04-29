@@ -290,7 +290,10 @@ extension MainContentCoordinator {
         }
     }
 
-    func openFavoriteTransactionInNewTab(_ transaction: HTTPTransaction) {
+    func openFavoriteTransactionInNewTab(
+        _ transaction: HTTPTransaction,
+        from section: FavoriteTransactionSection
+    ) {
         guard workspaceStore.canCreateWorkspace else {
             return
         }
@@ -298,9 +301,14 @@ extension MainContentCoordinator {
         var filter = FilterCriteria.empty
         filter.searchField = .url
         filter.searchText = transaction.request.url.absoluteString
+        filter.sidebarScope = switch section {
+        case .pinned: .pinned
+        case .saved: .saved
+        }
 
         let title = favoriteTransactionDisplayName(transaction)
         let workspace = workspaceStore.createWorkspace(title: title, filter: filter)
+        recomputeFilteredTransactions(for: workspace)
         RockxyWorkspaceWindowManager.shared.openWorkspaceTab(coordinator: self, workspaceID: workspace.id)
         RockxyWorkspaceWindowManager.shared.prepareWorkspaceContent(workspace, coordinator: self)
     }

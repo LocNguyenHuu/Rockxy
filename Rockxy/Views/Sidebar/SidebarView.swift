@@ -569,7 +569,7 @@ struct SidebarView: View {
         )
 
         Button {
-            coordinator.openFavoriteTransactionInNewTab(transaction)
+            coordinator.openFavoriteTransactionInNewTab(transaction, from: section)
         } label: {
             Label(String(localized: "Open in New Tab"), systemImage: "plus.rectangle.on.rectangle")
         }
