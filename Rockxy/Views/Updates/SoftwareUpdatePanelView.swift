@@ -10,7 +10,10 @@ struct SoftwareUpdatePanelView: View {
             Divider()
             footer
         }
-        .frame(width: 780, height: 610)
+        .frame(
+            width: SoftwareUpdateWindowPositioning.contentSize.width,
+            height: SoftwareUpdateWindowPositioning.contentSize.height
+        )
         .background(Color(nsColor: .windowBackgroundColor))
     }
 

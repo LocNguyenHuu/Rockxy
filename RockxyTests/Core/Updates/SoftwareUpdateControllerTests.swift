@@ -1,6 +1,7 @@
+import CoreGraphics
 import Foundation
-import Sparkle
 @testable import Rockxy
+import Sparkle
 import Testing
 
 @MainActor
@@ -116,6 +117,56 @@ struct SoftwareUpdateControllerTests {
         }
         #expect(applicationTerminated == false)
         #expect(installingContext.updateStageDescription == "Installing")
+    }
+
+    @Test("software update window centers on the active app window")
+    func updateWindowFrameCentersOnAnchorWindow() {
+        let visibleFrame = NSRect(x: 0, y: 0, width: 1_440, height: 900)
+        let anchorFrame = NSRect(x: 100, y: 100, width: 1_200, height: 800)
+
+        let frame = SoftwareUpdateWindowPositioning.positionedFrame(
+            windowSize: SoftwareUpdateWindowPositioning.contentSize,
+            anchorFrame: anchorFrame,
+            visibleFrame: visibleFrame
+        )
+
+        #expect(frame.midX == anchorFrame.midX)
+        #expect(frame.midY == anchorFrame.midY)
+        #expect(frame.minX >= visibleFrame.minX)
+        #expect(frame.maxX <= visibleFrame.maxX)
+        #expect(frame.minY >= visibleFrame.minY)
+        #expect(frame.maxY <= visibleFrame.maxY)
+    }
+
+    @Test("software update window falls back to screen centering")
+    func updateWindowFrameCentersOnScreenWithoutAnchorWindow() {
+        let visibleFrame = NSRect(x: 1_440, y: 0, width: 1_920, height: 1_080)
+
+        let frame = SoftwareUpdateWindowPositioning.positionedFrame(
+            windowSize: SoftwareUpdateWindowPositioning.contentSize,
+            anchorFrame: nil,
+            visibleFrame: visibleFrame
+        )
+
+        #expect(frame.midX == visibleFrame.midX)
+        #expect(frame.midY == visibleFrame.midY)
+    }
+
+    @Test("software update window stays inside the display visible frame")
+    func updateWindowFrameClampsToVisibleScreenArea() {
+        let visibleFrame = NSRect(x: 0, y: 0, width: 1_440, height: 900)
+        let anchorFrame = NSRect(x: 1_300, y: 750, width: 400, height: 300)
+
+        let frame = SoftwareUpdateWindowPositioning.positionedFrame(
+            windowSize: SoftwareUpdateWindowPositioning.contentSize,
+            anchorFrame: anchorFrame,
+            visibleFrame: visibleFrame
+        )
+
+        #expect(frame.maxX == visibleFrame.maxX)
+        #expect(frame.maxY == visibleFrame.maxY)
+        #expect(frame.minX >= visibleFrame.minX)
+        #expect(frame.minY >= visibleFrame.minY)
     }
 }
 
