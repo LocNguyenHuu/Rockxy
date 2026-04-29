@@ -424,16 +424,20 @@ struct SidebarView: View {
         }
 
         Button {
+            guard coordinator.workspaceStore.canCreateWorkspace else {
+                return
+            }
             var filter = FilterCriteria.empty
             filter.sidebarDomain = domain
             filter.sidebarPathPrefix = pathPrefix
             let title = pathPrefix.map { "\(domain)\($0)" } ?? domain
             let ws = coordinator.workspaceStore.createWorkspace(title: title, filter: filter)
-            coordinator.recomputeFilteredTransactions(for: ws)
-            coordinator.rebuildSidebarIndexes(for: ws)
+            RockxyWorkspaceWindowManager.shared.openWorkspaceTab(coordinator: coordinator, workspaceID: ws.id)
+            RockxyWorkspaceWindowManager.shared.prepareWorkspaceContent(ws, coordinator: coordinator)
         } label: {
             Label(String(localized: "Open in New Tab"), systemImage: "plus.rectangle.on.rectangle")
         }
+        .disabled(!coordinator.workspaceStore.canCreateWorkspace)
 
         Divider()
 
@@ -563,14 +567,18 @@ struct SidebarView: View {
         }
 
         Button {
+            guard coordinator.workspaceStore.canCreateWorkspace else {
+                return
+            }
             var filter = FilterCriteria.empty
             filter.sidebarApp = app.name
             let ws = coordinator.workspaceStore.createWorkspace(title: app.name, filter: filter)
-            coordinator.recomputeFilteredTransactions(for: ws)
-            coordinator.rebuildSidebarIndexes(for: ws)
+            RockxyWorkspaceWindowManager.shared.openWorkspaceTab(coordinator: coordinator, workspaceID: ws.id)
+            RockxyWorkspaceWindowManager.shared.prepareWorkspaceContent(ws, coordinator: coordinator)
         } label: {
             Label(String(localized: "Open in New Tab"), systemImage: "plus.rectangle.on.rectangle")
         }
+        .disabled(!coordinator.workspaceStore.canCreateWorkspace)
 
         Divider()
 

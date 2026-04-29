@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import CoreGraphics
 import Sparkle
 import SwiftUI
 
@@ -305,17 +306,61 @@ final class SoftwareUpdateController: NSObject, ObservableObject, NSWindowDelega
             window.titlebarAppearsTransparent = false
             window.titleVisibility = .visible
             window.isReleasedWhenClosed = false
-            window.center()
-            window.setContentSize(NSSize(width: 780, height: 610))
+            window.setContentSize(SoftwareUpdateWindowPositioning.contentSize)
             window.standardWindowButton(.zoomButton)?.isHidden = true
             window.toolbarStyle = .unifiedCompact
             window.delegate = self
             windowController = NSWindowController(window: window)
         }
 
+        if let window = windowController?.window, !window.isVisible {
+            positionWindowForPresentation(window)
+        }
+
         windowController?.showWindow(nil)
         windowController?.window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func positionWindowForPresentation(_ window: NSWindow) {
+        let anchorWindow = presentationAnchor(excluding: window)
+        let screen = anchorWindow?.screen ?? window.screen ?? NSScreen.main ?? NSScreen.screens.first
+
+        guard let screen else {
+            window.center()
+            return
+        }
+
+        let positionedFrame = SoftwareUpdateWindowPositioning.positionedFrame(
+            windowSize: window.frame.size,
+            anchorFrame: anchorWindow?.frame,
+            visibleFrame: screen.visibleFrame
+        )
+        window.setFrame(positionedFrame, display: false)
+    }
+
+    private func presentationAnchor(excluding updateWindow: NSWindow) -> NSWindow? {
+        let candidates = ([NSApp.keyWindow, NSApp.mainWindow] + NSApp.orderedWindows).compactMap { $0 }
+        var seenWindows: Set<ObjectIdentifier> = []
+
+        for candidate in candidates {
+            let identifier = ObjectIdentifier(candidate)
+            guard seenWindows.insert(identifier).inserted else {
+                continue
+            }
+            guard candidate !== updateWindow,
+                  candidate.isVisible,
+                  !candidate.isMiniaturized,
+                  candidate.screen != nil,
+                  candidate.level == .normal,
+                  candidate.canBecomeKey || candidate.canBecomeMain
+            else {
+                continue
+            }
+            return candidate
+        }
+
+        return nil
     }
 
     private func resetCallbacks() {
@@ -421,6 +466,52 @@ final class SoftwareUpdateController: NSObject, ObservableObject, NSWindowDelega
         @unknown default:
             String(localized: "Preparing update")
         }
+    }
+}
+
+enum SoftwareUpdateWindowPositioning {
+    static let contentSize = NSSize(width: 780, height: 610)
+
+    static func positionedFrame(
+        windowSize: NSSize,
+        anchorFrame: NSRect?,
+        visibleFrame: NSRect
+    ) -> NSRect {
+        let centeringFrame = anchorFrame ?? visibleFrame
+        let proposedOrigin = NSPoint(
+            x: centeringFrame.midX - windowSize.width / 2,
+            y: centeringFrame.midY - windowSize.height / 2
+        )
+
+        return NSRect(
+            origin: clampedOrigin(proposedOrigin, windowSize: windowSize, visibleFrame: visibleFrame),
+            size: windowSize
+        )
+    }
+
+    private static func clampedOrigin(
+        _ origin: NSPoint,
+        windowSize: NSSize,
+        visibleFrame: NSRect
+    ) -> NSPoint {
+        let maximumX = visibleFrame.maxX - windowSize.width
+        let maximumY = visibleFrame.maxY - windowSize.height
+
+        return NSPoint(
+            x: clampedCoordinate(origin.x, minimum: visibleFrame.minX, maximum: maximumX),
+            y: clampedCoordinate(origin.y, minimum: visibleFrame.minY, maximum: maximumY)
+        )
+    }
+
+    private static func clampedCoordinate(
+        _ value: CGFloat,
+        minimum: CGFloat,
+        maximum: CGFloat
+    ) -> CGFloat {
+        guard maximum >= minimum else {
+            return minimum + (maximum - minimum) / 2
+        }
+        return min(max(value, minimum), maximum)
     }
 }
 

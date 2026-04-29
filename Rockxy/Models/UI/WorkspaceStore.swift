@@ -32,6 +32,10 @@ final class WorkspaceStore {
         workspaces.firstIndex { $0.id == activeWorkspaceID } ?? 0
     }
 
+    var canCreateWorkspace: Bool {
+        workspaces.count < maxWorkspaces
+    }
+
     @discardableResult
     func createWorkspace(
         title: String = String(localized: "New Tab"),
@@ -39,7 +43,7 @@ final class WorkspaceStore {
     )
         -> WorkspaceState
     {
-        guard workspaces.count < maxWorkspaces else {
+        guard canCreateWorkspace else {
             Self.logger.warning("Maximum workspace count (\(self.maxWorkspaces)) reached")
             return activeWorkspace
         }
@@ -111,9 +115,32 @@ final class WorkspaceStore {
         workspaces.insert(workspace, at: destinationIndex)
     }
 
+    func reorderWorkspaces(toWorkspaceIDs orderedIDs: [UUID]) {
+        guard !orderedIDs.isEmpty else {
+            return
+        }
+
+        var remaining = workspaces
+        var reordered: [WorkspaceState] = []
+        reordered.reserveCapacity(workspaces.count)
+
+        for id in orderedIDs {
+            guard let index = remaining.firstIndex(where: { $0.id == id }) else {
+                continue
+            }
+            reordered.append(remaining.remove(at: index))
+        }
+
+        reordered.append(contentsOf: remaining)
+        guard reordered.count == workspaces.count else {
+            return
+        }
+        workspaces = reordered
+    }
+
     func duplicateWorkspace(id: UUID) -> WorkspaceState? {
         guard let source = workspaces.first(where: { $0.id == id }),
-              workspaces.count < maxWorkspaces else
+              canCreateWorkspace else
         {
             return nil
         }

@@ -28,6 +28,7 @@ struct RockxyApp: App {
                 coordinator: mainCoordinator
             )
         }
+        .windowToolbarStyle(.unified)
         .commands {
             RockxyMenuCommands(lifecycleState: lifecycleState)
         }
@@ -336,11 +337,23 @@ struct RockxyMenuCommands: Commands {
                 actions?.newWorkspaceTab()
             }
             .keyboardShortcut("t", modifiers: [.command])
+            .disabled(actions?.canCreateWorkspaceTab != true)
 
             Button(String(localized: "Close Tab")) {
                 actions?.closeWorkspaceTab()
             }
             .keyboardShortcut("w", modifiers: [.command])
+            .disabled(actions?.canCloseWorkspaceTab != true)
+
+            Button(String(localized: "Rename Tab…")) {
+                if let actions {
+                    actions.renameWorkspaceTab()
+                } else {
+                    RockxyWorkspaceWindowManager.shared.beginRenameForCurrentWorkspace()
+                }
+            }
+            .keyboardShortcut("r", modifiers: [.command, .shift])
+            .disabled(!(actions?.canRenameWorkspaceTab ?? RockxyWorkspaceWindowManager.shared.canRenameWorkspaceTab))
 
             Button(String(localized: "New Session")) {
                 actions?.clearSession()
