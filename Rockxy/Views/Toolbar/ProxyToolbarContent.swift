@@ -4,9 +4,11 @@ import SwiftUI
 
 // MARK: - ProxyToolbarContent
 
-/// Main window toolbar providing start/stop, command palette, clear, and inspector
+/// Main window toolbar providing start/stop, Dev Hub access, and inspector
 /// layout toggle buttons, plus the central proxy status indicator.
 struct ProxyToolbarContent: ToolbarContent {
+    @Environment(\.openWindow) private var openWindow
+
     @Bindable var coordinator: MainContentCoordinator
 
     var body: some ToolbarContent {
@@ -29,13 +31,11 @@ struct ProxyToolbarContent: ToolbarContent {
             .help(coordinator.isProxyRunning ? "Stop proxy" : "Start proxy")
 
             Button {
-                Task { @MainActor in
-                    await coordinator.clearSession()
-                }
+                openWindow(id: "developerSetupHub")
             } label: {
-                Label(String(localized: "Clear"), systemImage: "trash")
+                Label(String(localized: "Dev Hub"), systemImage: "command")
             }
-            .help("Clear all captured traffic")
+            .help(String(localized: "Open Developer Setup Hub"))
 
             Divider()
 

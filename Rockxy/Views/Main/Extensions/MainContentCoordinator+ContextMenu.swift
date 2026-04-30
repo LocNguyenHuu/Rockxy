@@ -206,6 +206,18 @@ extension MainContentCoordinator {
         Self.logger.info("Enabled SSL proxying for \(host, privacy: .private)")
     }
 
+    func toggleSSLProxying(for transaction: HTTPTransaction) {
+        let host = transaction.request.host.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !host.isEmpty else {
+            return
+        }
+        if isSSLProxyingEnabled(for: host) {
+            disableSSLProxyingForDomain(host)
+        } else {
+            enableSSLProxyingForDomain(host)
+        }
+    }
+
     // MARK: - Export Body
 
     func exportRequestBody(for transaction: HTTPTransaction) {
@@ -278,6 +290,128 @@ extension MainContentCoordinator {
         }
     }
 
+    func openFavoriteTransactionInNewTab(
+        _ transaction: HTTPTransaction,
+        from section: FavoriteTransactionSection
+    ) {
+        guard workspaceStore.canCreateWorkspace else {
+            return
+        }
+
+        var filter = FilterCriteria.empty
+        filter.searchField = .url
+        filter.searchText = transaction.request.url.absoluteString
+        filter.sidebarScope = switch section {
+        case .pinned: .pinned
+        case .saved: .saved
+        }
+
+        let title = favoriteTransactionDisplayName(transaction)
+        let workspace = workspaceStore.createWorkspace(title: title, filter: filter)
+        recomputeFilteredTransactions(for: workspace)
+        RockxyWorkspaceWindowManager.shared.openWorkspaceTab(coordinator: self, workspaceID: workspace.id)
+        RockxyWorkspaceWindowManager.shared.prepareWorkspaceContent(workspace, coordinator: self)
+    }
+
+    func removeFavoriteTransaction(
+        _ transaction: HTTPTransaction,
+        from section: FavoriteTransactionSection
+    ) {
+        switch section {
+        case .pinned:
+            transaction.isPinned = false
+        case .saved:
+            transaction.isSaved = false
+        }
+
+        updatePersistedFavoriteCache(after: transaction)
+        persistTransaction(transaction)
+        refreshRowsAfterMutation()
+
+        if sidebarSelection == section.sidebarItem(for: transaction.id) {
+            sidebarSelection = section.fallbackSidebarItem
+        }
+
+        activeToast = ToastMessage(
+            style: .success,
+            text: String(localized: "Removed \(favoriteTransactionDisplayName(transaction)) from \(section.displayName).")
+        )
+    }
+
+    func exportFavoriteTransaction(
+        _ transaction: HTTPTransaction,
+        as format: FavoriteTransactionExportFormat
+    ) {
+        let data: Data
+        do {
+            data = try favoriteTransactionExportData(transaction, as: format)
+        } catch {
+            showExportError(
+                title: String(localized: "Export Failed"),
+                message: String(localized: "Could not create export data.\n\n\(error.localizedDescription)")
+            )
+            return
+        }
+
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = favoriteTransactionDefaultExportName(transaction, as: format)
+        panel.allowedContentTypes = allowedContentTypes(for: format)
+        guard panel.runModal() == .OK, let url = panel.url else {
+            return
+        }
+
+        do {
+            try data.write(to: url, options: .atomic)
+            Self.logger.info("Exported favorite transaction to \(url.path())")
+        } catch {
+            Self.logger.error("Failed to export favorite transaction: \(error.localizedDescription)")
+            showExportError(
+                title: String(localized: "Export Failed"),
+                message: String(localized: "Could not write export file.\n\n\(error.localizedDescription)")
+            )
+        }
+    }
+
+    func favoriteTransactionExportData(
+        _ transaction: HTTPTransaction,
+        as format: FavoriteTransactionExportFormat
+    ) throws -> Data {
+        switch format {
+        case .rockxySession:
+            let metadata = SessionSerializer.makeMetadata(
+                transactionCount: 1,
+                captureStartDate: transaction.timestamp,
+                captureEndDate: transaction.timestamp
+            )
+            return try SessionSerializer.serialize(transactions: [transaction], metadata: metadata)
+        case .har:
+            return try HARExporter().export(transactions: [transaction])
+        case .rawRequestAndResponse:
+            guard let rawResponse = RequestCopyFormatter.rawResponse(for: transaction) else {
+                throw FavoriteTransactionExportError.missingResponse
+            }
+            let raw = RequestCopyFormatter.rawRequest(for: transaction) + "\r\n\r\n" + rawResponse
+            return Data(raw.utf8)
+        case .requestBody:
+            guard let body = transaction.request.body else {
+                throw FavoriteTransactionExportError.missingRequestBody
+            }
+            return body
+        case .responseBody:
+            guard let body = transaction.response?.body else {
+                throw FavoriteTransactionExportError.missingResponseBody
+            }
+            return body
+        }
+    }
+
+    func favoriteTransactionDefaultExportName(
+        _ transaction: HTTPTransaction,
+        as format: FavoriteTransactionExportFormat
+    ) -> String {
+        "\(favoriteTransactionFileStem(transaction)).\(format.fileExtension)"
+    }
+
     // MARK: - Row Refresh After Mutation
 
     /// Refreshes all workspaces after a row-visible property mutation (pin, save, comment,
@@ -310,6 +444,47 @@ extension MainContentCoordinator {
             }
         } catch {
             Self.logger.error("Failed to create SessionStore: \(error.localizedDescription)")
+        }
+    }
+
+    private func updatePersistedFavoriteCache(after transaction: HTTPTransaction) {
+        guard let index = persistedFavorites.firstIndex(where: { $0.id == transaction.id }) else {
+            return
+        }
+
+        if transaction.isPinned || transaction.isSaved {
+            persistedFavorites[index] = transaction
+        } else {
+            persistedFavorites.remove(at: index)
+        }
+    }
+
+    private func favoriteTransactionDisplayName(_ transaction: HTTPTransaction) -> String {
+        let hostPath = transaction.request.host + transaction.request.path
+        return hostPath.isEmpty ? transaction.request.url.absoluteString : hostPath
+    }
+
+    private func favoriteTransactionFileStem(_ transaction: HTTPTransaction) -> String {
+        let rawName = favoriteTransactionDisplayName(transaction)
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: ":", with: "-")
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_."))
+        let scalars = rawName.unicodeScalars.map { allowed.contains($0) ? Character($0) : "-" }
+        let sanitized = String(scalars)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "-."))
+        return sanitized.isEmpty ? "rockxy-request" : sanitized
+    }
+
+    private func allowedContentTypes(for format: FavoriteTransactionExportFormat) -> [UTType] {
+        switch format {
+        case .rockxySession:
+            [.rockxySession]
+        case .har:
+            [.har]
+        case .rawRequestAndResponse:
+            [.plainText]
+        case .requestBody, .responseBody:
+            [.data]
         }
     }
 
@@ -363,6 +538,25 @@ extension MainContentCoordinator {
             }
         } catch {
             Self.logger.error("Failed to create SessionStore for delete: \(error.localizedDescription)")
+        }
+    }
+}
+
+// MARK: - FavoriteTransactionExportError
+
+private enum FavoriteTransactionExportError: LocalizedError {
+    case missingResponse
+    case missingRequestBody
+    case missingResponseBody
+
+    var errorDescription: String? {
+        switch self {
+        case .missingResponse:
+            String(localized: "No response has been captured for this request.")
+        case .missingRequestBody:
+            String(localized: "This request has no body.")
+        case .missingResponseBody:
+            String(localized: "This response has no body.")
         }
     }
 }

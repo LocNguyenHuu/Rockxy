@@ -1,4 +1,4 @@
-import Foundation
+import SwiftUI
 
 // Extends `MainContentCoordinator` with layout behavior for the main workspace.
 
@@ -9,10 +9,14 @@ extension MainContentCoordinator {
     // MARK: - Inspector Layout
 
     func toggleInspectorRight() {
-        inspectorLayout = (inspectorLayout == .right) ? .hidden : .right
+        withAnimation(.smooth(duration: 0.18)) {
+            inspectorLayout = (inspectorLayout == .right) ? .hidden : .right
+        }
     }
 
     func toggleInspectorBottom() {
-        inspectorLayout = (inspectorLayout == .bottom) ? .hidden : .bottom
+        withAnimation(.smooth(duration: 0.18)) {
+            inspectorLayout = (inspectorLayout == .bottom) ? .hidden : .bottom
+        }
     }
 }

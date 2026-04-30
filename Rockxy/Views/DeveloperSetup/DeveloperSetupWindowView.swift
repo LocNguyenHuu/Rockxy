@@ -86,6 +86,26 @@ struct DeveloperSetupWindowView: View {
     @State private var certificateShareStatusMessage: String?
     @State private var presentedShareSession: RootCADownloadSession?
 
+    private var deviceProxyHostText: String {
+        viewModel.snapshot.reachableLANAddress ?? String(localized: "Unavailable")
+    }
+
+    private var deviceProxyCaption: String {
+        if viewModel.snapshot.effectiveListenAddress == "127.0.0.1" {
+            return String(
+                localized: "Devices outside this Mac cannot reach localhost-only mode. Turn off Only Listen on localhost, then restart the proxy."
+            )
+        }
+
+        guard viewModel.snapshot.reachableLANAddress != nil else {
+            return String(localized: "Connect this Mac to Wi-Fi or Ethernet to expose a reachable LAN IP.")
+        }
+
+        return String(
+            localized: "Use this host and port when configuring a device, simulator, or client on the same network."
+        )
+    }
+
     private var toolbar: some View {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 3) {
@@ -124,7 +144,8 @@ struct DeveloperSetupWindowView: View {
 
     private var infoBanner: some View {
         HStack(spacing: 6) {
-            Image(systemName: viewModel.selectedTarget.supportStatus == .availableNow ? "checkmark.circle" : "info.circle")
+            Image(systemName: viewModel.selectedTarget
+                .supportStatus == .availableNow ? "checkmark.circle" : "info.circle")
                 .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 2) {
                 Text(viewModel.selectedTarget.supportStatus.bannerTitle)
@@ -301,7 +322,9 @@ struct DeveloperSetupWindowView: View {
             statusCard(
                 title: String(localized: "Proxy"),
                 value: viewModel.snapshot.proxyRunning ? String(localized: "Running") : String(localized: "Stopped"),
-                caption: String(localized: "\(viewModel.snapshot.effectiveListenAddress):\(viewModel.snapshot.activePort)")
+                caption: String(
+                    localized: "\(viewModel.snapshot.effectiveListenAddress):\(viewModel.snapshot.activePort)"
+                )
             )
             statusCard(
                 title: String(localized: "Recording"),
@@ -320,7 +343,8 @@ struct DeveloperSetupWindowView: View {
             )
             statusCard(
                 title: String(localized: "Certificate"),
-                value: viewModel.snapshot.certificateTrusted ? String(localized: "Trusted") : String(localized: "Needs attention"),
+                value: viewModel.snapshot
+                    .certificateTrusted ? String(localized: "Trusted") : String(localized: "Needs attention"),
                 caption: viewModel.snapshot.certificateFileReady
                     ? String(localized: "A root certificate is available for your client configuration.")
                     : String(localized: "Generate or export the root certificate before validating HTTPS traffic.")
@@ -328,41 +352,25 @@ struct DeveloperSetupWindowView: View {
         }
     }
 
-    private var deviceProxyHostText: String {
-        viewModel.snapshot.reachableLANAddress ?? String(localized: "Unavailable")
-    }
-
-    private var deviceProxyCaption: String {
-        if viewModel.snapshot.effectiveListenAddress == "127.0.0.1" {
-            return String(
-                localized: "Devices outside this Mac cannot reach localhost-only mode. Turn off Only Listen on localhost, then restart the proxy."
-            )
-        }
-
-        guard viewModel.snapshot.reachableLANAddress != nil else {
-            return String(localized: "Connect this Mac to Wi-Fi or Ethernet to expose a reachable LAN IP.")
-        }
-
-        return String(localized: "Use this host and port when configuring a device, simulator, or client on the same network.")
-    }
-
     private var setupContent: some View {
         VStack(alignment: .leading, spacing: 12) {
-            if let guideContent = viewModel.currentGuideContent,
-               viewModel.usesGuideSetupContent || viewModel.selectedTarget.supportStatus != .availableNow
-            {
-                guideTipSection(
-                    title: String(localized: "Manual guide"),
-                    systemImage: "list.bullet.rectangle",
-                    tips: guideContent.setupTips
-                )
+            if viewModel.selectedTarget.supportStatus == .availableNow {
+                if viewModel.currentWorkflow.supportsSnippets {
+                    ForEach(viewModel.currentSetupSteps) { step in
+                        stepRow(step)
+                    }
+                }
+
+                if let guideContent = viewModel.currentGuideContent, !guideContent.setupTips.isEmpty {
+                    guideTipSection(
+                        title: String(localized: "Manual guide"),
+                        systemImage: "list.bullet.rectangle",
+                        tips: guideContent.setupTips
+                    )
+                }
 
                 if viewModel.selectedTarget.supportsCertificateSharing {
                     certificateShareCard
-                }
-            } else if viewModel.selectedTarget.supportStatus == .availableNow {
-                ForEach(viewModel.currentSetupSteps) { step in
-                    stepRow(step)
                 }
             } else {
                 guideOnlyContent(
@@ -375,7 +383,9 @@ struct DeveloperSetupWindowView: View {
 
     private var snippetsContent: some View {
         VStack(alignment: .leading, spacing: 16) {
-            if viewModel.selectedTarget.supportStatus == .availableNow, let currentSnippetText = viewModel.currentSnippetText {
+            if viewModel.selectedTarget.supportStatus == .availableNow,
+               let currentSnippetText = viewModel.currentSnippetText
+            {
                 if viewModel.currentSnippetOptions.count > 1 {
                     UtilitySegmentedHeader(width: 420) {
                         Picker("", selection: $viewModel.selectedSnippetID) {
@@ -423,7 +433,8 @@ struct DeveloperSetupWindowView: View {
             metadataItem(title: String(localized: "Snippet"), value: viewModel.currentSnippetTitle)
             metadataItem(
                 title: String(localized: "Trust"),
-                value: viewModel.snapshot.certificateTrusted ? String(localized: "Trusted") : String(localized: "Needs attention")
+                value: viewModel.snapshot
+                    .certificateTrusted ? String(localized: "Trusted") : String(localized: "Needs attention")
             )
             metadataItem(title: String(localized: "Certificate file"), value: viewModel.certificatePathStatusText)
             metadataItem(title: String(localized: "Validation"), value: viewModel.snapshot.verificationState.title)
@@ -467,7 +478,9 @@ struct DeveloperSetupWindowView: View {
                     }
                     .buttonStyle(.borderedProminent)
 
-                    if viewModel.snapshot.verificationState == .success, viewModel.snapshot.matchedTransactionID != nil {
+                    if viewModel.snapshot.verificationState == .success,
+                       viewModel.snapshot.matchedTransactionID != nil
+                    {
                         Button(String(localized: "Reveal in Main Window")) {
                             viewModel.revealMatchedTransaction()
                         }
@@ -491,16 +504,15 @@ struct DeveloperSetupWindowView: View {
 
     private var troubleshootingContent: some View {
         VStack(alignment: .leading, spacing: 12) {
-            if viewModel.usesGuideSetupContent,
-               let guideContent = viewModel.currentGuideContent,
-               !guideContent.troubleshootingTips.isEmpty
-            {
+            if let guideContent = viewModel.currentGuideContent, !guideContent.troubleshootingTips.isEmpty {
                 guideTipSection(
                     title: String(localized: "Common issues"),
                     systemImage: "wrench.and.screwdriver",
                     tips: guideContent.troubleshootingTips
                 )
-            } else if viewModel.selectedTarget.supportStatus == .availableNow {
+            }
+
+            if viewModel.selectedTarget.supportStatus == .availableNow, viewModel.supportsValidation {
                 ForEach(viewModel.troubleshootingIssues) { issue in
                     detailCard(title: issue.title, systemImage: "exclamationmark.triangle") {
                         Text(issue.message)
@@ -515,11 +527,7 @@ struct DeveloperSetupWindowView: View {
                     }
                 }
             } else if let guideContent = viewModel.currentGuideContent, !guideContent.troubleshootingTips.isEmpty {
-                guideTipSection(
-                    title: String(localized: "Common issues"),
-                    systemImage: "wrench.and.screwdriver",
-                    tips: guideContent.troubleshootingTips
-                )
+                EmptyView()
             } else {
                 guideOnlyContent(
                     title: String(localized: "Current limitation"),
@@ -669,7 +677,7 @@ struct DeveloperSetupWindowView: View {
         )
     }
 
-    private func detailCard<Content: View>(title: String, systemImage: String, @ViewBuilder content: () -> Content) -> some View {
+    private func detailCard(title: String, systemImage: String, @ViewBuilder content: () -> some View) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Label(title, systemImage: systemImage)
                 .font(.subheadline.weight(.semibold))
@@ -703,9 +711,13 @@ struct DeveloperSetupWindowView: View {
         detailCard(title: title, systemImage: "info.circle") {
             Text(message)
                 .font(.subheadline)
-            Text(String(localized: "Rockxy shows this target now so the long-term hub taxonomy stays stable, but this target remains guidance-only today."))
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            Text(
+                String(
+                    localized: "Rockxy shows this target now so the long-term hub taxonomy stays stable, but this target remains guidance-only today."
+                )
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
         }
     }
 
@@ -831,7 +843,8 @@ struct DeveloperSetupWindowView: View {
                 certificateShareStatusMessage = String(localized: "Preparing certificate sharing link...")
                 let session = try await caShareController.startSharing()
                 presentedShareSession = session
-                certificateShareStatusMessage = String(localized: "Certificate sharing link started for \(viewModel.selectedTarget.title).")
+                certificateShareStatusMessage =
+                    String(localized: "Certificate sharing link started for \(viewModel.selectedTarget.title).")
                 await viewModel.refreshSnapshot()
             } catch {
                 certificateShareStatusMessage = certificateShareFailureMessage(for: error)
@@ -855,7 +868,9 @@ struct DeveloperSetupWindowView: View {
         case let error as RootCAShareValidationError:
             error.localizedDescription
         default:
-            String(localized: "Certificate sharing could not be started for \(viewModel.selectedTarget.title). Check your network and try again.")
+            String(
+                localized: "Certificate sharing could not be started for \(viewModel.selectedTarget.title). Check your network and try again."
+            )
         }
     }
 

@@ -210,7 +210,9 @@ extension SetupTarget {
         iconName: "ipad",
         manualSupport: .availableNow,
         automationSupport: .none,
-        shortSummary: String(localized: "iOS Simulator uses the Mac network path with simulator-local certificate trust."),
+        shortSummary: String(
+            localized: "iOS Simulator uses the Mac network path with simulator-local certificate trust."
+        ),
         manualSummary: String(
             localized: """
             The simulator shares the Mac's network stack, so loopback is reachable; export or share \
@@ -229,7 +231,9 @@ extension SetupTarget {
         iconName: "iphone.gen2.radiowaves.left.and.right",
         manualSupport: .availableNow,
         automationSupport: .none,
-        shortSummary: String(localized: "Physical Android devices use a manual proxy, user CA, and debug app trust flow."),
+        shortSummary: String(
+            localized: "Physical Android devices use a manual proxy, user CA, and debug app trust flow."
+        ),
         manualSummary: String(
             localized: """
             Set a manual proxy on the active Wi-Fi, share or install the Rockxy PEM as a user CA, \
@@ -302,12 +306,20 @@ extension SetupTarget {
         iconName: "square.stack.3d.forward.dottedline",
         manualSupport: .availableNow,
         automationSupport: .none,
-        shortSummary: String(localized: "Flutter is available through framework guidance plus the underlying device setup."),
+        shortSummary: String(
+            localized: "Flutter ships manual client snippets plus the underlying iOS or Android setup guide."
+        ),
         manualSummary: String(
-            localized: "Use a proxy-aware HTTP client such as HttpClient or dio; Rockxy then captures traffic from whichever iOS or Android target runs the app."
+            localized: """
+            Use a proxy-aware Flutter client such as HttpClient, package:http, or Dio, then keep the \
+            iOS or Android device/emulator trust and proxy setup aligned with where the app runs.
+            """
         ),
         currentSupportSummary: String(
-            localized: "Rockxy does not configure Flutter tooling for you — the iOS or Android device/emulator page owns the real setup."
+            localized: """
+            Rockxy ships manual Flutter snippets and a generic capture check. Android Emulator no-code \
+            routing through a local VPN companion is not part of this manual flow.
+            """
         )
     )
 
@@ -318,7 +330,9 @@ extension SetupTarget {
         iconName: "cube.transparent",
         manualSupport: .availableNow,
         automationSupport: .none,
-        shortSummary: String(localized: "React Native is available through framework guidance plus the underlying device setup."),
+        shortSummary: String(
+            localized: "React Native is available through framework guidance plus the underlying device setup."
+        ),
         manualSummary: String(
             localized: "fetch runs through the iOS or Android network stack, so fix the underlying device or emulator setup first, then restart Metro and the app."
         ),

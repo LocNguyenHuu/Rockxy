@@ -33,7 +33,10 @@ struct DeveloperSetupGuideCatalogTests {
         ]
 
         for target in shareTargets {
-            #expect(target.supportsCertificateSharing, "\(target.id.rawValue) should expose Dev Hub certificate sharing")
+            #expect(
+                target.supportsCertificateSharing,
+                "\(target.id.rawValue) should expose Dev Hub certificate sharing"
+            )
         }
 
         #expect(!SetupTarget.python.supportsCertificateSharing)
@@ -113,9 +116,13 @@ struct DeveloperSetupGuideCatalogTests {
     @Test("Flutter copy names a proxy-aware client instead of generic promises")
     func flutterCatalogCopyIsSpecific() {
         let summary = SetupTarget.flutter.manualSummary
+        let currentSupport = SetupTarget.flutter.currentSupportSummary
 
         #expect(summary.contains("proxy-aware"))
-        #expect(summary.contains("dio") || summary.contains("HttpClient"))
+        #expect(summary.contains("Dio") || summary.contains("HttpClient"))
+        #expect(summary.contains("package:http"))
+        #expect(currentSupport.contains("manual Flutter snippets"))
+        #expect(currentSupport.localizedCaseInsensitiveContains("no code change") == false)
     }
 
     @Test("React Native copy points at the underlying iOS or Android stack")

@@ -336,6 +336,27 @@ struct DeveloperSetupViewModelTests {
         #expect(nextWorkflow.validation?.host == "httpbin.org")
     }
 
+    @Test("Flutter ships hybrid manual snippets, guide content, and validation")
+    func flutterHybridWorkflow() {
+        let workflow = DeveloperSetupWorkflowCatalog.workflow(for: .flutter)
+        #expect(workflow.snippets.map(\.id) == [
+            .flutterDio5,
+            .flutterHttpClient,
+            .flutterHTTPPackage,
+            .flutterAndroidNetworkSecurityConfig,
+        ])
+        #expect(workflow.validation?.host == "httpbin.org")
+        #expect(workflow.validation?.path == "/anything/rockxy/flutter")
+        #expect(DeveloperSetupGuideCatalog.content(for: .flutter) != nil)
+
+        let viewModel = DeveloperSetupViewModel(coordinator: MainContentCoordinator())
+        viewModel.selectTarget(.flutter)
+
+        #expect(viewModel.toolbarCopyEnabled)
+        #expect(viewModel.toolbarVerifyEnabled)
+        #expect(viewModel.currentGuideContent != nil)
+    }
+
     @Test("Manual-snippet targets no longer return guide-only content")
     func promotedTargetsSkipGuideCatalog() {
         let promoted: [SetupTarget.ID] = [
@@ -893,6 +914,71 @@ struct DeveloperSetupViewModelTests {
         #expect(snippet?.contains("https://httpbin.org/get") == true)
     }
 
+    @Test("Generated Flutter Dio snippet includes proxy host choices and debug-only safety")
+    func generatedFlutterDioSnippet() {
+        let snippet = DeveloperSetupWorkflowCatalog.generatedSnippet(
+            for: .flutter,
+            snippetID: .flutterDio5,
+            port: 9_090,
+            certificatePath: "/tmp/RockxyRootCA.pem"
+        )
+
+        #expect(snippet?.contains("IOHttpClientAdapter") == true)
+        #expect(snippet?.contains("enum RockxyRuntime { localAppleRuntime, androidEmulator, physicalDevice }") == true)
+        #expect(snippet?.contains("enum RockxyRuntime { case") == false)
+        #expect(snippet?.contains("127.0.0.1:9090") == true)
+        #expect(snippet?.contains("10.0.2.2:9090") == true)
+        #expect(snippet?.contains("<LAN device proxy host>:9090") == true)
+        #expect(snippet?.contains("/tmp/RockxyRootCA.pem") == true)
+        #expect(snippet?.contains("Debug only") == true)
+        #expect(snippet?.contains("https://httpbin.org/get") == true)
+    }
+
+    @Test("Generated Flutter HttpClient snippet sets findProxy and badCertificateCallback")
+    func generatedFlutterHttpClientSnippet() {
+        let snippet = DeveloperSetupWorkflowCatalog.generatedSnippet(
+            for: .flutter,
+            snippetID: .flutterHttpClient,
+            port: 9_191,
+            certificatePath: nil
+        )
+
+        #expect(snippet?.contains("HttpClient") == true)
+        #expect(snippet?.contains("findProxy") == true)
+        #expect(snippet?.contains("badCertificateCallback") == true)
+        #expect(snippet?.contains("10.0.2.2:9191") == true)
+        #expect(snippet?.contains(DeveloperSetupWorkflowCatalog.certificatePathPlaceholder) == true)
+    }
+
+    @Test("Generated Flutter package:http snippet wraps IOClient")
+    func generatedFlutterHTTPPackageSnippet() {
+        let snippet = DeveloperSetupWorkflowCatalog.generatedSnippet(
+            for: .flutter,
+            snippetID: .flutterHTTPPackage,
+            port: 9_090,
+            certificatePath: "/tmp/RockxyRootCA.pem"
+        )
+
+        #expect(snippet?.contains("package:http/io_client.dart") == true)
+        #expect(snippet?.contains("IOClient(httpClient)") == true)
+        #expect(snippet?.contains("rockxyProxyHostPort") == true)
+    }
+
+    @Test("Generated Flutter Android XML snippet keeps user CA trust debug-only")
+    func generatedFlutterAndroidNetworkSecurityConfigSnippet() {
+        let snippet = DeveloperSetupWorkflowCatalog.generatedSnippet(
+            for: .flutter,
+            snippetID: .flutterAndroidNetworkSecurityConfig,
+            port: 9_090,
+            certificatePath: "/tmp/RockxyRootCA.pem"
+        )
+
+        #expect(snippet?.contains("app/src/debug/res/xml/network_security_config.xml") == true)
+        #expect(snippet?.contains("<debug-overrides>") == true)
+        #expect(snippet?.contains("<certificates src=\"user\" />") == true)
+        #expect(snippet?.contains("Do not ship this trust policy in release builds") == true)
+    }
+
     @Test("Validation snippet swaps in a target-specific probe path")
     func generatedValidationSnippetUsesTargetSpecificProbe() {
         let workflow = DeveloperSetupWorkflowCatalog.workflow(for: .python)
@@ -936,6 +1022,21 @@ struct DeveloperSetupViewModelTests {
 
         #expect(snippet?.contains("curl --proxy 'http://127.0.0.1:9090'") == true)
         #expect(snippet?.contains("https://httpbin.org/anything/rockxy/electronJS") == true)
+    }
+
+    @Test("Flutter validation snippet swaps in the Flutter probe path")
+    func generatedFlutterValidationSnippetUsesFlutterProbe() {
+        let workflow = DeveloperSetupWorkflowCatalog.workflow(for: .flutter)
+        let snippet = DeveloperSetupWorkflowCatalog.generatedValidationSnippet(
+            for: .flutter,
+            workflow: workflow,
+            selectedSnippetID: .flutterDio5,
+            port: 9_090,
+            certificatePath: "/tmp/RockxyRootCA.pem"
+        )
+
+        #expect(snippet?.contains("https://httpbin.org/anything/rockxy/flutter") == true)
+        #expect(snippet?.contains("https://httpbin.org/get") == false)
     }
 
     @Test("View model falls back when the stored certificate export path is missing")

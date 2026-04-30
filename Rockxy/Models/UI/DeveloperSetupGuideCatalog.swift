@@ -324,12 +324,22 @@ enum DeveloperSetupGuideCatalog {
                 tip(
                     "flutter-underlying",
                     "Set up the underlying device or emulator first",
-                    "Flutter inherits the iOS or Android setup path, so make sure that target can reach Rockxy and trust the root certificate before adding framework code."
+                    "Flutter still runs inside an iOS or Android target. Make sure that runtime can reach Rockxy and trust the root certificate before adding client code."
                 ),
                 tip(
                     "flutter-client",
-                    "Choose a proxy-aware HTTP client",
-                    "Pick an HTTP client (for example HttpClient or dio) where you can set a proxy and a trusted certificate, not one that ignores the system proxy."
+                    "Choose a proxy-aware Flutter client",
+                    "Use one of the Snippets tab variants for HttpClient, package:http, or Dio so the client explicitly routes debug traffic through Rockxy."
+                ),
+                tip(
+                    "flutter-host",
+                    "Use the host that matches the runtime",
+                    "Use 127.0.0.1 for iOS Simulator or desktop Flutter, 10.0.2.2 for Android Emulator, and the Device Proxy LAN host for physical devices."
+                ),
+                tip(
+                    "flutter-android-debug-ca",
+                    "Keep Android trust debug-only",
+                    "Android app traffic usually needs a debug network-security-config that trusts user CAs; do not ship that trust policy in release builds."
                 ),
                 tip(
                     "flutter-hot-reload",
@@ -341,7 +351,7 @@ enum DeveloperSetupGuideCatalog {
                 tip(
                     "flutter-validate",
                     "Send one known HTTPS request from the app",
-                    "Call one predictable HTTPS endpoint from your Flutter code and confirm Rockxy captures it before you debug broader flows."
+                    "Run the Validate tab's generated request from your Flutter client and confirm Rockxy captures it before you debug broader flows."
                 ),
             ],
             troubleshootingTips: [
@@ -349,6 +359,16 @@ enum DeveloperSetupGuideCatalog {
                     "flutter-no-proxy",
                     "Some HTTP clients bypass the system proxy",
                     "If Rockxy sees nothing, verify the HTTP client you use respects the platform proxy or accepts explicit proxy configuration."
+                ),
+                tip(
+                    "flutter-android-emulator-routing",
+                    "Android Emulator no-code routing is not part of the manual flow",
+                    "If you skip client wiring or debug Android trust settings, emulator traffic may bypass Rockxy until a separate automation flow handles routing."
+                ),
+                tip(
+                    "flutter-pinning",
+                    "Certificate pinning still wins",
+                    "If the app pins certificates, Rockxy cannot decrypt that HTTPS traffic until the debug build relaxes pinning."
                 ),
             ]
         )
@@ -394,7 +414,9 @@ enum DeveloperSetupGuideCatalog {
         _ id: String,
         _ title: String.LocalizationValue,
         _ message: String.LocalizationValue
-    ) -> SetupGuideTip {
+    )
+        -> SetupGuideTip
+    {
         SetupGuideTip(
             id: id,
             title: String(localized: title),

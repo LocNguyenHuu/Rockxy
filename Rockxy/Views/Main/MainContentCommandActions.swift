@@ -120,10 +120,12 @@ struct MainContentCommandActions {
     }
 
     func toggleSourceList() {
-        NSApp.keyWindow?.firstResponder?.tryToPerform(
-            #selector(NSSplitViewController.toggleSidebar(_:)),
-            with: nil
-        )
+        withAnimation(.smooth(duration: 0.18)) {
+            NSApp.keyWindow?.firstResponder?.tryToPerform(
+                #selector(NSSplitViewController.toggleSidebar(_:)),
+                with: nil
+            )
+        }
     }
 
     func toggleFilterBar() {
@@ -140,7 +142,9 @@ struct MainContentCommandActions {
     }
 
     func hideInspector() {
-        coordinator.inspectorLayout = .hidden
+        withAnimation(.smooth(duration: 0.18)) {
+            coordinator.inspectorLayout = .hidden
+        }
     }
 
     func switchTab(_ tab: MainTab) {
