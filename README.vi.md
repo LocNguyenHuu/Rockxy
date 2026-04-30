@@ -24,7 +24,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/LocNguyenHuu/Rockxy/releases"><img src="https://img.shields.io/github/v/release/LocNguyenHuu/Rockxy?label=release&color=blue" alt="Phiên bản" /></a>
+  <a href="https://github.com/RockxyApp/Rockxy/releases"><img src="https://img.shields.io/github/v/release/RockxyApp/Rockxy?label=release&color=blue" alt="Phiên bản" /></a>
   <img src="https://img.shields.io/badge/macOS-14%2B-blue" alt="Nền tảng" />
   <img src="https://img.shields.io/badge/Swift-5.9-orange" alt="Swift" />
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-green" alt="Giấy phép" /></a>
@@ -85,7 +85,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the full release history.
 ## Bắt Đầu Nhanh
 
 ```bash
-git clone https://github.com/LocNguyenHuu/Rockxy.git
+git clone https://github.com/RockxyApp/Rockxy.git
 cd Rockxy
 open Rockxy.xcodeproj
 ```
@@ -160,7 +160,7 @@ Chào đón mọi đóng góp — code, test, tài liệu, báo lỗi, và phả
 
 Xem **[CONTRIBUTING.md](CONTRIBUTING.md)** để biết hướng dẫn cài đặt, phong cách code, và checklist PR đầy đủ.
 
-Các issue dành cho người mới được gắn nhãn [`good first issue`](https://github.com/LocNguyenHuu/Rockxy/labels/good%20first%20issue). Khi mở PR, bạn đồng ý với [CLA](CLA.md).
+Các issue dành cho người mới được gắn nhãn [`good first issue`](https://github.com/RockxyApp/Rockxy/labels/good%20first%20issue). Khi mở PR, bạn đồng ý với [CLA](CLA.md).
 
 ## Nhà Tài Trợ & Đối Tác
 
@@ -184,8 +184,8 @@ Rockxy được xây dựng và duy trì bởi các developer độc lập. Tài
 ## Hỗ Trợ
 
 - [GitHub Sponsors](https://github.com/sponsors/LocNguyenHuu) — hỗ trợ phát triển Rockxy
-- [GitHub Issues](https://github.com/LocNguyenHuu/Rockxy/issues) — báo lỗi và yêu cầu tính năng
-- [GitHub Discussions](https://github.com/LocNguyenHuu/Rockxy/discussions) — câu hỏi và thảo luận cộng đồng
+- [GitHub Issues](https://github.com/RockxyApp/Rockxy/issues) — báo lỗi và yêu cầu tính năng
+- [GitHub Discussions](https://github.com/RockxyApp/Rockxy/discussions) — câu hỏi và thảo luận cộng đồng
 - **Email** — [rockxyapp@gmail.com](mailto:rockxyapp@gmail.com)
 - **Vấn đề bảo mật** — xem [SECURITY.md](SECURITY.md) để báo cáo có trách nhiệm
 

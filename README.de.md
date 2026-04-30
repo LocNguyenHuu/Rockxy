@@ -24,7 +24,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/LocNguyenHuu/Rockxy/releases"><img src="https://img.shields.io/github/v/release/LocNguyenHuu/Rockxy?label=release&color=blue" alt="Release" /></a>
+  <a href="https://github.com/RockxyApp/Rockxy/releases"><img src="https://img.shields.io/github/v/release/RockxyApp/Rockxy?label=release&color=blue" alt="Release" /></a>
   <img src="https://img.shields.io/badge/macOS-14%2B-blue" alt="Plattform" />
   <img src="https://img.shields.io/badge/Swift-5.9-orange" alt="Swift" />
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-green" alt="Lizenz" /></a>
@@ -85,7 +85,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the full release history.
 ## Schnellstart
 
 ```bash
-git clone https://github.com/LocNguyenHuu/Rockxy.git
+git clone https://github.com/RockxyApp/Rockxy.git
 cd Rockxy
 open Rockxy.xcodeproj
 ```
@@ -160,7 +160,7 @@ Alle Arten von Beitr&auml;gen sind willkommen &mdash; Code, Tests, Dokumentation
 
 Siehe **[CONTRIBUTING.md](CONTRIBUTING.md)** f&uuml;r Einrichtungsanweisungen, Code-Stil und die vollst&auml;ndige PR-Checkliste.
 
-Einsteigerfreundliche Issues sind mit [`good first issue`](https://github.com/LocNguyenHuu/Rockxy/labels/good%20first%20issue) gekennzeichnet. Mit dem Einreichen eines PRs stimmen Sie dem [CLA](CLA.md) zu.
+Einsteigerfreundliche Issues sind mit [`good first issue`](https://github.com/RockxyApp/Rockxy/labels/good%20first%20issue) gekennzeichnet. Mit dem Einreichen eines PRs stimmen Sie dem [CLA](CLA.md) zu.
 
 ## Sponsoren und Partner
 
@@ -184,8 +184,8 @@ Rockxy wird von unabh&auml;ngigen Entwicklern gebaut und gewartet. Sponsoring fi
 ## Support
 
 - [GitHub Sponsors](https://github.com/sponsors/LocNguyenHuu) &mdash; Rockxys Entwicklung unterst&uuml;tzen
-- [GitHub Issues](https://github.com/LocNguyenHuu/Rockxy/issues) &mdash; Fehlerberichte und Feature-Anfragen
-- [GitHub Discussions](https://github.com/LocNguyenHuu/Rockxy/discussions) &mdash; Fragen und Community-Chat
+- [GitHub Issues](https://github.com/RockxyApp/Rockxy/issues) &mdash; Fehlerberichte und Feature-Anfragen
+- [GitHub Discussions](https://github.com/RockxyApp/Rockxy/discussions) &mdash; Fragen und Community-Chat
 - **E-Mail** &mdash; [rockxyapp@gmail.com](mailto:rockxyapp@gmail.com)
 - **Sicherheitsprobleme** &mdash; siehe [SECURITY.md](SECURITY.md) f&uuml;r verantwortungsvolle Offenlegung
 

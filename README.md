@@ -24,7 +24,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/LocNguyenHuu/Rockxy/releases"><img src="https://img.shields.io/github/v/release/LocNguyenHuu/Rockxy?label=release&color=blue" alt="Release" /></a>
+  <a href="https://github.com/RockxyApp/Rockxy/releases"><img src="https://img.shields.io/github/v/release/RockxyApp/Rockxy?label=release&color=blue" alt="Release" /></a>
   <img src="https://img.shields.io/badge/macOS-14%2B-blue" alt="Platform" />
   <img src="https://img.shields.io/badge/Swift-5.9-orange" alt="Swift" />
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-green" alt="License" /></a>
@@ -85,7 +85,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the full release history.
 ## Quick Start
 
 ```bash
-git clone https://github.com/LocNguyenHuu/Rockxy.git
+git clone https://github.com/RockxyApp/Rockxy.git
 cd Rockxy
 open Rockxy.xcodeproj
 ```
@@ -163,7 +163,7 @@ Contributions welcome — code, tests, docs, bug reports, and UX feedback.
 
 See **[CONTRIBUTING.md](CONTRIBUTING.md)** for setup instructions, code style, and the full PR checklist.
 
-Good first issues are labeled [`good first issue`](https://github.com/LocNguyenHuu/Rockxy/labels/good%20first%20issue). By opening a PR, you agree to the [CLA](CLA.md).
+Good first issues are labeled [`good first issue`](https://github.com/RockxyApp/Rockxy/labels/good%20first%20issue). By opening a PR, you agree to the [CLA](CLA.md).
 
 ## Sponsors & Partners
 
@@ -187,8 +187,8 @@ Rockxy is built and maintained by independent developers. Sponsorships fund cont
 ## Support
 
 - [GitHub Sponsors](https://github.com/sponsors/LocNguyenHuu) — support Rockxy's development
-- [GitHub Issues](https://github.com/LocNguyenHuu/Rockxy/issues) — bug reports and feature requests
-- [GitHub Discussions](https://github.com/LocNguyenHuu/Rockxy/discussions) — questions and community chat
+- [GitHub Issues](https://github.com/RockxyApp/Rockxy/issues) — bug reports and feature requests
+- [GitHub Discussions](https://github.com/RockxyApp/Rockxy/discussions) — questions and community chat
 - **Email** — [rockxyapp@gmail.com](mailto:rockxyapp@gmail.com)
 - **Security issues** — see [SECURITY.md](SECURITY.md) for responsible disclosure
 
