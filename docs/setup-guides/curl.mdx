@@ -1,0 +1,35 @@
+---
+title: cURL
+description: Configure cURL to use Rockxy with direct proxy flags or environment variables for fast validation and debugging.
+---
+
+# cURL
+
+cURL is one of the fastest ways to validate whether Rockxy is capturing traffic correctly.
+
+## Support in Rockxy
+
+- Manual setup available
+- Automatic Setup available
+- Validation-backed setup
+
+## What Rockxy currently provides
+
+- direct `--proxy` examples
+- environment-variable examples using `HTTP_PROXY` and `HTTPS_PROXY`
+- certificate guidance for HTTPS interception
+
+## Why this target matters
+
+cURL is often the best first probe before you debug a more complex browser, framework, or device flow.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Terminal Runtimes and Frameworks" icon="terminal" href="/setup-guides/terminal-runtimes-and-frameworks">
+    Return to the runtime hub.
+  </Card>
+  <Card title="First Capture Checklist" icon="list-check" href="/getting-started/first-capture">
+    Use cURL to confirm the proxy path before debugging a larger target.
+  </Card>
+</CardGroup>

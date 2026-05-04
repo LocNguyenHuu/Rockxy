@@ -1,6 +1,6 @@
 ---
 title: Terminal Runtimes and Frameworks
-description: Set up Node.js, Python, Ruby, Go, Rust, Java, Docker, Electron, Flutter, React Native, and similar environments to work with Rockxy.
+description: Browse Rockxy setup guides for programming languages, terminal runtimes, and framework-adjacent local development targets.
 ---
 
 # Terminal Runtimes and Frameworks
@@ -15,22 +15,25 @@ Many command-line tools and dev runtimes need explicit:
 - runtime-specific proxy support,
 - or extra certificate trust configuration.
 
-## Typical targets
+## Runtime guides
 
-This setup category includes:
+Rockxy currently ships separate target pages for:
 
-- Node.js
-- Python
-- Ruby
-- Go
-- Rust
-- Java
-- cURL
-- Docker
-- Electron
-- Flutter
-- React Native
-- Next.js
+- [Python](/setup-guides/python)
+- [Node.js](/setup-guides/nodejs)
+- [Ruby](/setup-guides/ruby)
+- [Golang](/setup-guides/golang)
+- [Rust](/setup-guides/rust)
+- [Java VMs](/setup-guides/java-vms)
+- [cURL](/setup-guides/curl)
+
+Framework and environment targets that still live near this workflow:
+
+- [Flutter](/setup-guides/flutter)
+- [React Native](/setup-guides/react-native)
+- [Next.js](/setup-guides/nextjs)
+- [ElectronJS](/setup-guides/electronjs)
+- [Docker](/setup-guides/docker)
 
 ## Recommended approach
 
@@ -50,6 +53,12 @@ The runtime sends nothing to Rockxy because:
 ## Related pages
 
 <CardGroup cols={2}>
+  <Card title="Frameworks" icon="boxes-stacked" href="/setup-guides/frameworks">
+    Use the dedicated framework hub for Flutter, React Native, Next.js, and ElectronJS.
+  </Card>
+  <Card title="Environments" icon="server" href="/setup-guides/environments">
+    Jump to Docker and other environment-oriented setup paths.
+  </Card>
   <Card title="API Debugging on macOS" icon="code" href="/use-cases/api-debugging-on-macos">
     See how these runtime flows fit into a practical API debugging workflow.
   </Card>

@@ -72,11 +72,33 @@
       {
         "group": "Setup Guides",
         "pages": [
+          "setup-guides/terminal-runtimes-and-frameworks",
+          "setup-guides/python",
+          "setup-guides/nodejs",
+          "setup-guides/ruby",
+          "setup-guides/golang",
+          "setup-guides/rust",
+          "setup-guides/java-vms",
+          "setup-guides/curl",
           "setup-guides/browsers-and-api-clients",
+          "setup-guides/firefox",
+          "setup-guides/postman",
+          "setup-guides/insomnia",
+          "setup-guides/paw",
+          "setup-guides/device-debugging",
           "setup-guides/ios-simulator",
           "setup-guides/ios-device",
-          "setup-guides/android-device-and-emulator",
-          "setup-guides/terminal-runtimes-and-frameworks"
+          "setup-guides/android-device",
+          "setup-guides/android-emulator",
+          "setup-guides/tvos-watchos",
+          "setup-guides/vision-pro",
+          "setup-guides/frameworks",
+          "setup-guides/flutter",
+          "setup-guides/react-native",
+          "setup-guides/nextjs",
+          "setup-guides/electronjs",
+          "setup-guides/environments",
+          "setup-guides/docker"
         ]
       },
       {

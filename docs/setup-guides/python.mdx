@@ -1,0 +1,37 @@
+---
+title: Python
+description: Configure Python HTTP clients to use Rockxy for HTTPS inspection, replay, and API debugging on macOS.
+---
+
+# Python
+
+Python is a first-class Developer Setup Hub runtime target.
+
+## Support in Rockxy
+
+- Manual setup available
+- Automatic Setup available
+- Validation-backed setup
+
+## What Rockxy currently provides
+
+- runtime-specific snippets for `requests`, `httpx`, `aiohttp`, and `urllib3`
+- proxy host and port from the live Rockxy runtime
+- certificate guidance for trusting the exported root certificate
+
+## What you still need to do
+
+- point the Python client at Rockxy's proxy
+- trust the exported root certificate in the path your client uses
+- run one known request before debugging broader traffic
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Terminal Runtimes and Frameworks" icon="terminal" href="/setup-guides/terminal-runtimes-and-frameworks">
+    Return to the runtime hub.
+  </Card>
+  <Card title="Developer Setup Hub" icon="screwdriver-wrench" href="/getting-started/developer-setup-hub">
+    Use the in-app setup and validation flow for Python.
+  </Card>
+</CardGroup>

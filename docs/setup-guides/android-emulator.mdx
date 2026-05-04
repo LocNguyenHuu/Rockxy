@@ -1,0 +1,31 @@
+---
+title: Android Emulator
+description: Configure Android Emulator to use Rockxy with emulator proxy setup, certificate trust, and debug-build guidance.
+---
+
+# Android Emulator
+
+Android Emulator uses a manual proxy and user CA setup path, but iteration is usually faster than on a physical device.
+
+## Support in Rockxy
+
+- Manual setup available
+- No automation entry point today
+- Certificate sharing support available
+
+## What Rockxy currently provides
+
+- emulator-specific guidance using `10.0.2.2`
+- certificate sharing support from the Mac
+- app-level trust guidance for debug Android builds
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Device Debugging" icon="mobile-screen" href="/setup-guides/device-debugging">
+    Return to the device-debugging hub.
+  </Card>
+  <Card title="React Native" icon="cube" href="/setup-guides/react-native">
+    Use the React Native guide when emulator traffic comes from a React Native app.
+  </Card>
+</CardGroup>

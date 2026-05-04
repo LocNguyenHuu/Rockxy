@@ -7,6 +7,15 @@ description: Configure browsers and API clients such as Firefox, Postman, Insomn
 
 Many desktop clients work with Rockxy quickly, but not all of them use the same proxy or certificate-trust behavior.
 
+## Individual client guides
+
+Rockxy currently ships separate target pages for:
+
+- [Firefox](/setup-guides/firefox)
+- [Postman](/setup-guides/postman)
+- [Insomnia](/setup-guides/insomnia)
+- [Paw](/setup-guides/paw)
+
 ## Start with this rule of thumb
 
 - If the app follows the macOS system proxy and trust store, setup is usually simple.
@@ -46,6 +55,12 @@ Paw often fits best when the macOS system path is clean and the local certificat
 ## Related pages
 
 <CardGroup cols={2}>
+  <Card title="Firefox" icon="globe" href="/setup-guides/firefox">
+    Browser-specific proxy and certificate guidance.
+  </Card>
+  <Card title="Postman" icon="paper-plane" href="/setup-guides/postman">
+    Configure Postman to send HTTPS traffic through Rockxy.
+  </Card>
   <Card title="Certificates and Trust" icon="certificate" href="/getting-started/certificates-and-trust">
     Re-check trust if the client sends traffic but HTTPS still fails.
   </Card>

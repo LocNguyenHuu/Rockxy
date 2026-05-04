@@ -1,0 +1,36 @@
+---
+title: Flutter
+description: Configure Flutter apps to use Rockxy with Dart or Dio client setup plus the underlying iOS or Android trust path.
+---
+
+# Flutter
+
+Flutter setup has two layers: the Flutter HTTP client path and the underlying iOS or Android runtime that actually emits the traffic.
+
+## Support in Rockxy
+
+- Manual setup available
+- No automation entry point today
+- Certificate sharing support available
+
+## What Rockxy currently provides
+
+- manual setup paths for `Dio`, Dart `HttpClient`, and `package:http`
+- guidance that connects Flutter back to the real device, emulator, or simulator trust path
+
+## What you still need to do
+
+- make the Flutter client proxy-aware
+- complete the iOS or Android trust path underneath it
+- validate one request before debugging broader app behavior
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Frameworks" icon="boxes-stacked" href="/setup-guides/frameworks">
+    Return to the frameworks hub.
+  </Card>
+  <Card title="Device Debugging" icon="mobile-screen" href="/setup-guides/device-debugging">
+    Use the device hub when the Flutter app runs on iOS or Android targets.
+  </Card>
+</CardGroup>

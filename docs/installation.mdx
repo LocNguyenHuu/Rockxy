@@ -29,9 +29,11 @@ If future releases add architecture-specific downloads, the release notes will c
 2. Drag **Rockxy.app** into the **Applications** folder.
 3. Launch Rockxy from Applications or Spotlight.
 
-On first launch, macOS may show a Gatekeeper prompt because Rockxy is not notarized through the App Store. Right-click the app and select **Open** to bypass it, or go to **System Settings > Privacy & Security** and click **Open Anyway**.
-
 ## Trust the root certificate
+
+<Frame caption="Install and trust the Rockxy root certificate.">
+  <img src="/images/InstallCertificateRockxy.png" alt="Install and trust the Rockxy root certificate" />
+</Frame>
 
 <Warning>
 HTTPS interception will not work until you install and trust the Rockxy root CA certificate. Without it, only plain HTTP traffic is captured.
@@ -65,13 +67,17 @@ If you cannot, continue with [First Capture](/getting-started/first-capture) or 
 
 ## Data Storage Locations
 
+Rockxy stores local data under the active app identity for the build you are running. In other words, the exact folder name and preferences plist follow the current bundle configuration rather than one fixed historical identifier.
+
 | Data | Storage Method | Location |
 |------|---------------|----------|
-| User preferences | UserDefaults | `~/Library/Preferences/com.amunx.rockxy.community.plist` for the Community build |
+| User preferences | UserDefaults | `~/Library/Preferences/<Rockxy bundle identifier>.plist` |
 | Root CA private key | macOS Keychain | Keychain Access > System keychain |
-| Saved traffic and logs | SQLite | `~/Library/Application Support/com.amunx.rockxy.community/rockxy.sqlite3` |
-| Large response bodies | Disk files | `~/Library/Application Support/com.amunx.rockxy.community/bodies/` |
-| Traffic rules | JSON file | `~/Library/Application Support/com.amunx.rockxy.community/rules.json` |
+| Saved traffic and logs | SQLite | `~/Library/Application Support/<Rockxy app support directory>/rockxy.sqlite3` |
+| Large response bodies | Disk files | `~/Library/Application Support/<Rockxy app support directory>/bodies/` |
+| Traffic rules | JSON file | `~/Library/Application Support/<Rockxy app support directory>/rules.json` |
+
+For current builds, Rockxy derives these names from its bundle identity at runtime. If you want to confirm the exact values on your Mac, open **Settings → Privacy** in the app, where Rockxy shows the active local storage paths directly.
 
 ## Build from Source
 
@@ -97,22 +103,20 @@ Uninstalling Rockxy removes the application but does not automatically delete yo
 
 1. Quit Rockxy if it is running.
 2. Delete `Rockxy.app` from the Applications folder.
-3. Remove application data:
+3. Remove the matching application-data directory and preferences plist for the build you installed. Typical current layouts are:
    ```bash
+   rm -rf ~/Library/Application\ Support/com.amunx.rockxy
    rm -rf ~/Library/Application\ Support/com.amunx.rockxy.community
+   rm -f ~/Library/Preferences/com.amunx.rockxy.plist
    rm -f ~/Library/Preferences/com.amunx.rockxy.community.plist
    ```
 4. Open **Keychain Access**, find the **Rockxy CA** certificate, and delete it.
 
 ## Troubleshooting
 
-### "Rockxy can't be opened because Apple cannot check it for malicious software"
-
-Right-click Rockxy.app and select **Open**, or go to **System Settings > Privacy & Security** and click **Open Anyway**.
-
 ### HTTPS traffic is not being captured
 
-Verify the root CA certificate is installed and trusted. Open **Keychain Access**, search for "Rockxy CA", and confirm it shows "This certificate is marked as trusted for all users." See [Certificate Setup](#certificate-setup) above.
+Verify the root CA certificate is installed and trusted. Open **Keychain Access**, search for "Rockxy CA", and confirm it shows "This certificate is marked as trusted for all users." See [Trust the root certificate](#trust-the-root-certificate) above.
 
 ### Proxy does not capture traffic from a specific app or runtime
 

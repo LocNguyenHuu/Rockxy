@@ -1,0 +1,36 @@
+---
+title: Device Debugging
+description: Browse Rockxy setup guides for iOS, Android, tvOS, watchOS, and Vision Pro device or simulator traffic debugging.
+---
+
+# Device Debugging
+
+Rockxy supports device and simulator debugging through Developer Setup Hub, but each platform keeps its own trust, reachability, and proxy constraints.
+
+## Device guides
+
+Use the target-specific guide that matches where your app runs:
+
+- [iOS Device](/setup-guides/ios-device)
+- [iOS Simulator](/setup-guides/ios-simulator)
+- [Android Device](/setup-guides/android-device)
+- [Android Emulator](/setup-guides/android-emulator)
+- [tvOS / watchOS](/setup-guides/tvos-watchos)
+- [Vision Pro](/setup-guides/vision-pro)
+
+## What these targets have in common
+
+- They depend on certificate trust, not just proxy startup.
+- Physical devices need a reachable host, not a localhost-only proxy.
+- Simulators and emulators still require platform-specific trust and restart behavior.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Developer Setup Hub" icon="screwdriver-wrench" href="/getting-started/developer-setup-hub">
+    Use Dev Hub to choose the exact device target and validation path.
+  </Card>
+  <Card title="Device Setup Issues" icon="triangle-exclamation" href="/troubleshooting/device-setup-issues">
+    Troubleshoot reachability, trust, and app-specific failures.
+  </Card>
+</CardGroup>

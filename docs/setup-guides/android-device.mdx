@@ -1,0 +1,37 @@
+---
+title: Android Device
+description: Configure a physical Android device to use Rockxy with Wi-Fi proxy setup, user CA trust, and debug-build requirements.
+---
+
+# Android Device
+
+Physical Android devices use a manual proxy, user CA, and debug-app trust flow.
+
+## Support in Rockxy
+
+- Manual setup available
+- No device automation entry point exposed here by default
+- Certificate sharing support available
+
+## What Rockxy currently provides
+
+- Dev Hub guidance for proxying a physical Android device
+- temporary certificate sharing support from the Mac
+- debugging guidance around user CAs and debug network-security-config
+
+## What you still need to do
+
+- set a manual proxy on the active Wi-Fi network
+- install the Rockxy PEM as a user CA
+- use a debug build that trusts user-installed certificates where needed
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Device Debugging" icon="mobile-screen" href="/setup-guides/device-debugging">
+    Return to the device-debugging hub.
+  </Card>
+  <Card title="Device Setup Issues" icon="triangle-exclamation" href="/troubleshooting/device-setup-issues">
+    Troubleshoot Android trust, reachability, and app-specific failures.
+  </Card>
+</CardGroup>

@@ -1,0 +1,31 @@
+---
+title: Docker
+description: Configure Docker containers to send HTTP and HTTPS traffic through Rockxy using host.docker.internal and mounted certificate trust.
+---
+
+# Docker
+
+Docker is supported as an environment target in Developer Setup Hub because container traffic needs explicit proxy and certificate plumbing.
+
+## Support in Rockxy
+
+- Manual setup available
+- No automation entry point today
+- Validation-backed setup
+
+## What Rockxy currently provides
+
+- a `docker run` validation pattern
+- guidance for using `host.docker.internal`
+- guidance for mounting the Rockxy PEM into the container path
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Environments" icon="server" href="/setup-guides/environments">
+    Return to the environments hub.
+  </Card>
+  <Card title="Capture Issues" icon="triangle-exclamation" href="/troubleshooting/capture-issues">
+    Continue here if container traffic still does not appear in Rockxy.
+  </Card>
+</CardGroup>

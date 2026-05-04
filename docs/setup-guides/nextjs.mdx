@@ -1,0 +1,31 @@
+---
+title: Next.js
+description: Configure Next.js server-side traffic to use Rockxy with App Router route handlers, proxy env vars, and certificate trust for fetch.
+---
+
+# Next.js
+
+Next.js is documented as a framework target because server-side fetch and local dev-server behavior matter more than browser-only traffic.
+
+## Support in Rockxy
+
+- Manual setup available
+- No automation entry point today
+- Validation-backed setup
+
+## What Rockxy currently provides
+
+- an App Router route-handler pattern
+- guidance for `NODE_USE_ENV_PROXY`, `HTTP_PROXY`, `HTTPS_PROXY`, and `NODE_EXTRA_CA_CERTS`
+- a Dev Hub path for validating the route before broader debugging
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Frameworks" icon="boxes-stacked" href="/setup-guides/frameworks">
+    Return to the frameworks hub.
+  </Card>
+  <Card title="API Debugging on macOS" icon="code" href="/use-cases/api-debugging-on-macos">
+    Use Rockxy to inspect the server-side requests your Next.js app actually sends.
+  </Card>
+</CardGroup>

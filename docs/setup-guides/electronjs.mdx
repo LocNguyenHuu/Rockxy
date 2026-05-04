@@ -1,0 +1,31 @@
+---
+title: ElectronJS
+description: Configure Electron apps to use Rockxy through CLI proxy flags or session.setProxy with certificate trust for HTTPS inspection.
+---
+
+# ElectronJS
+
+ElectronJS is documented separately because desktop-app traffic often sits outside browser DevTools and may need explicit proxy configuration.
+
+## Support in Rockxy
+
+- Manual setup available
+- No automation entry point today
+- Validation-backed setup
+
+## What Rockxy currently provides
+
+- a `--proxy-server` launch path
+- a `session.setProxy` main-process path
+- guidance for trusting the Rockxy certificate with `NODE_EXTRA_CA_CERTS`
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Frameworks" icon="boxes-stacked" href="/setup-guides/frameworks">
+    Return to the frameworks hub.
+  </Card>
+  <Card title="Browser DevTools vs a System Proxy Debugger" icon="scale-balanced" href="/use-cases/browser-devtools-vs-system-proxy-debugger">
+    See why Electron often benefits from Rockxy more than browser-only inspection.
+  </Card>
+</CardGroup>

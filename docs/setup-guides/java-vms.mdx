@@ -1,0 +1,37 @@
+---
+title: Java VMs
+description: Configure Java and Kotlin HTTP clients to use Rockxy by importing the root certificate into the JVM trust store.
+---
+
+# Java VMs
+
+Java and Kotlin use a manual trust-store workflow rather than the simpler proxy-only path many macOS clients use.
+
+## Support in Rockxy
+
+- Manual setup available
+- No runtime automation entry point today
+- Validation-backed setup
+
+## What Rockxy currently provides
+
+- a `keytool` import path for the Rockxy root certificate
+- a Java `HttpClient` sample
+- Dev Hub guidance for confirming capture on a locally installed JDK
+
+## What you still need to do
+
+- import the Rockxy root certificate into the active JVM trust store
+- route the Java client through Rockxy's proxy
+- validate with one known request before broader debugging
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Terminal Runtimes and Frameworks" icon="terminal" href="/setup-guides/terminal-runtimes-and-frameworks">
+    Return to the runtime hub.
+  </Card>
+  <Card title="Certificates and Trust" icon="certificate" href="/getting-started/certificates-and-trust">
+    Re-check trust if the JVM still rejects HTTPS traffic.
+  </Card>
+</CardGroup>
