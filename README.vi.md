@@ -41,17 +41,12 @@
 <!-- BEGIN GENERATED: latest-release -->
 ## Latest Tagged Release
 
-**v0.15.0** — 2026-04-30
-
-### Added
-
-- Developer Setup Hub now includes Flutter and React Native mobile setup flows, with licensed Android automation for supported workflows.
-- Favorite request context menus now include richer actions, including opening favorites in new tabs.
-- Developer Setup Hub can now be opened directly from the toolbar.
+**v0.15.1** — 2026-05-05
 
 ### Fixed
 
-- Inspector split panes now resize and animate more smoothly with safer proportions.
+- Validate Dev Hub with local probe
+- Correct Ruby Faraday setup snippet
 
 See [CHANGELOG.md](CHANGELOG.md) for the full release history.
 <!-- END GENERATED: latest-release -->
