@@ -1089,7 +1089,8 @@ enum DeveloperSetupWorkflowCatalog {
             localized: """
             Run the selected \(runtimeName) local validation probe and wait for Rockxy to capture \
             GET \(validationURL). This confirms the probe reached Rockxy through the proxy, \
-            but it does not attribute the request to a specific app or process.
+            but it does not attribute the request to a specific app, process, device, simulator, \
+            emulator, or runtime.
             """
         )
     }

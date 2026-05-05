@@ -122,7 +122,18 @@ struct DeveloperSetupGuideCatalogTests {
         #expect(summary.contains("Dio") || summary.contains("HttpClient"))
         #expect(summary.contains("package:http"))
         #expect(currentSupport.contains("manual Flutter snippets"))
+        #expect(currentSupport.contains("device, emulator, simulator"))
         #expect(currentSupport.localizedCaseInsensitiveContains("no code change") == false)
+    }
+
+    @Test("Flutter guide explains local validation does not attribute the emitting runtime")
+    func flutterGuideValidationCopyIsSpecificAboutAttributionLimits() throws {
+        let guide = try #require(DeveloperSetupGuideCatalog.content(for: .flutter))
+        let validationMessages = guide.validationTips.map(\.message).joined(separator: " ")
+
+        #expect(validationMessages.contains("validates the proxy path"))
+        #expect(validationMessages.contains("device, emulator, simulator"))
+        #expect(validationMessages.contains("Dart runtime"))
     }
 
     @Test("React Native copy points at the underlying iOS or Android stack")

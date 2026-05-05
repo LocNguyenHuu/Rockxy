@@ -317,8 +317,9 @@ extension SetupTarget {
         ),
         currentSupportSummary: String(
             localized: """
-            Rockxy ships manual Flutter snippets and a generic capture check. Android Emulator no-code \
-            routing through a local VPN companion is not part of this manual flow.
+            Rockxy ships manual Flutter snippets and a local capture check. The check confirms the probe \
+            reached Rockxy, not which device, emulator, simulator, or Dart runtime emitted it. Android \
+            Emulator no-code routing through a local VPN companion is not part of this manual flow.
             """
         )
     )

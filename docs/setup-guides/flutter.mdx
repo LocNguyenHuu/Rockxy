@@ -17,12 +17,207 @@ Flutter setup has two layers: the Flutter HTTP client path and the underlying iO
 
 - manual setup paths for `Dio`, Dart `HttpClient`, and `package:http`
 - guidance that connects Flutter back to the real device, emulator, or simulator trust path
+- a local validation probe that confirms Rockxy captured the request shape without claiming device or runtime attribution
+
+<Frame caption="Flutter sample traffic captured in Rockxy with the active proxy port copied into the app.">
+  <img src="/images/DemoFlutter.png" alt="Rockxy capturing local Flutter sample traffic" />
+</Frame>
 
 ## What you still need to do
 
 - make the Flutter client proxy-aware
 - complete the iOS or Android trust path underneath it
 - validate one request before debugging broader app behavior
+
+## Step 1: choose the Rockxy proxy host
+
+Start Rockxy, keep capture running, then choose the host that matches where the Flutter app is running:
+
+| Runtime | Proxy host |
+| --- | --- |
+| iOS Simulator | `127.0.0.1:<Rockxy port>` |
+| macOS desktop Flutter | `127.0.0.1:<Rockxy port>` |
+| Android Emulator | `10.0.2.2:<Rockxy port>` |
+| Physical iPhone, iPad, or Android device | `<Device Proxy LAN host>:<Rockxy port>` |
+
+The Rockxy port is shown in the app toolbar. For physical devices, use the Device Proxy host shown in Developer Setup Hub and make sure the device is on the same local network as the Mac.
+
+## Step 2: add a debug-only proxy helper
+
+Create a small helper that your debug build can share across `HttpClient`, `package:http`, and Dio. Pick the runtime enum value before running the app.
+
+```dart
+import 'dart:io';
+
+enum RockxyFlutterRuntime {
+  localAppleRuntime,
+  androidEmulator,
+  physicalDevice,
+}
+
+const rockxyRuntime = RockxyFlutterRuntime.localAppleRuntime;
+const rockxyPort = 9090;
+const rockxyPhysicalDeviceHost = '<Device Proxy LAN host>';
+
+String rockxyProxyHostPort() {
+  switch (rockxyRuntime) {
+    case RockxyFlutterRuntime.androidEmulator:
+      return '10.0.2.2:$rockxyPort';
+    case RockxyFlutterRuntime.physicalDevice:
+      return '$rockxyPhysicalDeviceHost:$rockxyPort';
+    case RockxyFlutterRuntime.localAppleRuntime:
+      return '127.0.0.1:$rockxyPort';
+  }
+}
+
+HttpClient makeRockxyHttpClient() {
+  final client = HttpClient();
+  client.findProxy = (uri) => 'PROXY ${rockxyProxyHostPort()};';
+
+  // Debug builds only. Remove this before release builds.
+  client.badCertificateCallback = (certificate, host, port) => true;
+  return client;
+}
+```
+
+Do not ship `badCertificateCallback` in release builds. For Android, also keep user-CA trust inside `app/src/debug` so release builds do not trust user-installed CAs.
+
+## Step 3: use the helper with your Flutter client
+
+### Dart `HttpClient`
+
+```dart
+import 'dart:convert';
+import 'dart:io';
+
+Future<void> runRockxyHttpClientProbe() async {
+  final client = makeRockxyHttpClient();
+
+  try {
+    final request = await client.getUrl(
+      Uri.parse('https://<your-host>/<your-path>'),
+    );
+    final response = await request.close();
+    final body = await utf8.decodeStream(response);
+
+    print(response.statusCode);
+    print(body);
+  } finally {
+    client.close(force: true);
+  }
+}
+```
+
+### `package:http`
+
+```dart
+import 'dart:convert';
+
+import 'package:http/io_client.dart';
+
+Future<void> runRockxyPackageHttpProbe() async {
+  final client = IOClient(makeRockxyHttpClient());
+
+  try {
+    final response = await client.get(
+      Uri.parse('https://<your-host>/<your-path>'),
+    );
+
+    print(response.statusCode);
+    print(jsonDecode(response.body));
+  } finally {
+    client.close();
+  }
+}
+```
+
+### Dio 5
+
+```dart
+import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
+
+Dio makeRockxyDio() {
+  final dio = Dio();
+  dio.httpClientAdapter = IOHttpClientAdapter(
+    createHttpClient: makeRockxyHttpClient,
+    validateCertificate: (certificate, host, port) => true,
+  );
+  return dio;
+}
+
+Future<void> runRockxyDioProbe() async {
+  final response = await makeRockxyDio().get(
+    'https://<your-host>/<your-path>',
+  );
+
+  print(response.statusCode);
+  print(response.data);
+}
+```
+
+## Step 4: complete the platform trust path
+
+### iOS Simulator
+
+1. Run the app in iOS Simulator.
+2. Install or share the Rockxy Root CA into the simulator trust path.
+3. Cold-launch the Flutter app after changing certificate trust.
+4. Trigger one HTTPS request and confirm it appears in Rockxy.
+
+### Physical iOS device
+
+1. Set the device Wi-Fi proxy to the Device Proxy LAN host and active Rockxy port.
+2. Install the Rockxy Root CA profile on the device.
+3. Trust the certificate in iOS certificate trust settings.
+4. Cold-launch the app and send one HTTPS request.
+
+### Android Emulator
+
+1. Use `10.0.2.2:<Rockxy port>` in the helper.
+2. Install the Rockxy Root CA as a user CA in the emulator.
+3. Add debug-only Android user-CA trust if your app targets a recent Android version.
+4. Cold-launch the app after changing proxy or trust settings.
+
+### Physical Android device
+
+1. Set the device Wi-Fi proxy to the Device Proxy LAN host and active Rockxy port.
+2. Install the Rockxy Root CA as a user CA.
+3. Add debug-only Android user-CA trust in `app/src/debug`.
+4. Cold-launch the app and send one HTTPS request.
+
+Use this debug-only Android XML when the app needs to trust user-installed CAs:
+
+```xml
+<!-- app/src/debug/res/xml/network_security_config.xml -->
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+  <debug-overrides>
+    <trust-anchors>
+      <certificates src="user" />
+      <certificates src="system" />
+    </trust-anchors>
+  </debug-overrides>
+</network-security-config>
+```
+
+```xml
+<!-- app/src/debug/AndroidManifest.xml -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <application android:networkSecurityConfig="@xml/network_security_config" />
+</manifest>
+```
+
+## Validation limits
+
+The Validate tab is a local capture check. It proves that a Flutter-shaped probe reached Rockxy through the proxy, but it does not prove whether the request came from an iOS device, iOS Simulator, Android Emulator, physical Android device, desktop runtime, or a specific Dart isolate.
+
+After validation succeeds, keep testing the actual target where the app runs:
+
+- use `127.0.0.1` for iOS Simulator or desktop Flutter,
+- use `10.0.2.2` for Android Emulator,
+- use Rockxy's Device Proxy LAN host for physical devices,
+- keep Android user-CA trust limited to debug builds.
 
 ## Related pages
 
