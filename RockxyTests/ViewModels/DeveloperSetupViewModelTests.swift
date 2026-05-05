@@ -735,6 +735,8 @@ struct DeveloperSetupViewModelTests {
 
         #expect(snippet?.contains("proxy: \"http://127.0.0.1:9090\"") == true)
         #expect(snippet?.contains("ca_file: \"/tmp/RockxyRootCA.pem\"") == true)
+        #expect(snippet?.contains("connection.get(\"https://<your-host>/<your-path>\")") == true)
+        #expect(snippet?.contains("connection.get(\"/get\")") == false)
     }
 
     @Test("Generated Golang snippet includes proxy and root CA")

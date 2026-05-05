@@ -759,12 +759,11 @@ enum DeveloperSetupWorkflowCatalog {
         require "faraday"
 
         connection = Faraday.new(
-          url: "\(sampleRequestURL)",
           proxy: "\(proxyURL)",
           ssl: { ca_file: "\(certPath)" }
         )
 
-        response = connection.get("/get")
+        response = connection.get("\(sampleRequestURL)")
         puts response.status
         puts response.body
         """
