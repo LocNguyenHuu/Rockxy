@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Clarified Flutter/Dart Developer Setup Hub validation as a manual hybrid flow that checks capture through Rockxy without claiming device, emulator, simulator, or runtime attribution.
 - Added a Star History chart to all README translations.
 
 ## [0.15.0] - 2026-04-30

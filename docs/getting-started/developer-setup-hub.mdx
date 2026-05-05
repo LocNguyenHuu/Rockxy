@@ -125,7 +125,7 @@ Validation is useful because it tells you whether the setup path is working befo
 Rockxy's validation model is still honest about its limits:
 
 - it confirms Rockxy saw the target-shaped local probe through its proxy,
-- it does not prove which process emitted it,
+- it does not prove which process, device, simulator, emulator, or runtime emitted it,
 - and it does not prove your real upstream API is reachable after the local proxy path is working.
 
 The core validation probe is local to your Mac, so it can succeed in offline or restricted-network environments. If the local probe succeeds but a real request fails afterward, debug that as a separate DNS, network policy, upstream, or application problem.

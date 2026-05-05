@@ -21,9 +21,9 @@ Every target in the hub has a **manual** path. Manual support means:
 - the hub ships the concrete command, config block, or code snippet you paste into the runtime, client, container, or framework;
 - Rockxy never launches a shell, configures a third-party app, modifies macOS trust, or changes a device's network settings for you.
 
-Many targets additionally ship an **in-app validation watcher**. The Snippets tab keeps the general-purpose sample request, while the Validate tab swaps in a target-specific local probe URL such as `GET http://127.0.0.1:<probe-port>/.well-known/rockxy/dev-setup/python/<token>` before you press **Run Local Probe**. This is still a generic capture check, not process attribution for the selected target.
+Many targets additionally ship an **in-app validation watcher**. The Snippets tab keeps the general-purpose sample request, while the Validate tab swaps in a target-specific local probe URL such as `GET http://127.0.0.1:<probe-port>/.well-known/rockxy/dev-setup/python/<token>` before you press **Run Local Probe**. This is still a generic capture check, not process, device, simulator, emulator, or runtime attribution for the selected target.
 
-Some targets are **hybrid**: they have generated snippets and still keep platform guide notes. Flutter is the reference example: Rockxy can generate Flutter client snippets, but the underlying iOS or Android target still owns reachability and certificate trust. React Native follows the same model with a `fetch` probe, Android debug XML, and Metro troubleshooting notes.
+Some targets are **hybrid**: they have generated snippets and still keep platform guide notes. Flutter is the reference example: Rockxy can generate Flutter client snippets, but the underlying iOS or Android target still owns reachability and certificate trust. Its validation probe confirms capture through Rockxy, not which device, emulator, simulator, or Dart runtime emitted the traffic. React Native follows the same model with a `fetch` probe, Android debug XML, and Metro troubleshooting notes.
 
 ## Support matrix
 
@@ -72,7 +72,7 @@ These targets still rely on manual setup inside the real third-party app, but th
 | Flutter    | Dio 5, Dart `HttpClient`, `package:http`, Android debug `network_security_config.xml` |
 | React Native | `fetch` probe, Android debug `network_security_config.xml`, Metro/ADB checklist |
 
-Each snippet is generated against Rockxy's active proxy port and the exported root certificate. The **Validate** tab rewrites the sample request to a target-specific local `GET http://127.0.0.1:<probe-port>/.well-known/rockxy/dev-setup/<target>/<token>` probe and then runs a short watcher for that exact request after you press **Run Local Probe**. That confirms Rockxy saw the probe through its proxy, but it does not prove which app, browser, or process emitted it. The watcher cancels automatically if the session is cleared, recording is paused, or the proxy stops.
+Each snippet is generated against Rockxy's active proxy port and the exported root certificate. The **Validate** tab rewrites the sample request to a target-specific local `GET http://127.0.0.1:<probe-port>/.well-known/rockxy/dev-setup/<target>/<token>` probe and then runs a short watcher for that exact request after you press **Run Local Probe**. That confirms Rockxy saw the probe through its proxy, but it does not prove which app, browser, process, device, simulator, emulator, or runtime emitted it. The watcher cancels automatically if the session is cleared, recording is paused, or the proxy stops.
 
 If the preflight sees a problem (proxy stopped, recording paused, certificate not trusted, or certificate not exportable) it surfaces the first blocking issue with a direct action you can take before rerunning.
 

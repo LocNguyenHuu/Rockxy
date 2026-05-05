@@ -356,6 +356,10 @@ struct DeveloperSetupViewModelTests {
         #expect(viewModel.toolbarCopyEnabled)
         #expect(viewModel.toolbarVerifyEnabled)
         #expect(viewModel.currentGuideContent != nil)
+        #expect(viewModel.supportsAutomation == false)
+        #expect(viewModel.currentAutomationPreview == nil)
+        #expect(viewModel.bottomStatusText.contains("Manual only"))
+        #expect(viewModel.infoBannerText.contains("device, emulator, simulator"))
     }
 
     @Test("React Native ships hybrid snippets, guide content, and validation")
@@ -617,7 +621,15 @@ struct DeveloperSetupViewModelTests {
         let validation = try #require(DeveloperSetupWorkflowCatalog.workflow(for: .python).validation)
 
         #expect(validation.instruction.contains("does not attribute the request") == true)
-        #expect(validation.instruction.contains("specific app or process") == true)
+        #expect(validation.instruction.contains("specific app, process, device, simulator, emulator, or runtime") == true)
+    }
+
+    @Test("Flutter validation instruction calls out hybrid attribution limits")
+    func flutterValidationInstructionClarifiesHybridAttributionLimits() throws {
+        let validation = try #require(DeveloperSetupWorkflowCatalog.workflow(for: .flutter).validation)
+
+        #expect(validation.instruction.contains("Flutter local validation probe"))
+        #expect(validation.instruction.contains("device, simulator, emulator, or runtime"))
     }
 
     @Test("Available targets use manual setup language instead of validated claims")

@@ -351,7 +351,11 @@ enum DeveloperSetupGuideCatalog {
                 tip(
                     "flutter-validate",
                     "Send one known HTTPS request from the app",
-                    "Run the Validate tab's generated request from your Flutter client and confirm Rockxy captures it before you debug broader flows."
+                    """
+                    Run the Validate tab's generated request from your Flutter client and confirm Rockxy \
+                    captures it before you debug broader flows. This validates the proxy path, not the \
+                    exact device, emulator, simulator, or Dart runtime that emitted the request.
+                    """
                 ),
             ],
             troubleshootingTips: [

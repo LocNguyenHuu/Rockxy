@@ -17,12 +17,24 @@ Flutter setup has two layers: the Flutter HTTP client path and the underlying iO
 
 - manual setup paths for `Dio`, Dart `HttpClient`, and `package:http`
 - guidance that connects Flutter back to the real device, emulator, or simulator trust path
+- a local validation probe that confirms Rockxy captured the request shape without claiming device or runtime attribution
 
 ## What you still need to do
 
 - make the Flutter client proxy-aware
 - complete the iOS or Android trust path underneath it
 - validate one request before debugging broader app behavior
+
+## Validation limits
+
+The Validate tab is a local capture check. It proves that a Flutter-shaped probe reached Rockxy through the proxy, but it does not prove whether the request came from an iOS device, iOS Simulator, Android Emulator, physical Android device, desktop runtime, or a specific Dart isolate.
+
+After validation succeeds, keep testing the actual target where the app runs:
+
+- use `127.0.0.1` for iOS Simulator or desktop Flutter,
+- use `10.0.2.2` for Android Emulator,
+- use Rockxy's Device Proxy LAN host for physical devices,
+- keep Android user-CA trust limited to debug builds.
 
 ## Related pages
 
