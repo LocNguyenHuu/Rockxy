@@ -455,6 +455,20 @@ struct DeveloperSetupWindowView: View {
                     Text(viewModel.snapshot.verificationState.title)
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                    if let issue = viewModel.activeIssue {
+                        Divider()
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(issue.title)
+                                .font(.subheadline.weight(.semibold))
+                            Text(issue.message)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Button(issue.actionTitle) {
+                                handleIssueAction(issue)
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                    }
                 }
 
                 ScrollView(.horizontal) {
