@@ -6,7 +6,7 @@ import os
 // MARK: - MapLocalSnapshotService
 
 /// Saves a captured response body as a local file for use with Map Local rules.
-/// Files are written to ~/Library/Application Support/com.amunx.rockxy.community/snapshots/.
+/// Files are written under the current Rockxy app support namespace.
 enum MapLocalSnapshotService {
     // MARK: Internal
 

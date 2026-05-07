@@ -1,0 +1,121 @@
+---
+title: Automatic Setup Troubleshooting
+description: Fix common Automatic Setup and Manual Setup problems, including missing traffic, HTTPS trust errors, stale sessions, browser profile issues, and localhost routing.
+---
+
+# Automatic Setup Troubleshooting
+
+Use this page when Automatic Setup or Manual Setup runs, but Rockxy still does not show the traffic you expect.
+
+## Nothing appears in Rockxy
+
+Check the basics first:
+
+- Rockxy capture is started.
+- The proxy port in Rockxy matches the generated setup session.
+- You launched the server or script from the prepared terminal session.
+- You did not open a new terminal tab after setup without running the setup command again.
+- The app is actually making a request after setup.
+
+For Manual Setup, the command must run in the same terminal session that later starts your server, script, or test runner.
+
+## HTTP works, HTTPS fails
+
+This usually means routing works, but certificate trust is incomplete.
+
+Check:
+
+- Rockxy's root certificate is generated.
+- The certificate is trusted in macOS Keychain when required.
+- The generated setup script can see Rockxy's exported certificate path.
+- The runtime you use honors the certificate environment variables it receives.
+
+Some runtimes or libraries use their own certificate store. If the local setup command is correct but HTTPS still fails, continue with [Certificates and Trust](/getting-started/certificates-and-trust).
+
+## The setup script path is missing
+
+Automatic Setup and Manual Setup both depend on Rockxy's generated setup script.
+
+Try this:
+
+1. Open Rockxy.
+2. Make sure the proxy is running.
+3. Open Automatic Setup or Manual Setup again.
+4. Copy or launch from the newly generated command.
+5. Run your target process from that fresh session.
+
+If you copied an old command from notes or chat history, discard it and use the current command from Rockxy.
+
+## The wrong terminal session is being used
+
+Environment variables are inherited by child processes. They are not shared across every terminal window on your Mac.
+
+That means this works:
+
+```sh
+set -a 2>/dev/null || true; source "$HOME/Library/Application Support/Rockxy/setup/rockxy_env_setup.sh"; set +a 2>/dev/null || true
+npm run dev
+```
+
+This may not work:
+
+1. run the setup command in one terminal,
+2. open another terminal,
+3. start the app in the second terminal.
+
+Run the setup command again in each terminal session that starts traffic you want Rockxy to capture.
+
+## AppleScript permission is blocked
+
+Rockxy may need macOS permission to launch or control supported terminal apps for Automatic Setup.
+
+If macOS blocks that launch:
+
+- use Manual Setup,
+- or allow Rockxy under **System Settings > Privacy & Security > Automation** if macOS shows Rockxy there,
+- then try Automatic Setup again.
+
+Manual Setup is the reliable fallback because it only asks you to copy and paste the command yourself.
+
+## Browser opens but HTTPS still fails
+
+Browser setup has two parts:
+
+- the browser profile must use Rockxy's proxy,
+- and the browser must trust Rockxy's root certificate for HTTPS inspection.
+
+If the prepared browser opens but HTTPS requests fail, finish certificate trust first. Firefox can use a separate certificate store, so it may need browser-specific certificate trust even when macOS Keychain is already configured.
+
+## Localhost requests do not appear
+
+Some local tools bypass proxies for `localhost`, `127.0.0.1`, or `::1`. Rockxy's setup session keeps common no-proxy values available because many development tools need loopback access to keep working.
+
+If your target call is to a local server and you want that request to pass through Rockxy, test with an address and client configuration that does not bypass the proxy, or use the target-specific validation flow in Developer Setup Hub first.
+
+## A specific library still bypasses Rockxy
+
+Some libraries ignore standard proxy environment variables or use custom networking stacks.
+
+If one library fails while another runtime request works:
+
+- confirm the setup session captures a simple request first,
+- check the library's own proxy and certificate options,
+- use the target-specific setup guide in Developer Setup Hub,
+- and file an issue with the runtime, library name, version, and a minimal request example.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Automatic Setup" icon="bolt" href="/automatic-setup/automatic-setup">
+    Review what Rockxy prepares when it launches a terminal or browser session.
+  </Card>
+  <Card title="Manual Setup" icon="clipboard" href="/automatic-setup/manual-setup">
+    Copy the setup command into your own terminal as a fallback.
+  </Card>
+  <Card title="Capture Issues" icon="magnifying-glass" href="/troubleshooting/capture-issues">
+    Diagnose general proxy and capture failures.
+  </Card>
+  <Card title="Certificate and HTTPS Issues" icon="certificate" href="/troubleshooting/certificates-and-https-issues">
+    Continue here when HTTPS trust is the blocker.
+  </Card>
+</CardGroup>

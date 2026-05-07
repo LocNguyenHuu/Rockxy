@@ -144,7 +144,7 @@ final class RockxyWorkspaceWindowManager: NSObject {
     private static let logger = Logger(subsystem: RockxyIdentity.current.logSubsystem, category: "WorkspaceTabs")
 
     private weak var coordinator: MainContentCoordinator?
-    private weak var primaryWindow: NSWindow?
+    private(set) weak var primaryWindow: NSWindow?
     private var accessoryControllers: [ObjectIdentifier: WorkspaceTabBarAccessoryController] = [:]
     private var observersByWindow: [ObjectIdentifier: [NSObjectProtocol]] = [:]
 

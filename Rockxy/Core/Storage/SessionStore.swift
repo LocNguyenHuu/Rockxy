@@ -16,9 +16,9 @@ enum SessionStoreError: Error {
 
 /// SQLite-backed persistence layer for HTTP transactions, log entries, and WebSocket frames.
 ///
-/// Data lives at `~/Library/Application Support/com.amunx.rockxy.community/rockxy.sqlite3`.
+/// Data lives under the current Rockxy app support namespace.
 /// Request/response bodies exceeding 1 MB are stored as separate files under
-/// `~/Library/Application Support/com.amunx.rockxy.community/bodies/` and referenced by path in the DB.
+/// its `bodies/` directory and referenced by path in the DB.
 /// Log entries are foreign-keyed to transactions (SET NULL on delete) for correlation.
 /// WebSocket frames cascade-delete with their parent transaction.
 actor SessionStore {

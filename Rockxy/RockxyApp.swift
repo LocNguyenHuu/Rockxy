@@ -47,6 +47,24 @@ struct RockxyApp: App {
         .defaultPosition(.center)
         .windowToolbarStyle(.unifiedCompact)
 
+        Window(String(localized: "Automatic Setup"), id: "automaticSetup") {
+            DeveloperSetupAutomaticWindowView(coordinator: mainCoordinator)
+        }
+        .commandsRemoved()
+        .defaultSize(width: 760, height: 500)
+        .defaultPosition(.center)
+        .windowToolbarStyle(.unifiedCompact)
+        .windowResizability(.contentSize)
+
+        Window(String(localized: "Manual Setup"), id: "manualSetup") {
+            DeveloperSetupManualWindowView(coordinator: mainCoordinator)
+        }
+        .commandsRemoved()
+        .defaultSize(width: 780, height: 540)
+        .defaultPosition(.center)
+        .windowToolbarStyle(.unifiedCompact)
+        .windowResizability(.contentSize)
+
         Window(String(localized: "Map Local"), id: "mapLocal") {
             MapLocalWindowView()
         }
@@ -290,9 +308,7 @@ struct RockxyMenuCommands: Commands {
         viewMenu
         flowMenu
         toolsMenu
-        diffMenu
-        scriptingMenu
-        certificateMenu
+        secondaryMenus
         helpMenu
     }
 
@@ -651,6 +667,14 @@ struct RockxyMenuCommands: Commands {
         }
     }
 
+    @CommandsBuilder
+    private var secondaryMenus: some Commands {
+        diffMenu
+        scriptingMenu
+        certificateMenu
+        setupMenu
+    }
+
     private var certificateMenu: some Commands {
         CommandMenu(String(localized: "Certificate")) {
             Button(String(localized: "Install on This Mac…")) {
@@ -687,6 +711,20 @@ struct RockxyMenuCommands: Commands {
                         showCertificateAlert = true
                     }
                 }
+            }
+        }
+    }
+
+    private var setupMenu: some Commands {
+        CommandMenu(String(localized: "Setup")) {
+            Button(String(localized: "Automatic Setup...")) {
+                openWindow(id: "automaticSetup")
+            }
+
+            Divider()
+
+            Button(String(localized: "Manual Setup...")) {
+                openWindow(id: "manualSetup")
             }
         }
     }

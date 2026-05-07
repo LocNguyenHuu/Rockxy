@@ -190,15 +190,15 @@ struct DeveloperSetupWindowView: View {
             Divider()
 
             DeveloperSetupInspector(
-                target: viewModel.selectedTarget,
                 snapshot: viewModel.snapshot,
                 activeIssue: viewModel.activeIssue,
-                automationPreview: viewModel.currentAutomationPreview,
+                setupModeActions: viewModel.setupModeActions,
                 supportsValidation: viewModel.supportsValidation,
                 showsCertificateShareAction: viewModel.selectedTarget.supportsCertificateSharing,
                 validationInstruction: viewModel.validationInstruction,
+                onOpenManualSetup: { openWindow(id: "manualSetup") },
+                onOpenAutomaticSetup: { openWindow(id: "automaticSetup") },
                 onRunTest: { viewModel.startValidation() },
-                onOpenAutomation: { viewModel.openAutomationSheet() },
                 onShareCertificate: { shareRootCAForSelectedTarget() },
                 onOpenCertificate: { openSettings() },
                 onOpenTools: { openSelectedTool() },
@@ -261,7 +261,7 @@ struct DeveloperSetupWindowView: View {
 
                         if viewModel.supportsAutomation {
                             Button(viewModel.selectedTarget.automationSupport.entryActionTitle) {
-                                viewModel.openAutomationSheet()
+                                openWindow(id: "automaticSetup")
                             }
                             .buttonStyle(.bordered)
                         }

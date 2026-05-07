@@ -1,0 +1,110 @@
+---
+title: Manual Setup
+description: Copy Rockxy's setup command into your own terminal so the current shell session can send traffic through Rockxy.
+---
+
+# Manual Setup
+
+Manual Setup gives you the same scoped Rockxy environment as Automatic Setup, but you decide where to run it.
+
+Use it when you want to prepare your favorite terminal, shell, script runner, or development workflow by hand.
+
+## What manual means
+
+Manual Setup means Rockxy gives you the exact command to prepare the current shell session. You copy that command, paste it into the terminal you want to use, and then start your server or script in that same terminal.
+
+Manual Setup does not mean weaker capture. After the setup command runs, the prepared process should use the same Rockxy proxy and certificate hints as an automatic terminal session.
+
+## How to use it
+
+1. Open Rockxy.
+2. Open the Setup menu or Developer Setup Hub.
+3. Choose **Manual Setup**.
+4. Open your preferred terminal app.
+5. Copy the command from Rockxy.
+6. Paste it into that terminal and press Return.
+7. Start your server, script, test runner, or client in the same terminal.
+8. Trigger a request and confirm the traffic appears in Rockxy.
+
+<img src="/images/ManualSetupRockxy.png" alt="Rockxy Manual Setup window with copyable terminal setup command" />
+
+## The command
+
+The command shown in Rockxy has this shape:
+
+```sh
+set -a 2>/dev/null || true; source "$HOME/Library/Application Support/Rockxy/setup/rockxy_env_setup.sh"; set +a 2>/dev/null || true
+```
+
+Rockxy may show a build-specific Application Support path. Use the command from the app because it reflects your current installation and active proxy state.
+
+## What the command does
+
+The command sources Rockxy's generated setup script into the current shell session.
+
+That script can export values such as:
+
+- `HTTP_PROXY`
+- `HTTPS_PROXY`
+- `ALL_PROXY`
+- lowercase proxy variants used by many command-line tools
+- certificate environment hints when Rockxy has an exported root certificate path
+
+Those values apply to commands launched from that terminal session after the source command runs.
+
+<Note>
+Manual Setup affects the current terminal session. It does not permanently edit `.zshrc`, `.bashrc`, `.bash_profile`, or macOS Network settings.
+</Note>
+
+## Supported shells and terminals
+
+Manual Setup is designed for common macOS terminal workflows, including:
+
+- Apple Terminal
+- iTerm2
+- Ghostty
+- Hyper and other terminal apps
+- Bash, Zsh, and Fish-style workflows when the shell can source a compatible script
+
+If your shell cannot use `source`, open a standard Zsh or Bash session, run the command there, and launch the target process from that session.
+
+## When to choose Manual Setup
+
+Manual Setup is the better choice when:
+
+- you already have a working terminal layout,
+- you use a terminal app Rockxy does not launch,
+- you want to run the setup command inside an existing project directory,
+- your workflow requires extra environment variables,
+- or you want to keep the setup steps visible for debugging.
+
+## What to run after setup
+
+After the command finishes, run the target process from the same terminal. Examples:
+
+```sh
+npm run dev
+python app.py
+ruby server.rb
+go run .
+curl https://example.com
+```
+
+If you open a new terminal tab or window, run the Manual Setup command again in that new session.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Automatic Setup" icon="bolt" href="/automatic-setup/automatic-setup">
+    Let Rockxy open a prepared terminal or browser session for you.
+  </Card>
+  <Card title="Automatic Setup Troubleshooting" icon="triangle-exclamation" href="/automatic-setup/troubleshooting">
+    Diagnose missing traffic, HTTPS errors, and stale setup sessions.
+  </Card>
+  <Card title="Capture Issues" icon="magnifying-glass" href="/troubleshooting/capture-issues">
+    Continue here if Rockxy still does not show traffic.
+  </Card>
+  <Card title="Certificates and Trust" icon="certificate" href="/getting-started/certificates-and-trust">
+    Finish HTTPS trust setup before debugging secure requests.
+  </Card>
+</CardGroup>

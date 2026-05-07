@@ -68,7 +68,7 @@ struct DeveloperSetupViewModelTests {
         #expect(pinnedAfterRemove.contains(.python) == false)
     }
 
-    @Test("Runtime targets advertise terminal automation separately from manual support")
+    @Test("Runtime targets advertise automatic terminal setup separately from manual support")
     func automationSupportForValidatedRuntimes() {
         #expect(SetupTarget.python.manualSupport == .availableNow)
         #expect(SetupTarget.python.automationSupport == .runtimeTerminal)
@@ -77,12 +77,12 @@ struct DeveloperSetupViewModelTests {
         #expect(SetupTarget.postman.automationSupport == .none)
     }
 
-    @Test("Automation preview exists for terminal runtime targets")
+    @Test("Automatic setup preview exists for terminal runtime targets")
     func automationPreviewForRuntimeTargets() {
         let preview = SetupTarget.automationPreview(for: .python)
 
         #expect(preview?.title == "Automatic Setup")
-        #expect(preview?.primaryActionTitle == "Open New Terminal")
+        #expect(preview?.primaryActionTitle == "Open Prepared Terminal")
         #expect(preview?.steps.count == 4)
     }
 
@@ -134,7 +134,7 @@ struct DeveloperSetupViewModelTests {
         #expect(sections.first?.targets.map(\.id) == [.visionPro])
     }
 
-    @Test("Source list filter finds runtime targets by automation support text")
+    @Test("Source list filter finds runtime targets by automatic setup text")
     func sourceListFilterFindsAutomationTargets() {
         let viewModel = DeveloperSetupViewModel(coordinator: MainContentCoordinator())
         viewModel.sourceListSearchText = "automatic setup"
@@ -197,6 +197,62 @@ struct DeveloperSetupViewModelTests {
 
         viewModel.openAutomationSheet()
         #expect(viewModel.showsAutomationSheet == false)
+    }
+
+    @Test("Inspector setup actions present Manual and Automatic as modes")
+    func inspectorSetupActionsPresentModes() {
+        let viewModel = DeveloperSetupViewModel(coordinator: MainContentCoordinator())
+
+        let actions = viewModel.setupModeActions
+
+        #expect(actions.preferredMode == .automatic)
+        #expect(actions.manualTitle == "Manual Setup")
+        #expect(actions.automaticTitle == "Automatic Setup")
+        #expect(actions.isAutomaticEnabled)
+        #expect(actions.manualCaption.contains("guide"))
+        #expect(actions.automaticCaption.contains("scoped"))
+    }
+
+    @Test("Inspector setup actions keep Manual available when Automatic is not shipped")
+    func inspectorSetupActionsKeepManualAvailableForManualTargets() {
+        let viewModel = DeveloperSetupViewModel(coordinator: MainContentCoordinator())
+        viewModel.selectTarget(.postman)
+
+        let actions = viewModel.setupModeActions
+
+        #expect(actions.preferredMode == .manual)
+        #expect(actions.manualTitle == "Manual Setup")
+        #expect(actions.automaticTitle == "Automatic Setup")
+        #expect(actions.isAutomaticEnabled == false)
+        #expect(actions.automaticCaption.contains("Manual Setup is available"))
+    }
+
+    @Test("Inspector setup action copy stays free of packaging and paywall language")
+    func inspectorSetupActionsStayLicenseNeutral() {
+        let targets = SetupTarget.allSections.flatMap(\.targets)
+        let blockedTerms = [
+            "Pro",
+            "Upgrade",
+            "License",
+            "subscription",
+            "premium",
+            "paid",
+            "paywall",
+        ]
+
+        for target in targets {
+            let actions = SetupModeActionState(target: target)
+            let copy = [
+                actions.manualTitle,
+                actions.manualCaption,
+                actions.automaticTitle,
+                actions.automaticCaption,
+            ].joined(separator: " ")
+
+            for term in blockedTerms {
+                #expect(copy.range(of: "\\b\(term)\\b", options: [.regularExpression, .caseInsensitive]) == nil)
+            }
+        }
     }
 
     @Test("Reachable LAN address prefers a concrete non-wildcard listen address")
@@ -358,7 +414,7 @@ struct DeveloperSetupViewModelTests {
         #expect(viewModel.currentGuideContent != nil)
         #expect(viewModel.supportsAutomation == false)
         #expect(viewModel.currentAutomationPreview == nil)
-        #expect(viewModel.bottomStatusText.contains("Manual only"))
+        #expect(viewModel.bottomStatusText.contains("Manual Setup"))
         #expect(viewModel.infoBannerText.contains("device, emulator, simulator"))
     }
 
@@ -665,7 +721,7 @@ struct DeveloperSetupViewModelTests {
             #expect(target.currentSupportSummary.localizedCaseInsensitiveContains("validated") == false)
         }
 
-        #expect(SetupSupportStatus.availableNow.bannerTitle == "Manual setup available")
+        #expect(SetupSupportStatus.availableNow.bannerTitle == "Setup guide available")
     }
 
     @Test("Generated Python requests snippet points to loopback proxy and certificate path")

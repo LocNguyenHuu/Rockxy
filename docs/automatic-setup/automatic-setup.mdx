@@ -1,0 +1,106 @@
+---
+title: Automatic Setup
+description: Open a prepared Rockxy terminal or browser session for runtimes and tools that do not automatically follow the macOS system proxy.
+---
+
+# Automatic Setup
+
+Automatic Setup prepares a scoped session so supported terminals, runtimes, and browsers can send traffic through Rockxy without changing your whole macOS network configuration.
+
+Use it when the app or script you are debugging runs from a terminal, runtime, browser profile, or local development tool that may ignore the system proxy.
+
+## What it solves
+
+Some developer tools do not automatically use the macOS system proxy. That commonly affects:
+
+- Node.js scripts and servers
+- Python scripts and workers
+- Ruby scripts and Rails-style local services
+- Go, Rust, Java, and cURL workflows
+- browser profiles launched outside your normal profile
+- Electron and framework-adjacent local development flows
+
+When those processes do not inherit proxy and certificate settings, Rockxy may be running correctly but still show no traffic from that target.
+
+## What Rockxy does
+
+Automatic Setup prepares a new session with Rockxy proxy and certificate hints already applied.
+
+For terminal-oriented flows, Rockxy generates a local setup script and launches the selected terminal with that script sourced. The script exports proxy environment variables such as `HTTP_PROXY`, `HTTPS_PROXY`, and related certificate hints for the current session.
+
+For browser-oriented flows, Rockxy opens a prepared browser profile or browser launch mode that points at the active Rockxy proxy.
+
+<Note>
+Automatic Setup is scoped to the launched session. It does not edit your shell profile, permanently change your OS proxy, or make every app on your Mac use Rockxy.
+</Note>
+
+## How to use it
+
+1. Open Rockxy.
+2. Open the Setup menu or Developer Setup Hub.
+3. Choose **Automatic Setup**.
+4. Pick the terminal or browser you want to launch.
+5. Click **Open Prepared Terminal** or **Open Browser**.
+6. Start your server, script, test runner, or client from that prepared session.
+7. Trigger a request and confirm the traffic appears in Rockxy.
+
+<img src="/images/AutomaticSetupRockxy.png" alt="Rockxy Automatic Setup window for prepared terminal and browser sessions" />
+
+## Supported launch targets
+
+The Automatic Setup window currently models these terminal choices:
+
+- Apple Terminal
+- iTerm2
+- Ghostty
+- My own Terminal
+
+For browsers, Rockxy models:
+
+- Google Chrome with a new prepared profile
+- Google Chrome with the current profile
+- Firefox
+- Brave as a future option
+
+If you choose **My own Terminal**, Rockxy copies the setup command for you so you can paste it into any shell that supports `source`.
+
+## Why the generated script exists
+
+Rockxy writes a setup script under Rockxy's Application Support directory. The script is generated from the current app state, including the active proxy host, proxy port, and exported root certificate path when available.
+
+The prepared terminal sources that script before you run your own server or command. That keeps the setup repeatable while avoiding permanent shell changes.
+
+The source command follows this shape:
+
+```sh
+set -a 2>/dev/null || true; source "$HOME/Library/Application Support/Rockxy/setup/rockxy_env_setup.sh"; set +a 2>/dev/null || true
+```
+
+Rockxy may show a more specific path in the app depending on the build, bundle identity, and your macOS Application Support directory.
+
+## When to use Manual Setup instead
+
+Use [Manual Setup](/automatic-setup/manual-setup) when:
+
+- you want to use a terminal app Rockxy does not launch directly,
+- you want to inspect the command before running it,
+- AppleScript permissions are blocked,
+- you are documenting a setup path for a teammate,
+- or you want the most explicit version of what the target process needs.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Manual Setup" icon="clipboard" href="/automatic-setup/manual-setup">
+    Copy the setup command into your own terminal session.
+  </Card>
+  <Card title="Automatic Setup Troubleshooting" icon="triangle-exclamation" href="/automatic-setup/troubleshooting">
+    Fix missing traffic, certificate errors, browser profile issues, and localhost surprises.
+  </Card>
+  <Card title="Developer Setup Hub" icon="screwdriver-wrench" href="/getting-started/developer-setup-hub">
+    Choose the exact runtime, browser, framework, simulator, or device you are debugging.
+  </Card>
+  <Card title="Terminal Runtimes and Frameworks" icon="terminal" href="/setup-guides/terminal-runtimes-and-frameworks">
+    Continue with target-specific runtime guides.
+  </Card>
+</CardGroup>
