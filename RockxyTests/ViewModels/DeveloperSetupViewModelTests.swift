@@ -734,8 +734,60 @@ struct DeveloperSetupViewModelTests {
         )
 
         #expect(snippet?.contains("http://127.0.0.1:9090") == true)
-        #expect(snippet?.contains("verify=\"/tmp/RockxyRootCA.pem\"") == true)
+        #expect(snippet?.contains("target_url = \"https://<your-host>/<your-path>\"") == true)
+        #expect(snippet?.contains("proxy_url = \"http://127.0.0.1:9090\"") == true)
+        #expect(snippet?.contains("ca_bundle = \"/tmp/RockxyRootCA.pem\"") == true)
+        #expect(snippet?.contains("verify=ca_bundle") == true)
         #expect(snippet?.contains("https://<your-host>/<your-path>") == true)
+        #expect(snippet?.contains("verify=False") == false)
+    }
+
+    @Test("Generated Python library snippets use explicit proxy and CA variables")
+    func generatedPythonLibrarySnippetsUseExplicitProxyAndCA() throws {
+        let snippetIDs: [SetupSnippetID] = [
+            .pythonRequests,
+            .pythonHTTPX,
+            .pythonAIOHTTP,
+            .pythonURLLib3,
+        ]
+
+        for snippetID in snippetIDs {
+            let snippet = try #require(DeveloperSetupWorkflowCatalog.generatedSnippet(
+                for: .python,
+                snippetID: snippetID,
+                port: 9_090,
+                certificatePath: "/tmp/RockxyRootCA.pem"
+            ))
+
+            #expect(snippet.contains("target_url = \"https://<your-host>/<your-path>\""), "\(snippetID)")
+            #expect(snippet.contains("proxy_url = \"http://127.0.0.1:9090\""), "\(snippetID)")
+            #expect(snippet.contains("ca_bundle = \"/tmp/RockxyRootCA.pem\""), "\(snippetID)")
+            #expect(snippet.contains("verify=False") == false, "\(snippetID)")
+        }
+
+        let httpx = try #require(DeveloperSetupWorkflowCatalog.generatedSnippet(
+            for: .python,
+            snippetID: .pythonHTTPX,
+            port: 9_090,
+            certificatePath: "/tmp/RockxyRootCA.pem"
+        ))
+        #expect(httpx.contains("trust_env=False"))
+
+        let aiohttp = try #require(DeveloperSetupWorkflowCatalog.generatedSnippet(
+            for: .python,
+            snippetID: .pythonAIOHTTP,
+            port: 9_090,
+            certificatePath: "/tmp/RockxyRootCA.pem"
+        ))
+        #expect(aiohttp.contains("ssl.create_default_context(cafile=ca_bundle)"))
+
+        let urllib3 = try #require(DeveloperSetupWorkflowCatalog.generatedSnippet(
+            for: .python,
+            snippetID: .pythonURLLib3,
+            port: 9_090,
+            certificatePath: "/tmp/RockxyRootCA.pem"
+        ))
+        #expect(urllib3.contains("ca_certs=ca_bundle"))
     }
 
     @Test("Generated Node.js snippet includes proxy and certificate wiring")
@@ -1132,6 +1184,46 @@ struct DeveloperSetupViewModelTests {
 
         #expect(snippet?.contains("http://127.0.0.1:43210/.well-known/rockxy/dev-setup/python") == true)
         #expect(snippet?.contains("https://<your-host>/<your-path>") == false)
+    }
+
+    @Test("Python validation uses the selected library snippet")
+    func generatedPythonValidationSnippetUsesSelectedLibrary() throws {
+        let workflow = DeveloperSetupWorkflowCatalog.workflow(for: .python)
+        let validation = try validationSpec(for: .python)
+
+        let httpx = DeveloperSetupWorkflowCatalog.generatedValidationSnippet(
+            for: .python,
+            workflow: workflow,
+            validation: validation,
+            selectedSnippetID: .pythonHTTPX,
+            port: 9_090,
+            certificatePath: "/tmp/RockxyRootCA.pem"
+        )
+        #expect(httpx?.contains("import httpx") == true)
+        #expect(httpx?.contains("import requests") == false)
+        #expect(httpx?.contains(validation.urlString) == true)
+
+        let aiohttp = DeveloperSetupWorkflowCatalog.generatedValidationSnippet(
+            for: .python,
+            workflow: workflow,
+            validation: validation,
+            selectedSnippetID: .pythonAIOHTTP,
+            port: 9_090,
+            certificatePath: "/tmp/RockxyRootCA.pem"
+        )
+        #expect(aiohttp?.contains("import aiohttp") == true)
+        #expect(aiohttp?.contains(validation.urlString) == true)
+
+        let urllib3 = DeveloperSetupWorkflowCatalog.generatedValidationSnippet(
+            for: .python,
+            workflow: workflow,
+            validation: validation,
+            selectedSnippetID: .pythonURLLib3,
+            port: 9_090,
+            certificatePath: "/tmp/RockxyRootCA.pem"
+        )
+        #expect(urllib3?.contains("import urllib3") == true)
+        #expect(urllib3?.contains(validation.urlString) == true)
     }
 
     @Test("Node validation uses HTTP-capable axios snippet for local probes")
