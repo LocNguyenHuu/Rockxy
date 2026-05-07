@@ -71,7 +71,7 @@ enum SetupSupportStatus: String, Equatable {
     var bannerTitle: String {
         switch self {
         case .availableNow:
-            String(localized: "Manual setup available")
+            String(localized: "Setup guide available")
         case .guideOnly:
             String(localized: "Guide-only target")
         case .notYetSupported:
@@ -92,7 +92,7 @@ enum SetupAutomationSupport: String, Equatable {
     var title: String {
         switch self {
         case .none:
-            String(localized: "Manual only")
+            String(localized: "Manual Setup")
         case .runtimeTerminal:
             String(localized: "Automatic Setup")
         case .deviceAutomation:
@@ -103,10 +103,10 @@ enum SetupAutomationSupport: String, Equatable {
     var badgeTitle: String {
         switch self {
         case .none:
-            String(localized: "Manual only")
+            String(localized: "Manual Setup")
         case .runtimeTerminal,
              .deviceAutomation:
-            String(localized: "Automation available")
+            String(localized: "Automatic Setup")
         }
     }
 
@@ -130,7 +130,7 @@ enum SetupAutomationSupport: String, Equatable {
         case .none:
             String(localized: "Use Manual Setup")
         case .runtimeTerminal:
-            String(localized: "Open New Terminal")
+            String(localized: "Open Prepared Terminal")
         case .deviceAutomation:
             String(localized: "Start Automatic Device Setup")
         }
@@ -175,6 +175,63 @@ enum SetupActionKind: Equatable {
     case openCertificate
     case copySnippet
     case runValidation
+}
+
+// MARK: - SetupModeSelection
+
+enum SetupModeSelection: String, CaseIterable, Identifiable, Equatable {
+    case manual
+    case automatic
+
+    // MARK: Internal
+
+    var id: String {
+        rawValue
+    }
+
+    var title: String {
+        switch self {
+        case .manual:
+            String(localized: "Manual Setup")
+        case .automatic:
+            String(localized: "Automatic Setup")
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .manual:
+            "list.bullet.rectangle"
+        case .automatic:
+            "bolt.fill"
+        }
+    }
+}
+
+// MARK: - SetupModeActionState
+
+struct SetupModeActionState: Equatable {
+    // MARK: Lifecycle
+
+    init(target: SetupTarget) {
+        preferredMode = target.automationSupport.isAvailable ? .automatic : .manual
+        manualTitle = String(localized: "Manual Setup")
+        manualCaption = String(localized: "Follow the proxy, certificate, snippet, device, or runtime guide.")
+        automaticTitle = String(localized: "Automatic Setup")
+        isAutomaticEnabled = target.automationSupport.isAvailable
+        automaticCaption = target.automationSupport.isAvailable
+            ? String(localized: "Open a scoped Rockxy-prepared session for this target.")
+            : String(localized: "Manual Setup is available for this target; Automatic Setup is not shipped here yet.")
+    }
+
+    // MARK: Internal
+
+    let preferredMode: SetupModeSelection
+    let manualTitle: String
+    let manualCaption: String
+    let automaticTitle: String
+    let automaticCaption: String
+    let isAutomaticEnabled: Bool
 }
 
 // MARK: - SetupIssue

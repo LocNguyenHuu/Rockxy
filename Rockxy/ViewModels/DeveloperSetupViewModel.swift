@@ -102,6 +102,10 @@ final class DeveloperSetupViewModel {
         SetupTarget.automationPreview(for: selectedTarget)
     }
 
+    var setupModeActions: SetupModeActionState {
+        SetupModeActionState(target: selectedTarget)
+    }
+
     var supportsValidation: Bool {
         selectedTarget.supportStatus == .availableNow && currentWorkflow.supportsValidation
     }
@@ -129,7 +133,7 @@ final class DeveloperSetupViewModel {
             if selectedTarget.automationSupport.isAvailable {
                 return [
                     selectedTarget.currentSupportSummary,
-                    String(localized: "Automatic Setup is available separately for this runtime."),
+                    String(localized: "Automatic Setup can prepare a scoped session for this target; Manual Setup remains available."),
                 ].joined(separator: " ")
             }
 
@@ -154,7 +158,7 @@ final class DeveloperSetupViewModel {
 
         let automationTitle = selectedTarget.automationSupport.isAvailable
             ? selectedTarget.automationSupport.badgeTitle
-            : String(localized: "Manual only")
+            : String(localized: "Manual Setup")
 
         return [
             selectedTarget.title,

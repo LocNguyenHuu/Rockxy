@@ -88,7 +88,7 @@ struct DeveloperSetupAutomationSheet: View {
     }
 
     private var stepsCard: some View {
-        card(title: String(localized: "Automation flow"), systemImage: "list.number") {
+        card(title: String(localized: "Automatic setup flow"), systemImage: "list.number") {
             VStack(alignment: .leading, spacing: 14) {
                 ForEach(preview.steps) { step in
                     VStack(alignment: .leading, spacing: 4) {
@@ -106,7 +106,7 @@ struct DeveloperSetupAutomationSheet: View {
     }
 
     private var fallbackCard: some View {
-        card(title: String(localized: "Manual fallback"), systemImage: "arrow.uturn.backward") {
+        card(title: String(localized: "Manual Setup fallback"), systemImage: "arrow.uturn.backward") {
             Text(preview.supplementaryNote)
                 .font(.subheadline)
                 .foregroundStyle(.primary)

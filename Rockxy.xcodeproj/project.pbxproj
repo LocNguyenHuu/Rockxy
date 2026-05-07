@@ -24,10 +24,10 @@
 		DCA9C5BA2F627204005B1552 /* NIOPosix in Frameworks */ = {isa = PBXBuildFile; productRef = DCA9A6442F624B60005B1552 /* NIOPosix */; };
 		DCA9C5BB2F627204005B1552 /* NIOSSL in Frameworks */ = {isa = PBXBuildFile; productRef = DCA9A6452F624B60005B1552 /* NIOSSL */; };
 		DCA9C5BC2F627204005B1552 /* NIOWebSocket in Frameworks */ = {isa = PBXBuildFile; productRef = DCA9A6462F624B60005B1552 /* NIOWebSocket */; };
-		EA8D5B652FA1000100A4F001 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = EA8D5B642FA1000100A4F001 /* Sparkle */; };
 		DCA9D00D2F700001005B1552 /* RockxyHelperTool in Embed Helper Tool */ = {isa = PBXBuildFile; fileRef = DCA9D0012F700000005B1552 /* RockxyHelperTool */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		DCA9D00F2F700001005B1552 /* com.amunx.rockxy.helper.plist in Copy LaunchDaemon Plist */ = {isa = PBXBuildFile; fileRef = DCA9D00E2F700001005B1552 /* com.amunx.rockxy.helper.plist */; };
 		E25EC1AF9EA69827D8EA666D /* SidebarSSLProxyingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BF2554950304269415B1F9D /* SidebarSSLProxyingTests.swift */; };
+		EA8D5B652FA1000100A4F001 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = EA8D5B642FA1000100A4F001 /* Sparkle */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
