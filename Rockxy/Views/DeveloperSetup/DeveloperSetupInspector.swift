@@ -5,15 +5,15 @@ import SwiftUI
 struct DeveloperSetupInspector: View {
     // MARK: Internal
 
-    let target: SetupTarget
     let snapshot: SetupSnapshot
     let activeIssue: SetupIssue?
-    let automationPreview: SetupAutomationPreview?
+    let setupModeActions: SetupModeActionState
     let supportsValidation: Bool
     let showsCertificateShareAction: Bool
     let validationInstruction: String
+    let onOpenManualSetup: () -> Void
+    let onOpenAutomaticSetup: () -> Void
     let onRunTest: () -> Void
-    let onOpenAutomation: () -> Void
     let onShareCertificate: () -> Void
     let onOpenCertificate: () -> Void
     let onOpenTools: () -> Void
@@ -22,19 +22,67 @@ struct DeveloperSetupInspector: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
+                setupModesCard
                 readinessCard
                 validationCard
                 troubleshootingCard
-                if let automationPreview {
-                    automationCard(preview: automationPreview)
-                }
             }
             .padding(16)
         }
         .background(Color(nsColor: .windowBackgroundColor))
+        .onAppear {
+            selectedSetupMode = setupModeActions.preferredMode
+        }
+        .onChange(of: setupModeActions) { _, newActions in
+            selectedSetupMode = newActions.preferredMode
+        }
     }
 
     // MARK: Private
+
+    @State private var selectedSetupMode: SetupModeSelection = .manual
+
+    private var setupModesCard: some View {
+        inspectorSection(
+            title: String(localized: "Setup Modes"),
+            systemImage: "slider.horizontal.2.square"
+        ) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 8) {
+                    Text(String(localized: "Use"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Picker("", selection: $selectedSetupMode) {
+                        Label(setupModeActions.manualTitle, systemImage: SetupModeSelection.manual.systemImage)
+                            .tag(SetupModeSelection.manual)
+                        Label(setupModeActions.automaticTitle, systemImage: SetupModeSelection.automatic.systemImage)
+                            .tag(SetupModeSelection.automatic)
+                            .disabled(!setupModeActions.isAutomaticEnabled)
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .frame(maxWidth: .infinity)
+
+                    Button(openSelectedSetupModeTitle) {
+                        openSelectedSetupMode()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(selectedSetupMode == .automatic && !setupModeActions.isAutomaticEnabled)
+                }
+
+                Text(selectedSetupModeCaption)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(setupReadinessHint)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
 
     private var readinessCard: some View {
         inspectorSection(
@@ -159,34 +207,6 @@ struct DeveloperSetupInspector: View {
         }
     }
 
-    private func automationCard(preview: SetupAutomationPreview) -> some View {
-        inspectorSection(
-            title: preview.title,
-            systemImage: "terminal"
-        ) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text(target.automationSupport.badgeTitle)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color(nsColor: .systemBlue))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(
-                        Capsule(style: .continuous)
-                            .fill(Color(nsColor: .systemBlue).opacity(0.12))
-                    )
-
-                Text(preview.summary)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                Button(target.automationSupport.entryActionTitle) {
-                    onOpenAutomation()
-                }
-                .buttonStyle(.bordered)
-            }
-        }
-    }
-
     private func readinessRow(title: String, value: String) -> some View {
         HStack(spacing: 8) {
             Text(title)
@@ -196,6 +216,44 @@ struct DeveloperSetupInspector: View {
             Text(value)
                 .font(.caption.weight(.medium))
                 .foregroundStyle(.primary)
+        }
+    }
+
+    private var selectedSetupModeCaption: String {
+        switch selectedSetupMode {
+        case .manual:
+            setupModeActions.manualCaption
+        case .automatic:
+            setupModeActions.automaticCaption
+        }
+    }
+
+    private var openSelectedSetupModeTitle: String {
+        switch selectedSetupMode {
+        case .manual:
+            String(localized: "Open...")
+        case .automatic:
+            String(localized: "Open...")
+        }
+    }
+
+    private var setupReadinessHint: String {
+        if snapshot.proxyRunning && snapshot.certificateTrusted {
+            return String(localized: "Proxy and certificate are ready. Setup can still be rerun for a fresh session.")
+        }
+
+        return String(localized: "Readiness below shows current proxy and certificate state; setup can be rerun anytime.")
+    }
+
+    private func openSelectedSetupMode() {
+        switch selectedSetupMode {
+        case .manual:
+            onOpenManualSetup()
+        case .automatic:
+            guard setupModeActions.isAutomaticEnabled else {
+                return
+            }
+            onOpenAutomaticSetup()
         }
     }
 

@@ -43,6 +43,14 @@
         ]
       },
       {
+        "group": "Automatic Setup",
+        "pages": [
+          "automatic-setup/automatic-setup",
+          "automatic-setup/manual-setup",
+          "automatic-setup/troubleshooting"
+        ]
+      },
+      {
         "group": "Traffic Modification",
         "pages": [
           "features/rules",

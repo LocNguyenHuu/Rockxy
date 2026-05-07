@@ -517,8 +517,8 @@ extension SetupTarget {
                 title: String(localized: "Automatic Setup"),
                 summary: String(
                     localized: """
-                    Automatic Setup prepares a terminal session for supported runtimes.
-                    It keeps the same target model, but opens a prepared shell before you run your app or script.
+                    Automatic Setup prepares a scoped terminal session for supported runtimes.
+                    It uses the same proxy and certificate model as Manual Setup, then opens a prepared shell before you run your app or script.
                     """
                 ),
                 primaryActionTitle: target.automationSupport.sheetPrimaryActionTitle,
@@ -560,7 +560,7 @@ extension SetupTarget {
             return SetupAutomationPreview(
                 title: String(localized: "Automatic Device Setup"),
                 summary: String(
-                    localized: "This preview describes a future device-specific automation route from the same target detail."
+                    localized: "This preview describes a device-specific setup route from the same target detail."
                 ),
                 primaryActionTitle: target.automationSupport.sheetPrimaryActionTitle,
                 supplementaryNote: String(localized: "Manual setup remains the source of truth."),
