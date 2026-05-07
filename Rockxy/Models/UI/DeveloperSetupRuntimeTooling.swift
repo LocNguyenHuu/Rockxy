@@ -18,7 +18,8 @@ enum DeveloperSetupRuntimeTooling {
             let pathCandidates = executableURLsOnPath(named: "python3")
             return executableReadiness(
                 title: "Python 3",
-                urls: [URL(fileURLWithPath: "/usr/bin/python3")] + pathCandidates
+                urls: [URL(fileURLWithPath: "/usr/bin/python3")] + pathCandidates,
+                missingNote: "Python validation needs a local python3 executable. Install Python 3, or make sure python3 is available on PATH, then rerun the Python setup flow."
             )
         case .nodeJS:
             return executableReadiness(
@@ -158,7 +159,13 @@ enum DeveloperSetupRuntimeTooling {
         return urls
     }
 
-    private static func executableReadiness(title: String, urls: [URL]) -> SetupRuntimeReadiness {
+    private static func executableReadiness(
+        title: String,
+        urls: [URL],
+        missingNote: String? = nil
+    )
+        -> SetupRuntimeReadiness
+    {
         let fileManager = FileManager.default
         if urls.contains(where: { fileManager.isExecutableFile(atPath: $0.path) }) {
             return SetupRuntimeReadiness(isSatisfied: true, note: nil)
@@ -166,7 +173,7 @@ enum DeveloperSetupRuntimeTooling {
 
         return SetupRuntimeReadiness(
             isSatisfied: false,
-            note: "\(title) is not installed or not on a standard executable path for this Mac yet."
+            note: missingNote ?? "\(title) is not installed or not on a standard executable path for this Mac yet."
         )
     }
 

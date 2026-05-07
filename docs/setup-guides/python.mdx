@@ -5,7 +5,7 @@ description: Configure Python HTTP clients to use Rockxy for HTTPS inspection, r
 
 # Python
 
-Python is a first-class Developer Setup Hub runtime target.
+Python is a first-class Developer Setup Hub runtime target. Use this guide when you want a small, repeatable Python request to appear in Rockxy before you debug a larger app, worker, test suite, or API client.
 
 ## Support in Rockxy
 
@@ -18,12 +18,146 @@ Python is a first-class Developer Setup Hub runtime target.
 - runtime-specific snippets for `requests`, `httpx`, `aiohttp`, and `urllib3`
 - proxy host and port from the live Rockxy runtime
 - certificate guidance for trusting the exported root certificate
+- a local validation probe that can use the Python client snippet you selected
+
+<Frame caption="Python localhost demo captured in Rockxy through the active proxy port.">
+  <img src="/images/DemoPythonRockxy.png" alt="Rockxy capturing a Python localhost request to 127.0.0.1 demo endpoint" />
+</Frame>
 
 ## What you still need to do
 
 - point the Python client at Rockxy's proxy
 - trust the exported root certificate in the path your client uses
 - run one known request before debugging broader traffic
+
+## Recommended localhost demo
+
+The fastest proof path is a local Python HTTP server plus a Python client configured to use Rockxy as an explicit proxy. This keeps the expected host easy to verify: Rockxy should show `127.0.0.1`.
+
+## Step 1: prepare Rockxy
+
+1. Open Rockxy.
+2. Start capture.
+3. Confirm recording is not paused.
+4. Read the active proxy port from the Rockxy toolbar.
+
+The screenshot above uses `8888`, shown as `Listening on 0.0.0.0:8888`. Your app may show a different port. Use the port Rockxy shows now, not a hard-coded old value from another terminal.
+
+## Step 2: prepare the Python sample project
+
+Open the Python sample guidance project in a terminal and install it in editable mode:
+
+```sh
+cd Rockxy-Python-Sample-Guidance
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install -U pip
+python -m pip install -e ".[all,test]"
+```
+
+If you use the macOS system Python and see an `urllib3` OpenSSL warning, keep the sample's `urllib3` dependency on the pinned compatible range or use a Python.org/Homebrew Python build with OpenSSL.
+
+## Step 3: start the local demo server
+
+In the first terminal, keep the demo server running:
+
+```sh
+python scripts/demo_server.py
+```
+
+The demo server listens on `127.0.0.1:8000` and returns a small JSON response from `/demo`.
+
+## Step 4: run one Python client through Rockxy
+
+In a second terminal, activate the same virtual environment and export the target URL plus the active Rockxy proxy URL. Replace `8888` with the port shown in Rockxy if yours is different.
+
+```sh
+cd Rockxy-Python-Sample-Guidance
+. .venv/bin/activate
+
+export ROCKXY_PROXY_URL="http://127.0.0.1:8888"
+export ROCKXY_TARGET_URL="http://127.0.0.1:8000/demo"
+
+python examples/requests_example.py
+```
+
+Expected terminal output:
+
+```text
+status=200
+{
+  "host": "127.0.0.1:8000",
+  "message": "Hello from the Rockxy Python localhost demo.",
+  "path": "/demo"
+}
+```
+
+Expected Rockxy result:
+
+- the traffic list includes `127.0.0.1/demo`
+- the selected request shows `GET 200 OK http://127.0.0.1:8000/demo`
+- the request headers include a Python user agent such as `python-requests/...`
+- the response body contains the demo JSON
+
+After `requests` works, run the same target through the other clients:
+
+```sh
+python examples/httpx_example.py
+python examples/aiohttp_example.py
+python examples/urllib3_example.py
+python scripts/run_all_examples.py
+```
+
+## Developer Setup Hub flow
+
+1. Open Developer Setup Hub and choose **Python**.
+2. Confirm Python 3 is available on this Mac.
+3. Choose the client library your project actually uses: `requests`, `httpx`, `aiohttp`, or `urllib3`.
+4. Export or trust the Rockxy root certificate so the snippet has a CA bundle path.
+5. Copy the generated snippet or open a prepared terminal from Automatic Setup.
+6. Run the local validation probe first.
+7. After Rockxy captures the probe, run the real script, worker, test, or app flow.
+
+## Library notes
+
+Rockxy's snippets prefer explicit proxy and certificate settings so the behavior is easy to inspect.
+
+| Library | What the snippet sets |
+| --- | --- |
+| `requests` | `proxies`, `verify`, and `session.trust_env = False` |
+| `httpx` | `Client(proxy=..., verify=..., trust_env=False)` |
+| `aiohttp` | per-request `proxy` plus an `ssl.create_default_context(cafile=...)` context |
+| `urllib3` | `ProxyManager(..., ca_certs=...)` |
+
+Avoid disabling TLS verification in your real project. If HTTPS fails, fix certificate trust or the CA bundle path instead of turning verification off.
+
+## Localhost and HTTPS cases
+
+Use `http://127.0.0.1:8000/demo` for the showcase demo because it proves the Python script, the sample server, and the Rockxy proxy path without adding certificate trust as a variable.
+
+Use an external HTTPS URL only when you want to verify TLS interception. For HTTPS, export or trust Rockxy's root certificate first, then point the selected Python library at the exported CA bundle path. Seeing `example.com` in Rockxy means your Python client requested `example.com`; it does not prove the localhost demo path.
+
+## Automatic and Manual Setup
+
+Automatic Setup and Manual Setup prepare the shell session with proxy and certificate environment variables. That helps scripts and tools that honor `HTTP_PROXY`, `HTTPS_PROXY`, `REQUESTS_CA_BUNDLE`, or `SSL_CERT_FILE`.
+
+The library snippets remain useful even inside a prepared terminal because they show the exact proxy and certificate options your Python client needs.
+
+## Troubleshooting
+
+| Problem | Next action |
+| --- | --- |
+| Python 3 is unavailable | Install Python 3 or make sure `python3` is on `PATH`, then rerun the Python setup flow. |
+| `Connection refused` for `127.0.0.1:<Rockxy port>` | Start capture in Rockxy, then update `ROCKXY_PROXY_URL` to the active toolbar port. |
+| `status=200` appears but Rockxy does not capture it | The script probably reached the target directly or another proxy is listening on that port. Re-export `ROCKXY_PROXY_URL` with Rockxy's active port and rerun the script. |
+| Rockxy shows `example.com` | The target URL is still an external HTTPS example. Set `ROCKXY_TARGET_URL=http://127.0.0.1:8000/demo` for the localhost demo. |
+| Demo target refuses the connection | Start `python scripts/demo_server.py` and keep that server terminal open while the client runs. |
+| Proxy stopped | Start capture in Rockxy before running the validation probe. |
+| Recording paused | Resume recording so the validation probe can appear in the traffic list. |
+| Certificate unavailable | Generate, trust, and export the Rockxy root certificate, then copy the refreshed snippet. |
+| Allow List hides the probe | Add the local validation URL to the Allow List or temporarily disable the Allow List. |
+| Probe times out | Make sure the selected snippet is running in the same prepared session and points at Rockxy's current proxy port. |
+| HTTP works but HTTPS fails | Check the CA bundle path and the client library's certificate options. |
 
 ## Related pages
 

@@ -488,7 +488,12 @@ enum DeveloperSetupWorkflowCatalog {
         -> String?
     {
         let resolvedValidation = validation ?? workflow.validation
-        let validationSnippetID = resolvedValidation?.preferredSnippetID ?? selectedSnippetID
+        let validationSnippetID = validationSnippetID(
+            for: targetID,
+            workflow: workflow,
+            validation: resolvedValidation,
+            selectedSnippetID: selectedSnippetID
+        )
         let proxyURL = "http://127.0.0.1:\(port)"
         let rawCertificatePath = certificatePath ?? certificatePathPlaceholder
         let validationURL = resolvedValidation?.urlString ?? validationURL(for: targetID)
@@ -536,28 +541,49 @@ enum DeveloperSetupWorkflowCatalog {
         case dart
     }
 
+    private static func validationSnippetID(
+        for targetID: SetupTarget.ID,
+        workflow: SetupWorkflow,
+        validation: SetupValidationSpec?,
+        selectedSnippetID: SetupSnippetID
+    )
+        -> SetupSnippetID
+    {
+        // Python validation should mirror the library tab the user selected so the
+        // probe proves the exact client configuration they are trying to use.
+        if targetID == .python, workflow.snippets.contains(where: { $0.id == selectedSnippetID }) {
+            return selectedSnippetID
+        }
+
+        return validation?.preferredSnippetID ?? selectedSnippetID
+    }
+
     private static func pythonRequestsSnippet(proxyURL: String, certPath: String) -> String {
         let proxyURL = escapeForStringLiteral(proxyURL, language: .python)
         let certPath = escapeForStringLiteral(certPath, language: .python)
         return """
         import requests
 
+        target_url = "\(sampleRequestURL)"
+        proxy_url = "\(proxyURL)"
+        ca_bundle = "\(certPath)"
+
         proxies = {
-            "http": "\(proxyURL)",
-            "https": "\(proxyURL)",
+            "http": proxy_url,
+            "https": proxy_url,
         }
 
         session = requests.Session()
         session.trust_env = False
 
         response = session.get(
-            "\(sampleRequestURL)",
+            target_url,
             proxies=proxies,
-            verify="\(certPath)",
+            verify=ca_bundle,
             timeout=10,
         )
         print(response.status_code)
-        print(response.json())
+        print(response.text)
         """
     }
 
@@ -567,10 +593,14 @@ enum DeveloperSetupWorkflowCatalog {
         return """
         import httpx
 
-        with httpx.Client(proxy="\(proxyURL)", verify="\(certPath)", timeout=10.0, trust_env=False) as client:
-            response = client.get("\(sampleRequestURL)")
+        target_url = "\(sampleRequestURL)"
+        proxy_url = "\(proxyURL)"
+        ca_bundle = "\(certPath)"
+
+        with httpx.Client(proxy=proxy_url, verify=ca_bundle, timeout=10.0, trust_env=False) as client:
+            response = client.get(target_url)
             print(response.status_code)
-            print(response.json())
+            print(response.text)
         """
     }
 
@@ -582,18 +612,22 @@ enum DeveloperSetupWorkflowCatalog {
         import asyncio
         import ssl
 
+        target_url = "\(sampleRequestURL)"
+        proxy_url = "\(proxyURL)"
+        ca_bundle = "\(certPath)"
+
         async def main():
-            ssl_context = ssl.create_default_context(cafile="\(certPath)")
+            ssl_context = ssl.create_default_context(cafile=ca_bundle)
             timeout = aiohttp.ClientTimeout(total=10)
 
             async with aiohttp.ClientSession(timeout=timeout) as session:
                 async with session.get(
-                    "\(sampleRequestURL)",
-                    proxy="\(proxyURL)",
+                    target_url,
+                    proxy=proxy_url,
                     ssl=ssl_context,
                 ) as response:
                     print(response.status)
-                    print(await response.json())
+                    print(await response.text())
 
         asyncio.run(main())
         """
@@ -605,13 +639,17 @@ enum DeveloperSetupWorkflowCatalog {
         return """
         import urllib3
 
+        target_url = "\(sampleRequestURL)"
+        proxy_url = "\(proxyURL)"
+        ca_bundle = "\(certPath)"
+
         http = urllib3.ProxyManager(
-            "\(proxyURL)",
+            proxy_url,
             cert_reqs="CERT_REQUIRED",
-            ca_certs="\(certPath)",
+            ca_certs=ca_bundle,
         )
 
-        response = http.request("GET", "\(sampleRequestURL)")
+        response = http.request("GET", target_url)
         print(response.status)
         print(response.data.decode())
         """
