@@ -55,7 +55,7 @@ enum SetupSnippetID: String, CaseIterable, Identifiable, Equatable {
         case .nodeAxios:
             "axios"
         case .nodeHTTPS:
-            "https"
+            String(localized: "Node core")
         case .nodeGot:
             "got"
         case .curlCommand:
@@ -174,7 +174,7 @@ enum DeveloperSetupWorkflowCatalog {
             SetupWorkflow(
                 snippets: [
                     SetupSnippet(id: .nodeAxios, title: "axios"),
-                    SetupSnippet(id: .nodeHTTPS, title: "https"),
+                    SetupSnippet(id: .nodeHTTPS, title: String(localized: "Node core")),
                     SetupSnippet(id: .nodeGot, title: "got"),
                 ],
                 validation: validationSpec(for: .nodeJS, runtimeName: "Node.js", preferredSnippetID: .nodeAxios)
@@ -549,9 +549,9 @@ enum DeveloperSetupWorkflowCatalog {
     )
         -> SetupSnippetID
     {
-        // Python validation should mirror the library tab the user selected so the
+        // Runtime validation should mirror the library tab the user selected so the
         // probe proves the exact client configuration they are trying to use.
-        if targetID == .python, workflow.snippets.contains(where: { $0.id == selectedSnippetID }) {
+        if [.python, .nodeJS].contains(targetID), workflow.snippets.contains(where: { $0.id == selectedSnippetID }) {
             return selectedSnippetID
         }
 
@@ -678,33 +678,69 @@ enum DeveloperSetupWorkflowCatalog {
         let certPath = escapeForStringLiteral(certPath, language: .javaScript)
         return """
         import fs from "node:fs";
-        import https from "node:https";
+        import http from "node:http";
+        import tls from "node:tls";
 
-        process.env.HTTP_PROXY = "\(proxyURL)";
-        process.env.HTTPS_PROXY = "\(proxyURL)";
+        const targetURL = new URL("\(sampleRequestURL)");
+        const proxyURL = new URL("\(proxyURL)");
+        const timeout = 10_000;
+        const proxyOptions = { host: proxyURL.hostname, port: Number(proxyURL.port), timeout };
 
-        const agent = new https.Agent({
-          ca: fs.readFileSync("\(certPath)"),
-          proxyEnv: {
-            HTTP_PROXY: process.env.HTTP_PROXY,
-            HTTPS_PROXY: process.env.HTTPS_PROXY,
-          },
-        });
+        function requestHTTPThroughProxy(url) {
+          return new Promise((resolve, reject) => {
+            const request = http.request({
+              ...proxyOptions, method: "GET", path: url.href, headers: { Host: url.host },
+            }, (response) => {
+              let body = "";
+              response.setEncoding("utf8");
+              response.on("data", (chunk) => { body += chunk; });
+              response.on("end", () => resolve({ status: response.statusCode, body }));
+            });
+            request.on("timeout", () => request.destroy(new Error("Timed out")));
+            request.on("error", reject);
+            request.end();
+          });
+        }
 
-        const probeURL = new URL("\(sampleRequestURL)");
-        const request = https.request(probeURL, {
-          method: "GET",
-          agent,
-          headers: {},
-        });
+        function requestHTTPSThroughProxy(url) {
+          return new Promise((resolve, reject) => {
+            const address = `${url.hostname}:${url.port || 443}`;
+            const proxyRequest = http.request({
+              ...proxyOptions, method: "CONNECT", path: address, headers: { Host: address },
+            });
+            proxyRequest.on("connect", (response, socket) => {
+              if (response.statusCode !== 200) {
+                socket.destroy();
+                reject(new Error(`Proxy CONNECT failed with ${response.statusCode}`));
+                return;
+              }
+              const tlsSocket = tls.connect({
+                socket, servername: url.hostname, ca: fs.readFileSync("\(certPath)"),
+              }, () => {
+                const requestPath = `${url.pathname || "/"}${url.search}`;
+                tlsSocket.end(`GET ${requestPath} HTTP/1.1\\r\\nHost: ${url.host}\\r\\nConnection: close\\r\\n\\r\\n`);
+              });
+              let rawResponse = "";
+              tlsSocket.setEncoding("utf8");
+              tlsSocket.setTimeout(timeout, () => tlsSocket.destroy(new Error("Timed out")));
+              tlsSocket.on("data", (chunk) => { rawResponse += chunk; });
+              tlsSocket.on("end", () => {
+                const [headers, ...bodyParts] = rawResponse.split("\\r\\n\\r\\n");
+                resolve({ status: headers.split("\\r\\n")[0], body: bodyParts.join("\\r\\n\\r\\n") });
+              });
+              tlsSocket.on("error", reject);
+            });
+            proxyRequest.on("timeout", () => proxyRequest.destroy(new Error("Timed out")));
+            proxyRequest.on("error", reject);
+            proxyRequest.end();
+          });
+        }
 
-        request.on("response", (response) => {
-          console.log(response.statusCode);
-          response.setEncoding("utf8");
-          response.on("data", (chunk) => process.stdout.write(chunk));
-        });
-
-        request.end();
+        const response = targetURL.protocol === "https:"
+          ? await requestHTTPSThroughProxy(targetURL)
+          : await requestHTTPThroughProxy(targetURL);
+        console.log(response.status);
+        console.log(response.body);
         """
     }
 
@@ -714,9 +750,11 @@ enum DeveloperSetupWorkflowCatalog {
         return """
         import fs from "node:fs";
         import got from "got";
+        import { HttpProxyAgent } from "http-proxy-agent";
         import { HttpsProxyAgent } from "https-proxy-agent";
 
         const agent = {
+          http: new HttpProxyAgent("\(proxyURL)"),
           https: new HttpsProxyAgent("\(proxyURL)"),
         };
 

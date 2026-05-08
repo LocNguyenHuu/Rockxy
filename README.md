@@ -62,6 +62,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the full release history.
 
 ## Current Branch Highlights
 
+- Node.js Developer Setup now mirrors the selected client during validation and has a fuller localhost sample guide.
 - Developer Setup Hub now covers runtimes, browsers, clients, devices, frameworks, and environments with target-specific snippets, validation watchers, and honest guide content.
 - HTTPS response prompts, sidebar actions, and the request table now stay in sync when SSL proxying is enabled or disabled by domain or app.
 - The inspector and main request table were polished with scrolling tabs, top-aligned query content, clearer status/code separation, request/response byte columns, duration fixes, and live SSL state icons.
