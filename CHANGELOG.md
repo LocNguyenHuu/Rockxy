@@ -17,6 +17,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Clarified Flutter/Dart Developer Setup Hub validation as a manual hybrid flow that checks capture through Rockxy without claiming device, emulator, simulator, or runtime attribution.
 - Added a Star History chart to all README translations.
 
+## [0.18.0] - 2026-05-08
+
+### Added
+
+- Native proxy status and footer controls now expose richer run-state, update-state, and action summaries directly in the main window chrome.
+
+### Fixed
+
+- The toolbar update badge now routes to the Software Update window instead of behaving like a passive status indicator.
+- Sidebar and favorite transaction persistence now survive migration and reload paths more reliably.
+
+### Changed
+
+- Main-window status and footer bars now use a more native macOS presentation with clearer proxy, capture, and update affordances.
+
 ## [0.17.0] - 2026-05-08
 
 ### Added

@@ -41,20 +41,20 @@
 <!-- BEGIN GENERATED: latest-release -->
 ## Latest Tagged Release
 
-**v0.17.0** — 2026-05-08
+**v0.18.0** — 2026-05-08
 
 ### Added
 
-- Python Developer Setup now includes debugger-friendly guidance for `requests`, `httpx`, `aiohttp`, and `urllib3`, with localhost demo validation using the selected Python client.
-- Node.js Developer Setup now includes selected-client validation and a fuller localhost sample guide for `axios`, Node core, and `got`.
+- Native proxy status and footer controls now expose richer run-state, update-state, and action summaries directly in the main window chrome.
 
 ### Fixed
 
-- Python setup snippets now use clearer proxy and certificate wiring for local validation.
+- The toolbar update badge now routes to the Software Update window instead of behaving like a passive status indicator.
+- Sidebar and favorite transaction persistence now survive migration and reload paths more reliably.
 
 ### Changed
 
-- Clarified Flutter/Dart Developer Setup Hub validation as a manual hybrid flow that checks capture through Rockxy without claiming device, emulator, simulator, or runtime attribution.
+- Main-window status and footer bars now use a more native macOS presentation with clearer proxy, capture, and update affordances.
 
 See [CHANGELOG.md](CHANGELOG.md) for the full release history.
 <!-- END GENERATED: latest-release -->
