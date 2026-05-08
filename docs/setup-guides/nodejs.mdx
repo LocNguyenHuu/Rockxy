@@ -20,6 +20,10 @@ Node.js is a first-class Developer Setup Hub runtime target. Use this guide when
 - certificate guidance for trusting the exported root certificate
 - a local validation probe that can use the Node client snippet you selected
 
+<Frame caption="Node.js localhost demo captured in Rockxy through the active proxy port.">
+  <img src="/images/NodeJSDemoRockxy.png" alt="Rockxy capturing Node.js localhost requests to the 127.0.0.1 demo endpoint" />
+</Frame>
+
 ## What you still need to do
 
 - point the Node client at Rockxy's proxy
@@ -37,7 +41,7 @@ The fastest proof path is a local Node HTTP server plus a Node client configured
 3. Confirm recording is not paused.
 4. Read the active proxy port from the Rockxy toolbar.
 
-The sample commands below use `9090`. Your app may show a different port. Use the port Rockxy shows now, not a hard-coded old value from another terminal.
+The screenshot above uses `8888`, shown as `Listening on 0.0.0.0:8888`. Your app may show a different port. Use the port Rockxy shows now, not a hard-coded old value from another terminal.
 
 ## Step 2: prepare the Node.js sample project
 
@@ -60,12 +64,12 @@ The demo server listens on `127.0.0.1:8000` and returns a small JSON response fr
 
 ## Step 4: run one Node.js client through Rockxy
 
-In a second terminal, export the target URL plus the active Rockxy proxy URL. Replace `9090` with the port shown in Rockxy if yours is different.
+In a second terminal, export the target URL plus the active Rockxy proxy URL. Replace `8888` with the port shown in Rockxy if yours is different.
 
 ```sh
 cd Rockxy-NodeJS-Sample-Guidance
 
-export ROCKXY_PROXY_URL="http://127.0.0.1:9090"
+export ROCKXY_PROXY_URL="http://127.0.0.1:8888"
 export ROCKXY_TARGET_URL="http://127.0.0.1:8000/demo"
 
 node examples/axios-example.js
