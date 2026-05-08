@@ -10,9 +10,10 @@ import SwiftUI
 struct ProxyStatusIndicator: View {
     // MARK: Internal
 
-    let isRunning: Bool
+    let displayState: ProxyDisplayState
     let listenAddress: String
     let port: Int
+    let updateStatusSummary: AppUpdater.UpdateStatusSummary?
 
     @Binding var showPopover: Bool
 
@@ -25,15 +26,20 @@ struct ProxyStatusIndicator: View {
                     .fill(statusColor)
                     .frame(width: 9, height: 9)
                     .shadow(
-                        color: isRunning ? Color.green.opacity(0.5) : Color.clear,
+                        color: statusShadowColor,
                         radius: 4,
                         x: 0,
                         y: 0
                     )
 
                 Text(statusText)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.callout.weight(.medium))
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
+
+                if let updateStatusSummary {
+                    updateStatus(updateStatusSummary)
+                }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
@@ -48,6 +54,7 @@ struct ProxyStatusIndicator: View {
             )
         }
         .buttonStyle(.plain)
+        .help(statusHelpText)
         .popover(isPresented: $showPopover) {
             ProxyStatusPopover(
                 listenAddress: listenAddress,
@@ -61,14 +68,69 @@ struct ProxyStatusIndicator: View {
     // MARK: Private
 
     private var statusColor: Color {
-        isRunning ? .green : .gray
+        switch displayState {
+        case .starting:
+            Color.accentColor
+        case .running:
+            Color(nsColor: .systemGreen)
+        case .paused:
+            Color(nsColor: .systemOrange)
+        case .stopped:
+            Color(nsColor: .tertiaryLabelColor)
+        }
+    }
+
+    private var statusShadowColor: Color {
+        switch displayState {
+        case .running:
+            Color(nsColor: .systemGreen).opacity(0.45)
+        case .starting:
+            Color.accentColor.opacity(0.35)
+        default:
+            Color.clear
+        }
     }
 
     private var statusText: String {
-        if isRunning {
-            "Rockxy | Listening on \(listenAddress):\(port)"
+        "Rockxy | \(listenAddress):\(port) | \(displayState.title)"
+    }
+
+    private var statusHelpText: String {
+        if let updateStatusSummary {
+            [
+                statusText,
+                updateStatusSummary.title,
+                updateStatusSummary.versionLine,
+                updateStatusSummary.countLine,
+            ]
+            .compactMap { $0 }
+            .joined(separator: "\n")
         } else {
-            String(localized: "Rockxy | Not Running")
+            statusText
         }
+    }
+
+    @ViewBuilder
+    private func updateStatus(_ summary: AppUpdater.UpdateStatusSummary) -> some View {
+        Text("|")
+            .font(.caption)
+            .foregroundStyle(Color(nsColor: .tertiaryLabelColor))
+
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 5) {
+                Label(summary.title, systemImage: "arrow.down.circle")
+                    .labelStyle(.titleAndIcon)
+                Text(summary.versionLine)
+                if let countLine = summary.countLine {
+                    Text(countLine)
+                }
+            }
+
+            Label(summary.title, systemImage: "arrow.down.circle")
+                .labelStyle(.titleAndIcon)
+        }
+        .font(.caption.weight(.medium))
+        .foregroundStyle(Color.accentColor)
+        .lineLimit(1)
     }
 }

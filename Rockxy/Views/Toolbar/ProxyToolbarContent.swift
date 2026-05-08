@@ -8,6 +8,7 @@ import SwiftUI
 /// layout toggle buttons, plus the central proxy status indicator.
 struct ProxyToolbarContent: ToolbarContent {
     @Environment(\.openWindow) private var openWindow
+    @ObservedObject private var updater = AppUpdater.shared
 
     @Bindable var coordinator: MainContentCoordinator
 
@@ -63,11 +64,12 @@ struct ProxyToolbarContent: ToolbarContent {
         // Center: status indicator
         ToolbarItem(placement: .principal) {
             ProxyStatusIndicator(
-                isRunning: coordinator.isProxyRunning,
+                displayState: coordinator.proxyDisplayState,
                 listenAddress: AppSettingsManager.shared.settings.effectiveListenAddress,
                 port: coordinator.isProxyRunning
                     ? coordinator.activeProxyPort
                     : AppSettingsManager.shared.settings.proxyPort,
+                updateStatusSummary: updater.updateStatusSummary,
                 showPopover: $coordinator.showProxyStatusPopover
             )
         }

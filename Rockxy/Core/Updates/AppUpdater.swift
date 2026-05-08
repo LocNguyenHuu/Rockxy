@@ -30,8 +30,67 @@ enum UpdateCheckIntervalOption: Double, CaseIterable, Identifiable {
     }
 }
 
+private final class AppcastVersionParser: NSObject, XMLParserDelegate {
+    static func versions(from data: Data) -> [String]? {
+        let delegate = AppcastVersionParser()
+        let parser = XMLParser(data: data)
+        parser.delegate = delegate
+        guard parser.parse() else {
+            return nil
+        }
+        return delegate.versions
+    }
+
+    private var versions: [String] = []
+
+    func parser(
+        _ parser: XMLParser,
+        didStartElement elementName: String,
+        namespaceURI: String?,
+        qualifiedName qName: String?,
+        attributes attributeDict: [String: String] = [:]
+    ) {
+        guard elementName == "enclosure" else {
+            return
+        }
+        let version = attributeDict["sparkle:shortVersionString"] ?? attributeDict["shortVersionString"]
+        if let version, !version.isEmpty {
+            versions.append(version)
+        }
+    }
+}
+
 @MainActor
 final class AppUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
+    struct UpdateStatusSummary: Equatable {
+        let currentVersion: String
+        let latestVersion: String
+        let versionsBehind: Int?
+
+        var title: String {
+            String(localized: "Update Available")
+        }
+
+        var versionLine: String {
+            "v\(currentVersion) -> v\(latestVersion)"
+        }
+
+        var countLine: String? {
+            guard let versionsBehind, versionsBehind > 0 else {
+                return nil
+            }
+            return String(localized: "^[\(versionsBehind) version](inflect: true) behind")
+        }
+
+        func replacingVersionsBehind(_ count: Int?) -> Self {
+            .init(
+                currentVersion: currentVersion,
+                latestVersion: latestVersion,
+                versionsBehind: count
+            )
+        }
+    }
+
     // MARK: Lifecycle
 
     init(configuration: RockxyUpdateConfiguration) {
@@ -39,6 +98,7 @@ final class AppUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
         updateCheckGate = nil
         userDriver = nil
         updater = nil
+        updateStatusTask = nil
         sparkleCancellables = []
         super.init()
 
@@ -51,6 +111,12 @@ final class AppUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
                 hostBundle: .main,
                 configuration: configuration
             )
+            userDriver.updateFoundHandler = { [weak self] item in
+                self?.recordUpdateFound(item)
+            }
+            userDriver.noUpdateHandler = { [weak self] _ in
+                self?.clearUpdateStatusSummary()
+            }
             self.userDriver = userDriver
             updater = SPUUpdater(
                 hostBundle: .main,
@@ -81,6 +147,7 @@ final class AppUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
     @Published private(set) var lastUpdateCheckDate: Date?
     @Published private(set) var updateCheckInterval: TimeInterval = UpdateCheckIntervalOption.daily.rawValue
     @Published private(set) var sessionInProgress = false
+    @Published private(set) var updateStatusSummary: UpdateStatusSummary?
 
     let configuration: RockxyUpdateConfiguration
 
@@ -169,6 +236,55 @@ final class AppUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
         NSWorkspace.shared.open(Self.fullChangelogURL)
     }
 
+    func recordUpdateFound(_ item: SUAppcastItem) {
+        recordUpdateFound(latestVersion: item.displayVersionString)
+    }
+
+    func recordUpdateFound(latestVersion: String, fetchVersionsBehind: Bool = true) {
+        updateStatusTask?.cancel()
+        guard let summary = Self.makeUpdateStatusSummary(
+            currentVersion: configuration.appVersion,
+            latestVersion: latestVersion
+        ) else {
+            updateStatusSummary = nil
+            return
+        }
+
+        updateStatusSummary = summary
+
+        guard fetchVersionsBehind, let feedURL = configuration.feedURL else {
+            return
+        }
+
+        updateStatusTask = Task { [weak self] in
+            do {
+                let (data, _) = try await URLSession.shared.data(from: feedURL)
+                let count = Self.versionsBehind(
+                    currentVersion: summary.currentVersion,
+                    latestVersion: summary.latestVersion,
+                    appcastData: data
+                )
+                guard !Task.isCancelled else {
+                    return
+                }
+                await MainActor.run {
+                    guard self?.updateStatusSummary?.latestVersion == summary.latestVersion else {
+                        return
+                    }
+                    self?.updateStatusSummary = summary.replacingVersionsBehind(count)
+                }
+            } catch {
+                Self.logger.debug("Unable to compute versions behind from appcast: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    func clearUpdateStatusSummary() {
+        updateStatusTask?.cancel()
+        updateStatusTask = nil
+        updateStatusSummary = nil
+    }
+
     func setAutomaticallyChecksForUpdates(_ enabled: Bool) {
         guard let updater, supportsAutomaticChecks else {
             return
@@ -216,7 +332,72 @@ final class AppUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
     private var updater: SPUUpdater?
     private var hasStartedUpdater = false
     private var updateCheckGate: (@MainActor (SPUUpdateCheck) -> String?)?
+    private var updateStatusTask: Task<Void, Never>?
     private var sparkleCancellables: [AnyCancellable]
+
+    static func makeUpdateStatusSummary(
+        currentVersion: String,
+        latestVersion: String,
+        versionsBehind: Int? = nil
+    ) -> UpdateStatusSummary? {
+        guard compareVersions(latestVersion, currentVersion) == .orderedDescending else {
+            return nil
+        }
+        return UpdateStatusSummary(
+            currentVersion: currentVersion,
+            latestVersion: latestVersion,
+            versionsBehind: versionsBehind
+        )
+    }
+
+    static func versionsBehind(
+        currentVersion: String,
+        latestVersion: String,
+        appcastData: Data
+    ) -> Int? {
+        guard let versions = AppcastVersionParser.versions(from: appcastData) else {
+            return nil
+        }
+
+        var seen: Set<String> = []
+        let newerVersions = versions.filter { version in
+            guard seen.insert(version).inserted else {
+                return false
+            }
+            return compareVersions(version, currentVersion) == .orderedDescending
+                && compareVersions(version, latestVersion) != .orderedDescending
+        }
+        return newerVersions.isEmpty ? nil : newerVersions.count
+    }
+
+    static func compareVersions(_ lhs: String, _ rhs: String) -> ComparisonResult {
+        let lhsComponents = versionComponents(lhs)
+        let rhsComponents = versionComponents(rhs)
+        let count = max(lhsComponents.count, rhsComponents.count)
+
+        for index in 0..<count {
+            let lhsValue = index < lhsComponents.count ? lhsComponents[index] : 0
+            let rhsValue = index < rhsComponents.count ? rhsComponents[index] : 0
+            if lhsValue < rhsValue {
+                return .orderedAscending
+            }
+            if lhsValue > rhsValue {
+                return .orderedDescending
+            }
+        }
+
+        return .orderedSame
+    }
+
+    private static func versionComponents(_ version: String) -> [Int] {
+        version
+            .trimmingCharacters(in: CharacterSet(charactersIn: "vV"))
+            .split(separator: ".")
+            .map { component in
+                let digits = component.prefix { $0.isNumber }
+                return Int(digits) ?? 0
+            }
+    }
 
     private static func installManualOnlyOverrides(defaults: UserDefaults = .standard) {
         var argumentDomain = defaults.volatileDomain(forName: UserDefaults.argumentDomain)

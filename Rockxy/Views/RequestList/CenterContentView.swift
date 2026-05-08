@@ -93,7 +93,9 @@ struct CenterContentView: View {
                     coordinator.isFilterBarVisible.toggle()
                     coordinator.recomputeFilteredTransactions()
                 },
-                onAutoSelect: { coordinator.isAutoSelectEnabled.toggle() }
+                onAutoSelect: {
+                    coordinator.isAutoSelectEnabled.toggle()
+                }
             )
         }
         .onChange(of: coordinator.selectedTransaction?.id) { _, newID in
