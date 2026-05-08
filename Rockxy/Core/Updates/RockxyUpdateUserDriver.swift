@@ -11,6 +11,8 @@ final class RockxyUpdateUserDriver: NSObject, SPUUserDriver {
     }
 
     let controller: SoftwareUpdateController
+    var updateFoundHandler: ((SUAppcastItem) -> Void)?
+    var noUpdateHandler: ((NSError) -> Void)?
 
     private let standardUserDriver: SPUStandardUserDriver
 
@@ -27,6 +29,7 @@ final class RockxyUpdateUserDriver: NSObject, SPUUserDriver {
         state: SPUUserUpdateState,
         reply: @escaping (SPUUserUpdateChoice) -> Void
     ) {
+        updateFoundHandler?(appcastItem)
         controller.showAvailable(item: appcastItem, state: state, reply: reply)
     }
 
@@ -43,7 +46,9 @@ final class RockxyUpdateUserDriver: NSObject, SPUUserDriver {
     }
 
     func showUpdateNotFoundWithError(_ error: Error, acknowledgement: @escaping () -> Void) {
-        controller.showNoUpdate(error: error as NSError, acknowledgement: acknowledgement)
+        let nsError = error as NSError
+        noUpdateHandler?(nsError)
+        controller.showNoUpdate(error: nsError, acknowledgement: acknowledgement)
     }
 
     func showUpdaterError(_ error: Error, acknowledgement: @escaping () -> Void) {

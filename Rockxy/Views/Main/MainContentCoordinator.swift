@@ -3,6 +3,28 @@ import os
 
 // Renders the main content coordinator interface for the main workspace.
 
+// MARK: - ProxyDisplayState
+
+enum ProxyDisplayState: Equatable {
+    case starting
+    case running
+    case paused
+    case stopped
+
+    var title: String {
+        switch self {
+        case .starting:
+            String(localized: "Starting")
+        case .running:
+            String(localized: "Running")
+        case .paused:
+            String(localized: "Paused")
+        case .stopped:
+            String(localized: "Stopped")
+        }
+    }
+}
+
 // MARK: - MainContentCoordinator
 
 /// Central coordinator for all Rockxy UI state, bridging the proxy engine, log engine,
@@ -71,6 +93,7 @@ final class MainContentCoordinator {
     var transactions: [HTTPTransaction] = []
     var persistedFavorites: [HTTPTransaction] = []
     var isProxyRunning = false
+    var isProxyStarting = false
     var activeProxyPort = AppSettingsManager.shared.settings.proxyPort
     var isRecording = true
     var sessionGeneration: UInt = 0
@@ -143,6 +166,16 @@ final class MainContentCoordinator {
         case nil: nil
         }
         return SystemProxyWarning(message: warning.message, action: action, isDismissible: warning.isDismissible)
+    }
+
+    var proxyDisplayState: ProxyDisplayState {
+        if isProxyStarting {
+            return .starting
+        }
+        if isProxyRunning {
+            return isRecording ? .running : .paused
+        }
+        return .stopped
     }
 
     var activeWorkspace: WorkspaceState {

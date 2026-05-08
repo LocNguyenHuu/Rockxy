@@ -13,9 +13,17 @@ extension MainContentCoordinator {
     // MARK: - Proxy Lifecycle
 
     func startProxy() {
+        guard !isProxyRunning, !isProxyStarting else {
+            return
+        }
         proxyError = nil
+        isProxyStarting = true
 
         Task {
+            defer {
+                isProxyStarting = false
+            }
+
             let settings = AppSettingsStorage.load()
             do {
                 try await certificateManager.ensureRootCA()

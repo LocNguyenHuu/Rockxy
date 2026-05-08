@@ -3,50 +3,178 @@ import SwiftUI
 
 // Renders the status bar interface for traffic list presentation.
 
-// MARK: - FooterButton
+// MARK: - FooterActionKind
 
-/// Styled button used in the status bar footer, with an active/inactive visual state.
-private struct FooterButton: View {
+enum FooterActionKind: String, CaseIterable {
+    case blockList
+    case allowList
+    case mapLocal
+    case scripting
+    case mapRemote
+    case breakpoint
+    case networkConditions
+}
+
+// MARK: - FooterActionDescriptor
+
+struct FooterActionDescriptor: Identifiable, Equatable {
+    let id: FooterActionKind
     let title: String
-    var isActive: Bool = false
+    let systemImage: String
+    let help: String
+    let isActive: Bool
+    let isEnabled: Bool
+
+    static func toolingActions(isAllowListActive: Bool) -> [Self] {
+        [
+            .init(
+                id: .blockList,
+                title: String(localized: "Block List"),
+                systemImage: "hand.raised.slash",
+                help: String(localized: "Open Block List"),
+                isActive: false,
+                isEnabled: true
+            ),
+            .init(
+                id: .allowList,
+                title: String(localized: "Allow List"),
+                systemImage: "checkmark.shield",
+                help: String(localized: "Open Allow List"),
+                isActive: isAllowListActive,
+                isEnabled: true
+            ),
+            .init(
+                id: .mapLocal,
+                title: String(localized: "Map Local"),
+                systemImage: "folder.badge.gearshape",
+                help: String(localized: "Open Map Local"),
+                isActive: false,
+                isEnabled: true
+            ),
+            .init(
+                id: .scripting,
+                title: String(localized: "Scripting"),
+                systemImage: "curlybraces",
+                help: String(localized: "Open Scripting"),
+                isActive: false,
+                isEnabled: true
+            ),
+            .init(
+                id: .mapRemote,
+                title: String(localized: "Map Remote"),
+                systemImage: "arrow.triangle.branch",
+                help: String(localized: "Open Map Remote"),
+                isActive: false,
+                isEnabled: true
+            ),
+            .init(
+                id: .breakpoint,
+                title: String(localized: "Breakpoint"),
+                systemImage: "pause.circle",
+                help: String(localized: "Open Breakpoint Rules"),
+                isActive: false,
+                isEnabled: true
+            ),
+            .init(
+                id: .networkConditions,
+                title: String(localized: "Network Conditions"),
+                systemImage: "speedometer",
+                help: String(localized: "Open Network Conditions"),
+                isActive: false,
+                isEnabled: true
+            ),
+        ]
+    }
+}
+
+// MARK: - FooterToolingButton
+
+private struct FooterToolingButton: View {
+    let descriptor: FooterActionDescriptor
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(descriptor.title)
+                .modifier(FooterToolingChrome(
+                    isActive: descriptor.isActive,
+                    isEnabled: descriptor.isEnabled,
+                    isHovered: isHovered
+                ))
+        }
+        .buttonStyle(.plain)
+        .disabled(!descriptor.isEnabled)
+        .help(descriptor.help)
+        .onHover { isHovered = $0 }
+    }
+
+    // MARK: Private
+
+    @State private var isHovered = false
+}
+
+// MARK: - FooterToolingChrome
+
+private struct FooterToolingChrome: ViewModifier {
+    let isActive: Bool
+    let isEnabled: Bool
+    let isHovered: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(Color.white)
+            .lineLimit(1)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 3)
+            .background(backgroundColor, in: Capsule())
+            .opacity(isEnabled ? 1 : 0.45)
+    }
+
+    private var backgroundColor: Color {
+        if isActive {
+            return Color.accentColor
+        }
+        if isHovered, isEnabled {
+            return Color(nsColor: .secondaryLabelColor)
+        }
+        return Color(nsColor: .tertiaryLabelColor)
+    }
+}
+
+// MARK: - FooterPrimaryButton
+
+private struct FooterPrimaryButton: View {
+    let title: String
+    var isActive = false
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(.system(size: 11, weight: isActive ? .semibold : .regular))
-                .foregroundStyle(isActive ? .white : Color(nsColor: .secondaryLabelColor))
-                .padding(.horizontal, 11)
-                .padding(.vertical, 3)
-                .background {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(
-                            isActive
-                                ? AnyShapeStyle(Color.accentColor)
-                                : AnyShapeStyle(
-                                    LinearGradient(
-                                        colors: [
-                                            Color(nsColor: .controlBackgroundColor),
-                                            Color(nsColor: .controlColor),
-                                        ],
-                                        startPoint: .top,
-                                        endPoint: .bottom
-                                    )
-                                )
-                        )
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 4)
-                                .strokeBorder(
-                                    isActive
-                                        ? Color.accentColor
-                                        : Color(nsColor: .separatorColor),
-                                    lineWidth: 0.5
-                                )
-                        }
-                        .shadow(color: .black.opacity(0.06), radius: 0.5, y: 0.5)
-                }
+                .font(.callout)
+                .foregroundStyle(isActive ? Color.accentColor : Color(nsColor: .labelColor))
+                .lineLimit(1)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 6)
+                .background(backgroundColor, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
         }
         .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
+    }
+
+    // MARK: Private
+
+    @State private var isHovered = false
+
+    private var backgroundColor: Color {
+        if isActive {
+            return Color.accentColor.opacity(0.12)
+        }
+        if isHovered {
+            return Color(nsColor: .controlBackgroundColor)
+        }
+        return Color(nsColor: .controlBackgroundColor).opacity(0.72)
     }
 }
 
@@ -82,23 +210,14 @@ struct StatusBarView: View {
     var body: some View {
         HStack(spacing: 0) {
             leftButtons
-            Spacer()
+            Spacer(minLength: 24)
             centerStatus
-            Spacer()
+            Spacer(minLength: 24)
             rightStats
         }
-        .padding(.horizontal, 10)
-        .frame(height: 28)
-        .background(
-            LinearGradient(
-                colors: [
-                    Color(nsColor: .windowBackgroundColor),
-                    Color(nsColor: .windowBackgroundColor).opacity(0.95),
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        )
+        .padding(.horizontal, 12)
+        .frame(height: 34)
+        .background(Theme.StatusBar.background)
         .overlay(alignment: .top) {
             Divider()
         }
@@ -121,19 +240,16 @@ struct StatusBarView: View {
     }
 
     private var leftButtons: some View {
-        HStack(spacing: 6) {
-            FooterButton(
-                title: String(localized: "Clear"),
-                action: onClear
-            )
-            FooterButton(
+        HStack(spacing: 8) {
+            FooterPrimaryButton(title: String(localized: "Clear"), action: onClear)
+            FooterPrimaryButton(
                 title: activeFilterCount > 0
-                    ? String(localized: "Filters (\(activeFilterCount))")
+                    ? String(localized: "Filter (\(activeFilterCount))")
                     : String(localized: "Filter"),
                 isActive: isFilterBarVisible || activeFilterCount > 0,
                 action: onFilter
             )
-            FooterButton(
+            FooterPrimaryButton(
                 title: String(localized: "Auto Select"),
                 isActive: isAutoSelectEnabled,
                 action: onAutoSelect
@@ -198,33 +314,21 @@ struct StatusBarView: View {
                 .foregroundStyle(Color.accentColor)
                 .help("Captured download throughput")
 
+            toolingButtons
+
             if isAllowListActive {
-                Text(String(localized: "Allow List"))
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 2)
-                    .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 4))
+                statusPill(String(localized: "Allow List"), color: Color.accentColor)
             }
 
             if isNoCachingActive {
-                Text(String(localized: "No Cache"))
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 2)
-                    .background(Color.orange, in: RoundedRectangle(cornerRadius: 4))
+                statusPill(String(localized: "No Cache"), color: Color(nsColor: .systemOrange))
             }
 
             if isProxyOverridden {
-                Text(String(localized: "Proxy Overridden"))
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 2)
-                    .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 4))
+                statusPill(String(localized: "Proxy Overridden"), color: Color(nsColor: .tertiaryLabelColor))
             }
         }
+        .lineLimit(1)
     }
 
     private func formattedSpeed(_ bytesPerSecond: Int64) -> String {
@@ -235,6 +339,46 @@ struct StatusBarView: View {
         } else {
             let mb = Double(bytesPerSecond) / 1_048_576
             return String(format: "%.1f MB/s", mb)
+        }
+    }
+
+    @Environment(\.openWindow) private var openWindow
+
+    @ViewBuilder
+    private var toolingButtons: some View {
+        ForEach(FooterActionDescriptor.toolingActions(isAllowListActive: isAllowListActive)) { descriptor in
+            FooterToolingButton(descriptor: descriptor) {
+                performAction(descriptor.id)
+            }
+        }
+    }
+
+    private func statusPill(_ title: String, color: Color) -> some View {
+        Text(title)
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(.white)
+            .lineLimit(1)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 3)
+            .background(color, in: Capsule())
+    }
+
+    private func performAction(_ action: FooterActionKind) {
+        switch action {
+        case .blockList:
+            openWindow(id: "blockList")
+        case .allowList:
+            openWindow(id: "allowList")
+        case .mapLocal:
+            openWindow(id: "mapLocal")
+        case .scripting:
+            openWindow(id: "scriptingList")
+        case .mapRemote:
+            openWindow(id: "mapRemote")
+        case .breakpoint:
+            openWindow(id: "breakpointRules")
+        case .networkConditions:
+            openWindow(id: "networkConditions")
         }
     }
 }
