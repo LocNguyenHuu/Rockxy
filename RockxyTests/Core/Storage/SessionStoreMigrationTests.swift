@@ -7,6 +7,22 @@ import Testing
 struct SessionStoreMigrationTests {
     // MARK: Internal
 
+    @Test("Default store uses test app support namespace")
+    func defaultStoreUsesTestAppSupportNamespace() async throws {
+        let dir = RockxyIdentity.current.appSupportDirectory()
+
+        let store = try SessionStore()
+        let transaction = TestFixtures.makeTransaction(url: "https://api.example.com/test-isolation")
+        transaction.isSaved = true
+
+        try await store.saveTransaction(transaction)
+
+        let isolatedStore = try SessionStore(directory: dir)
+        let loaded = try await isolatedStore.loadPinnedAndSavedTransactions()
+
+        #expect(loaded.map(\.id).contains(transaction.id))
+    }
+
     @Test("Fresh database migrates to latest schema version")
     func freshDatabaseMigratesToLatest() async throws {
         let dir = try makeTempDir()

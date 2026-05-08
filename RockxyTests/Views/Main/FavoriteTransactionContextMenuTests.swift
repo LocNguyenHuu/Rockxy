@@ -114,6 +114,28 @@ struct FavoriteTransactionContextMenuTests {
         #expect(coordinator.transactions.isEmpty)
     }
 
+    @Test("Deleting persisted favorite is durable across store reload")
+    func deletePersistedFavoriteDurable() async throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("RockxyTest-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let store = try SessionStore(directory: dir)
+        let transaction = TestFixtures.makeTransaction(url: "https://api.example.com/persisted-delete")
+        transaction.isSaved = true
+        try await store.saveTransaction(transaction)
+
+        let coordinator = MainContentCoordinator()
+        coordinator.cachedSessionStore = store
+        coordinator.persistedFavorites = [transaction]
+
+        coordinator.removeFavoriteTransaction(transaction, from: .saved)
+
+        let loaded = try await waitForPersistedFavorites(in: store)
+        #expect(loaded.isEmpty)
+    }
+
     @Test("Open in new tab scopes the workspace to the exact request URL")
     func openInNewTabUsesExactURLFilter() {
         let coordinator = MainContentCoordinator()
@@ -198,5 +220,14 @@ struct FavoriteTransactionContextMenuTests {
         }
 
         _ = store.consumePending()
+    }
+
+    private func waitForPersistedFavorites(in store: SessionStore) async throws -> [HTTPTransaction] {
+        var loaded = try await store.loadPinnedAndSavedTransactions()
+        for _ in 0 ..< 20 where !loaded.isEmpty {
+            try await Task.sleep(for: .milliseconds(25))
+            loaded = try await store.loadPinnedAndSavedTransactions()
+        }
+        return loaded
     }
 }

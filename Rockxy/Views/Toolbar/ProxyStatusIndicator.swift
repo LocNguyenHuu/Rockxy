@@ -10,6 +10,8 @@ import SwiftUI
 struct ProxyStatusIndicator: View {
     // MARK: Internal
 
+    @Environment(\.colorScheme) private var colorScheme
+
     let displayState: ProxyDisplayState
     let listenAddress: String
     let port: Int
@@ -117,20 +119,36 @@ struct ProxyStatusIndicator: View {
             .foregroundStyle(Color(nsColor: .tertiaryLabelColor))
 
         ViewThatFits(in: .horizontal) {
-            HStack(spacing: 5) {
-                Label(summary.title, systemImage: "arrow.down.circle")
-                    .labelStyle(.titleAndIcon)
-                Text(summary.versionLine)
-                if let countLine = summary.countLine {
-                    Text(countLine)
-                }
-            }
-
-            Label(summary.title, systemImage: "arrow.down.circle")
-                .labelStyle(.titleAndIcon)
+            updateBadge(summary.badgeTitle)
+            updateBadge(String(localized: "Update"))
         }
-        .font(.caption.weight(.medium))
-        .foregroundStyle(Color.accentColor)
-        .lineLimit(1)
+        .help([
+            summary.title,
+            summary.versionLine,
+            summary.countLine,
+        ]
+        .compactMap { $0 }
+        .joined(separator: "\n"))
+    }
+
+    private func updateBadge(_ title: String) -> some View {
+        Text(title)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.white)
+            .lineLimit(1)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 3)
+            .background(
+                Capsule()
+                    .fill(updateBadgeBackground)
+            )
+            .overlay(
+                Capsule()
+                    .stroke(Color.primary.opacity(colorScheme == .dark ? 0.08 : 0.05), lineWidth: 1)
+            )
+    }
+
+    private var updateBadgeBackground: Color {
+        Color(nsColor: .systemGray).opacity(colorScheme == .dark ? 0.62 : 0.82)
     }
 }

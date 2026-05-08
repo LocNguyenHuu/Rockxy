@@ -6,12 +6,6 @@ import SQLite
 /// inline in SQLite, to keep the database size manageable and avoid large BLOB I/O.
 private let bodySizeThreshold = 1_048_576
 
-// MARK: - SessionStoreError
-
-enum SessionStoreError: Error {
-    case directoryNotFound
-}
-
 // MARK: - SessionStore
 
 /// SQLite-backed persistence layer for HTTP transactions, log entries, and WebSocket frames.
@@ -27,16 +21,7 @@ actor SessionStore {
     // MARK: - Init
 
     init() throws {
-        guard let appSupport = FileManager.default.urls(
-            for: .applicationSupportDirectory, in: .userDomainMask
-        ).first else {
-            throw SessionStoreError.directoryNotFound
-        }
-        let rockxyDir = appSupport.appendingPathComponent(
-            RockxyIdentity.current.appSupportDirectoryName,
-            isDirectory: true
-        )
-        try self.init(directory: rockxyDir)
+        try self.init(directory: RockxyIdentity.current.appSupportDirectory())
     }
 
     init(directory: URL) throws {

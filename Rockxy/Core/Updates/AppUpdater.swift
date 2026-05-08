@@ -79,7 +79,20 @@ final class AppUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
             guard let versionsBehind, versionsBehind > 0 else {
                 return nil
             }
-            return String(localized: "^[\(versionsBehind) version](inflect: true) behind")
+            if versionsBehind == 1 {
+                return String(localized: "1 version behind")
+            }
+            return String(localized: "\(versionsBehind) versions behind")
+        }
+
+        var badgeTitle: String {
+            guard let versionsBehind, versionsBehind > 0 else {
+                return title
+            }
+            if versionsBehind == 1 {
+                return String(localized: "1 New Update")
+            }
+            return String(localized: "\(versionsBehind) New Updates")
         }
 
         func replacingVersionsBehind(_ count: Int?) -> Self {
@@ -203,6 +216,7 @@ final class AppUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
         guard supportsAutomaticChecks else {
             if supportsManualChecks {
                 Self.logger.info("Sparkle automatic checks skipped for this build; manual checks remain available.")
+                refreshUpdateStatusFromAppcast()
             } else {
                 Self.logger.info("Sparkle updater skipped: feed or public key is not configured.")
             }
@@ -211,6 +225,7 @@ final class AppUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
 
         do {
             try ensureUpdaterStarted()
+            refreshUpdateStatusFromAppcast()
         } catch {
             presentUpdaterStartError(error)
         }
@@ -234,6 +249,32 @@ final class AppUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
 
     func openFullChangelog() {
         NSWorkspace.shared.open(Self.fullChangelogURL)
+    }
+
+    func refreshUpdateStatusFromAppcast() {
+        guard let feedURL = configuration.feedURL else {
+            return
+        }
+
+        updateStatusTask?.cancel()
+        let currentVersion = configuration.appVersion
+        updateStatusTask = Task { [weak self] in
+            do {
+                let (data, _) = try await URLSession.shared.data(from: feedURL)
+                let summary = Self.makeUpdateStatusSummary(
+                    currentVersion: currentVersion,
+                    appcastData: data
+                )
+                guard !Task.isCancelled else {
+                    return
+                }
+                await MainActor.run {
+                    self?.updateStatusSummary = summary
+                }
+            } catch {
+                Self.logger.debug("Unable to refresh update status from appcast: \(error.localizedDescription)")
+            }
+        }
     }
 
     func recordUpdateFound(_ item: SUAppcastItem) {
@@ -347,6 +388,24 @@ final class AppUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
             currentVersion: currentVersion,
             latestVersion: latestVersion,
             versionsBehind: versionsBehind
+        )
+    }
+
+    static func makeUpdateStatusSummary(
+        currentVersion: String,
+        appcastData: Data
+    ) -> UpdateStatusSummary? {
+        guard let latestVersion = AppcastVersionParser.versions(from: appcastData)?.first else {
+            return nil
+        }
+        return makeUpdateStatusSummary(
+            currentVersion: currentVersion,
+            latestVersion: latestVersion,
+            versionsBehind: versionsBehind(
+                currentVersion: currentVersion,
+                latestVersion: latestVersion,
+                appcastData: appcastData
+            )
         )
     }
 
