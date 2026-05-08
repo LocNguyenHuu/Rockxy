@@ -16,47 +16,52 @@ struct ProxyStatusIndicator: View {
     let listenAddress: String
     let port: Int
     let updateStatusSummary: AppUpdater.UpdateStatusSummary?
+    let openUpdates: () -> Void
 
     @Binding var showPopover: Bool
 
     var body: some View {
-        Button {
-            showPopover.toggle()
-        } label: {
-            HStack(spacing: 7) {
-                Circle()
-                    .fill(statusColor)
-                    .frame(width: 9, height: 9)
-                    .shadow(
-                        color: statusShadowColor,
-                        radius: 4,
-                        x: 0,
-                        y: 0
-                    )
+        HStack(spacing: 0) {
+            Button {
+                showPopover.toggle()
+            } label: {
+                HStack(spacing: 7) {
+                    statusDot
 
-                Text(statusText)
-                    .font(.callout.weight(.medium))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                    Text(statusText)
+                        .font(.callout.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
 
-                if let updateStatusSummary {
-                    updateStatus(updateStatusSummary)
+                    if updateStatusSummary != nil {
+                        Text("|")
+                            .font(.caption)
+                            .foregroundStyle(Color(nsColor: .tertiaryLabelColor))
+                    }
                 }
+                .padding(.leading, 12)
+                .padding(.trailing, updateStatusSummary == nil ? 12 : 7)
+                .padding(.vertical, 6)
+                .contentShape(Rectangle())
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(
-                Color(nsColor: .windowBackgroundColor)
-                    .opacity(0.55)
-            )
-            .clipShape(Capsule())
-            .overlay(
-                Capsule()
-                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-            )
+            .buttonStyle(.plain)
+            .help(statusHelpText)
+
+            if let updateStatusSummary {
+                updateStatus(updateStatusSummary)
+                    .padding(.trailing, 12)
+                    .padding(.vertical, 6)
+            }
         }
-        .buttonStyle(.plain)
-        .help(statusHelpText)
+        .background(
+            Color(nsColor: .windowBackgroundColor)
+                .opacity(0.55)
+        )
+        .clipShape(Capsule())
+        .overlay(
+            Capsule()
+                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+        )
         .popover(isPresented: $showPopover) {
             ProxyStatusPopover(
                 listenAddress: listenAddress,
@@ -68,6 +73,18 @@ struct ProxyStatusIndicator: View {
     }
 
     // MARK: Private
+
+    private var statusDot: some View {
+        Circle()
+            .fill(statusColor)
+            .frame(width: 9, height: 9)
+            .shadow(
+                color: statusShadowColor,
+                radius: 4,
+                x: 0,
+                y: 0
+            )
+    }
 
     private var statusColor: Color {
         switch displayState {
@@ -114,14 +131,13 @@ struct ProxyStatusIndicator: View {
 
     @ViewBuilder
     private func updateStatus(_ summary: AppUpdater.UpdateStatusSummary) -> some View {
-        Text("|")
-            .font(.caption)
-            .foregroundStyle(Color(nsColor: .tertiaryLabelColor))
-
-        ViewThatFits(in: .horizontal) {
-            updateBadge(summary.badgeTitle)
-            updateBadge(String(localized: "Update"))
+        Button(action: openUpdates) {
+            ViewThatFits(in: .horizontal) {
+                updateBadge(summary.badgeTitle)
+                updateBadge(String(localized: "Update"))
+            }
         }
+        .buttonStyle(.plain)
         .help([
             summary.title,
             summary.versionLine,

@@ -247,6 +247,15 @@ final class AppUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
         refreshSparkleState()
     }
 
+    func showUpdatesFromStatusBadge() {
+        if sessionInProgress {
+            userDriver?.showUpdateInFocus()
+            return
+        }
+
+        checkForUpdates()
+    }
+
     func openFullChangelog() {
         NSWorkspace.shared.open(Self.fullChangelogURL)
     }

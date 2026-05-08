@@ -70,6 +70,9 @@ struct ProxyToolbarContent: ToolbarContent {
                     ? coordinator.activeProxyPort
                     : AppSettingsManager.shared.settings.proxyPort,
                 updateStatusSummary: updater.updateStatusSummary,
+                openUpdates: {
+                    updater.showUpdatesFromStatusBadge()
+                },
                 showPopover: $coordinator.showProxyStatusPopover
             )
         }
