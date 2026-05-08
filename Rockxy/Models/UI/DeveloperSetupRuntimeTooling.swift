@@ -24,11 +24,11 @@ enum DeveloperSetupRuntimeTooling {
         case .nodeJS:
             return executableReadiness(
                 title: "Node.js",
-                urls: executableCandidates(
-                    name: "node",
-                    additionalPaths: ["/usr/local/bin/node", "/opt/homebrew/bin/node"],
-                    includeNVM: true
-                )
+                urls: nodeExecutableCandidates(),
+                missingNote: """
+                Node.js validation needs a local node executable. Install Node with Homebrew or nvm, \
+                or make sure node is available on PATH, then rerun the Node.js setup flow.
+                """
             )
         case .ruby:
             return executableReadiness(
@@ -81,11 +81,11 @@ enum DeveloperSetupRuntimeTooling {
         case .nextJS:
             return executableReadiness(
                 title: "Node.js",
-                urls: executableCandidates(
-                    name: "node",
-                    additionalPaths: ["/usr/local/bin/node", "/opt/homebrew/bin/node"],
-                    includeNVM: true
-                )
+                urls: nodeExecutableCandidates(),
+                missingNote: """
+                Node.js validation needs a local node executable. Install Node with Homebrew or nvm, \
+                or make sure node is available on PATH, then rerun the Next.js setup flow.
+                """
             )
         default:
             return .notRequired
@@ -154,6 +154,40 @@ enum DeveloperSetupRuntimeTooling {
                 continue
             }
             urls.append(candidate)
+        }
+
+        return urls
+    }
+
+    static func nodeExecutableCandidates(
+        path: String? = nil,
+        homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser
+    ) -> [URL] {
+        let fileManager = FileManager.default
+        var urls = executableURLsOnPath(named: "node", path: path)
+        var seen = Set(urls.map(\.path))
+
+        let standardPaths = [
+            "/usr/local/bin/node",
+            "/opt/homebrew/bin/node",
+            "/usr/bin/node",
+        ]
+        for standardPath in standardPaths where seen.insert(standardPath).inserted {
+            urls.append(URL(fileURLWithPath: standardPath))
+        }
+
+        let nvmVersionsDirectory = homeDirectory.appendingPathComponent(".nvm/versions/node", isDirectory: true)
+        if let versionDirectories = try? fileManager.contentsOfDirectory(
+            at: nvmVersionsDirectory,
+            includingPropertiesForKeys: nil
+        ) {
+            let discovered = versionDirectories
+                .map { $0.appendingPathComponent("bin/node").path }
+                .sorted()
+                .reversed()
+            for path in discovered where seen.insert(path).inserted {
+                urls.append(URL(fileURLWithPath: path))
+            }
         }
 
         return urls

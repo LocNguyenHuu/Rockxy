@@ -31,7 +31,7 @@ extension SetupTarget {
             localized: "Point your Node.js client at Rockxy's local proxy and trust the exported root certificate."
         ),
         currentSupportSummary: String(
-            localized: "Rockxy ships manual snippets for axios, https, and got."
+            localized: "Rockxy ships manual snippets for axios, Node core, and got."
         )
     )
 
