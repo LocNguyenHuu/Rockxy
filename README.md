@@ -41,18 +41,28 @@
 <!-- BEGIN GENERATED: latest-release -->
 ## Latest Tagged Release
 
-**v0.15.1** — 2026-05-05
+**v0.16.0** — 2026-05-07
+
+### Added
+
+- Developer Setup Hub now presents Manual Setup and Automatic Setup as setup modes, with manual setup kept available for every target.
+- Python Developer Setup now includes stronger `requests`, `httpx`, `aiohttp`, and `urllib3` guidance, a localhost demo path, and a validation flow that uses the selected Python client.
+- Rockxy Pro now unlocks repeatable Dev Hub workflows such as more saved setup profiles, more pinned targets, multi-target validation, reusable launchers, and profile/template reuse while keeping one-shot manual and automatic setup available.
 
 ### Fixed
 
-- Validate Dev Hub with local probe
-- Correct Ruby Faraday setup snippet
+- Python setup snippets now use clearer proxy and certificate wiring for local validation.
+
+### Changed
+
+- Developer Setup Hub copy now explains validation honestly: local probes confirm traffic was captured through Rockxy without claiming process, device, simulator, emulator, or runtime attribution.
 
 See [CHANGELOG.md](CHANGELOG.md) for the full release history.
 <!-- END GENERATED: latest-release -->
 
 ## Current Branch Highlights
 
+- Node.js Developer Setup now mirrors the selected client during validation and has a fuller localhost sample guide.
 - Developer Setup Hub now covers runtimes, browsers, clients, devices, frameworks, and environments with target-specific snippets, validation watchers, and honest guide content.
 - HTTPS response prompts, sidebar actions, and the request table now stay in sync when SSL proxying is enabled or disabled by domain or app.
 - The inspector and main request table were polished with scrolling tabs, top-aligned query content, clearer status/code separation, request/response byte columns, duration fixes, and live SSL state icons.

@@ -804,8 +804,8 @@ struct DeveloperSetupViewModelTests {
         #expect(snippet?.contains("https://<your-host>/<your-path>") == true)
     }
 
-    @Test("Generated Node.js https snippet passes proxyEnv as an environment object")
-    func generatedNodeHTTPSSnippetUsesEnvironmentObject() {
+    @Test("Generated Node.js core snippet uses explicit HTTP proxy and CONNECT paths")
+    func generatedNodeCoreSnippetUsesExplicitProxyPaths() {
         let snippet = DeveloperSetupWorkflowCatalog.generatedSnippet(
             for: .nodeJS,
             snippetID: .nodeHTTPS,
@@ -813,9 +813,12 @@ struct DeveloperSetupViewModelTests {
             certificatePath: "/tmp/RockxyRootCA.pem"
         )
 
-        #expect(snippet?.contains("proxyEnv: {") == true)
-        #expect(snippet?.contains("HTTP_PROXY: process.env.HTTP_PROXY") == true)
-        #expect(snippet?.contains("HTTPS_PROXY: process.env.HTTPS_PROXY") == true)
+        #expect(snippet?.contains("import http from \"node:http\"") == true)
+        #expect(snippet?.contains("import tls from \"node:tls\"") == true)
+        #expect(snippet?.contains("method: \"CONNECT\"") == true)
+        #expect(snippet?.contains("path: url.href") == true)
+        #expect(snippet?.contains("fs.readFileSync(\"/tmp/RockxyRootCA.pem\")") == true)
+        #expect(snippet?.contains("rejectUnauthorized: false") == false)
     }
 
     @Test("Generated cURL snippet includes proxy flag and CA bundle")
@@ -1226,21 +1229,47 @@ struct DeveloperSetupViewModelTests {
         #expect(urllib3?.contains(validation.urlString) == true)
     }
 
-    @Test("Node validation uses HTTP-capable axios snippet for local probes")
-    func generatedNodeValidationSnippetUsesAxiosProbe() {
+    @Test("Node validation mirrors the selected client snippet")
+    func generatedNodeValidationSnippetUsesSelectedClient() throws {
         let workflow = DeveloperSetupWorkflowCatalog.workflow(for: .nodeJS)
-        let snippet = DeveloperSetupWorkflowCatalog.generatedValidationSnippet(
+        let validation = try validationSpec(for: .nodeJS)
+
+        let axios = DeveloperSetupWorkflowCatalog.generatedValidationSnippet(
             for: .nodeJS,
             workflow: workflow,
-            validation: try? validationSpec(for: .nodeJS),
+            validation: validation,
+            selectedSnippetID: .nodeAxios,
+            port: 9_090,
+            certificatePath: "/tmp/RockxyRootCA.pem"
+        )
+        #expect(axios?.contains("axios.get") == true)
+        #expect(axios?.contains(validation.urlString) == true)
+        #expect(axios?.contains("https://<your-host>/<your-path>") == false)
+
+        let nodeCore = DeveloperSetupWorkflowCatalog.generatedValidationSnippet(
+            for: .nodeJS,
+            workflow: workflow,
+            validation: validation,
             selectedSnippetID: .nodeHTTPS,
             port: 9_090,
             certificatePath: "/tmp/RockxyRootCA.pem"
         )
+        #expect(nodeCore?.contains("import http from \"node:http\"") == true)
+        #expect(nodeCore?.contains("axios.get") == false)
+        #expect(nodeCore?.contains(validation.urlString) == true)
 
-        #expect(snippet?.contains("axios.get") == true)
-        #expect(snippet?.contains("https.request") == false)
-        #expect(snippet?.contains("http://127.0.0.1:43210/.well-known/rockxy/dev-setup/nodeJS") == true)
+        let got = DeveloperSetupWorkflowCatalog.generatedValidationSnippet(
+            for: .nodeJS,
+            workflow: workflow,
+            validation: validation,
+            selectedSnippetID: .nodeGot,
+            port: 9_090,
+            certificatePath: "/tmp/RockxyRootCA.pem"
+        )
+        #expect(got?.contains("import got from \"got\"") == true)
+        #expect(got?.contains("HttpProxyAgent") == true)
+        #expect(got?.contains(validation.urlString) == true)
+        #expect(got?.contains("https://<your-host>/<your-path>") == false)
     }
 
     @Test("Firefox validation snippet falls back to the cURL preflight probe")
