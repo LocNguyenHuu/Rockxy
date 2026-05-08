@@ -41,13 +41,12 @@
 <!-- BEGIN GENERATED: latest-release -->
 ## Latest Tagged Release
 
-**v0.16.0** — 2026-05-07
+**v0.17.0** — 2026-05-08
 
 ### Added
 
-- Developer Setup Hub now presents Manual Setup and Automatic Setup as setup modes, with manual setup kept available for every target.
-- Python Developer Setup now includes stronger `requests`, `httpx`, `aiohttp`, and `urllib3` guidance, a localhost demo path, and a validation flow that uses the selected Python client.
-- Rockxy Pro now unlocks repeatable Dev Hub workflows such as more saved setup profiles, more pinned targets, multi-target validation, reusable launchers, and profile/template reuse while keeping one-shot manual and automatic setup available.
+- Python Developer Setup now includes debugger-friendly guidance for `requests`, `httpx`, `aiohttp`, and `urllib3`, with localhost demo validation using the selected Python client.
+- Node.js Developer Setup now includes selected-client validation and a fuller localhost sample guide for `axios`, Node core, and `got`.
 
 ### Fixed
 
@@ -55,7 +54,7 @@
 
 ### Changed
 
-- Developer Setup Hub copy now explains validation honestly: local probes confirm traffic was captured through Rockxy without claiming process, device, simulator, emulator, or runtime attribution.
+- Clarified Flutter/Dart Developer Setup Hub validation as a manual hybrid flow that checks capture through Rockxy without claiming device, emulator, simulator, or runtime attribution.
 
 See [CHANGELOG.md](CHANGELOG.md) for the full release history.
 <!-- END GENERATED: latest-release -->

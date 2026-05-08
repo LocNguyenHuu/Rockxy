@@ -17,6 +17,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Clarified Flutter/Dart Developer Setup Hub validation as a manual hybrid flow that checks capture through Rockxy without claiming device, emulator, simulator, or runtime attribution.
 - Added a Star History chart to all README translations.
 
+## [0.17.0] - 2026-05-08
+
+### Added
+
+- Python Developer Setup now includes debugger-friendly guidance for `requests`, `httpx`, `aiohttp`, and `urllib3`, with localhost demo validation using the selected Python client.
+- Node.js Developer Setup now includes selected-client validation and a fuller localhost sample guide for `axios`, Node core, and `got`.
+
+### Fixed
+
+- Python setup snippets now use clearer proxy and certificate wiring for local validation.
+
+### Changed
+
+- Clarified Flutter/Dart Developer Setup Hub validation as a manual hybrid flow that checks capture through Rockxy without claiming device, emulator, simulator, or runtime attribution.
+
 ## [0.16.0] - 2026-05-07
 
 ### Added
