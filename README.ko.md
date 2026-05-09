@@ -33,7 +33,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/Rockxy-Dark.png" alt="macOS에서 실행 중인 Rockxy" width="800" />
+  <img src="docs/images/Rockxy-Light.png" alt="macOS에서 실행 중인 Rockxy" width="800" />
 </p>
 
 ---
