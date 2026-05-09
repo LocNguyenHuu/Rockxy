@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 // Renders the response inspector interface for the request and response inspector.
@@ -31,7 +32,7 @@ struct ResponseInspectorView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Color.clear.opacity(Double(coordinator.sslProxyingRefreshToken) * 0))
         .task(id: transaction.id) {
-            autoSelectProtocolTab()
+            resetInspectorStateForTransaction()
         }
     }
 
@@ -40,6 +41,9 @@ struct ResponseInspectorView: View {
     @State private var selectedTab: ResponseInspectorTab = .headers
     @State private var selectedPreviewTab: PreviewTab?
     @State private var protocolTab: ProtocolTabKind?
+    @State private var bodyDisplayMode: ResponseBodyDisplayMode = .json
+    @State private var sortJSONKeys = true
+    @State private var bodyFontSize: CGFloat = 12
 
     @State private var showPreviewPopover = false
     @Environment(\.openWindow) private var openWindow
@@ -124,8 +128,14 @@ struct ResponseInspectorView: View {
                     }
                 }
             }
-        } trailingContent: {
+
+            Divider()
+                .frame(height: 14)
+                .padding(.horizontal, 4)
+
             previewTabMenuButton
+        } trailingContent: {
+            inspectorTrailingControls
         }
     }
 
@@ -140,9 +150,131 @@ struct ResponseInspectorView: View {
         }
         .buttonStyle(.plain)
         .help(String(localized: "Preview Tabs"))
-        .padding(.leading, 2)
         .popover(isPresented: $showPreviewPopover, arrowEdge: .bottom) {
             PreviewTabPopover(panel: .response, store: previewTabStore)
+        }
+    }
+
+    @ViewBuilder private var inspectorTrailingControls: some View {
+        if protocolTab == nil,
+           selectedPreviewTab == nil,
+           selectedTab == .body
+        {
+            responseBodyOptionsMenu
+        } else {
+            EmptyView()
+        }
+    }
+
+    private var responseBodyOptionsMenu: some View {
+        Menu {
+            Button {
+                bodyDisplayMode = .tree
+            } label: {
+                checkedMenuLabel(String(localized: "Tree View"), isSelected: bodyDisplayMode == .tree)
+            }
+
+            Button {
+                bodyDisplayMode = .json
+            } label: {
+                checkedMenuLabel("JSON", isSelected: bodyDisplayMode == .json)
+            }
+
+            Button {
+                bodyDisplayMode = .hex
+            } label: {
+                checkedMenuLabel("Hex", isSelected: bodyDisplayMode == .hex)
+            }
+
+            Divider()
+
+            Menu(String(localized: "Settings")) {
+                Toggle(String(localized: "Sort JSON Keys"), isOn: $sortJSONKeys)
+                Menu(String(localized: "Font Size")) {
+                    Button("11") { bodyFontSize = 11 }
+                    Button("12") { bodyFontSize = 12 }
+                    Button("13") { bodyFontSize = 13 }
+                    Button("14") { bodyFontSize = 14 }
+                }
+                Button(String(localized: "Theme…")) {}
+                    .disabled(true)
+            }
+
+            Menu(String(localized: "Format with")) {
+                Button(String(localized: "Prettify JSON")) {
+                    bodyDisplayMode = .json
+                }
+                .disabled(transaction.response?.body == nil)
+            }
+
+            Menu(String(localized: "Open with")) {
+                Button {
+                    openResponseBody(bundleIdentifier: "com.microsoft.VSCode")
+                } label: {
+                    Label("Code", systemImage: "chevron.left.forwardslash.chevron.right")
+                }
+
+                Button {
+                    openResponseBody(bundleIdentifier: "com.todesktop.230313mzl4w4u92")
+                } label: {
+                    Label("Cursor", systemImage: "cursorarrow")
+                }
+
+                Button {
+                    openResponseBody(bundleIdentifier: "com.apple.TextEdit")
+                } label: {
+                    Label("TextEdit", systemImage: "doc.text")
+                }
+
+                Button {
+                    openResponseBody(bundleIdentifier: "com.apple.dt.Xcode")
+                } label: {
+                    Label("Xcode", systemImage: "hammer")
+                }
+
+                Divider()
+                Button {
+                    openResponseBody(bundleIdentifier: nil)
+                } label: {
+                    Label(String(localized: "Open by System…"), systemImage: "arrow.up.right.square")
+                }
+
+                Divider()
+                Button {
+                    showResponseBodyInFinder()
+                } label: {
+                    Label(String(localized: "Show in Finder…"), systemImage: "folder")
+                }
+            }
+
+            Menu(String(localized: "Export")) {
+                Button(String(localized: "Copy Body")) { copyResponseBodyToClipboard() }
+                Button(String(localized: "Save Body As…")) { exportResponseBody() }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(bodyDisplayMode.displayName)
+                    .font(.system(size: 11, weight: .medium))
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 8, weight: .semibold))
+                    .foregroundStyle(Color(nsColor: .tertiaryLabelColor))
+            }
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3)
+            .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 5))
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help(String(localized: "Response body display options"))
+    }
+
+    private func checkedMenuLabel(_ title: String, isSelected: Bool) -> some View {
+        HStack {
+            if isSelected {
+                Image(systemName: "checkmark")
+            }
+            Text(title)
         }
     }
 
@@ -203,47 +335,57 @@ struct ResponseInspectorView: View {
                     systemImage: "list.bullet"
                 )
             } else {
-                LazyVGrid(columns: [
-                    GridItem(.flexible(minimum: 120, maximum: 200), alignment: .topLeading),
-                    GridItem(.flexible(), alignment: .topLeading),
-                ], spacing: 4) {
-                    ForEach(Array(response.headers.enumerated()), id: \.offset) { _, header in
-                        Text(header.name)
-                            .font(.system(.caption, design: .monospaced))
-                            .fontWeight(.semibold)
-                        Text(header.value)
-                            .font(.system(.caption, design: .monospaced))
-                            .textSelection(.enabled)
-                    }
-                }
-                .padding()
+                HeaderKeyValueTable(headers: response.headers)
+                    .padding()
             }
         }
     }
 
     @ViewBuilder
     private func responseBodyView(response: HTTPResponseData) -> some View {
-        if response.contentType == .json, response.body != nil {
-            JSONInspectorView(transaction: transaction)
-        } else if let body = response.body {
-            ScrollView {
-                if let text = String(data: body, encoding: .utf8) {
-                    Text(text)
-                        .font(.system(.caption, design: .monospaced))
-                        .textSelection(.enabled)
-                        .padding()
+        if let body = response.body, !body.isEmpty {
+            switch bodyDisplayMode {
+            case .tree:
+                if response.contentType == .json {
+                    JSONInspectorView(transaction: transaction)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 } else {
-                    Text("\(body.count) bytes (binary)")
-                        .foregroundStyle(.secondary)
-                        .padding()
+                    responseCodeEditor(for: body, response: response)
                 }
+            case .json:
+                responseCodeEditor(for: body, response: response)
+            case .hex:
+                HexDumpView(hexText: PreviewRenderer.formatHexDump(body))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
+        } else if response.body != nil {
+            ContentUnavailableView(
+                String(localized: "Empty Body"),
+                systemImage: "doc",
+                description: Text(String(localized: "The response body is empty."))
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             ContentUnavailableView(
                 String(localized: "No Body"),
                 systemImage: "doc",
                 description: Text(String(localized: "This response has no body"))
             )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+
+    @ViewBuilder
+    private func responseCodeEditor(for body: Data, response: HTTPResponseData) -> some View {
+        if let text = bodyDisplayText(for: body, response: response) {
+            InspectorBodyTextEditor(text: text, fontSize: bodyFontSize)
+        } else {
+            ContentUnavailableView(
+                String(localized: "Binary Body"),
+                systemImage: "doc",
+                description: Text(SizeFormatter.format(bytes: body.count))
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 
@@ -320,10 +462,122 @@ struct ResponseInspectorView: View {
         }
     }
 
-    private func autoSelectProtocolTab() {
+    private func resetInspectorStateForTransaction() {
+        selectedTab = .headers
+        selectedPreviewTab = nil
+        bodyDisplayMode = .json
         protocolTab = ProtocolTabKind.defaultFor(transaction)
-        if protocolTab != nil {
-            selectedPreviewTab = nil
+    }
+
+    private func bodyDisplayText(for body: Data, response: HTTPResponseData) -> String? {
+        if response.contentType == .json,
+           let pretty = prettyJSONString(from: body, sortedKeys: sortJSONKeys)
+        {
+            return pretty
+        }
+        return String(data: body, encoding: .utf8)
+    }
+
+    private func prettyJSONString(from data: Data, sortedKeys: Bool) -> String? {
+        guard let object = try? JSONSerialization.jsonObject(with: data) else {
+            return String(data: data, encoding: .utf8)
+        }
+        var options: JSONSerialization.WritingOptions = [.prettyPrinted]
+        if sortedKeys {
+            options.insert(.sortedKeys)
+        }
+        guard let prettyData = try? JSONSerialization.data(withJSONObject: object, options: options) else {
+            return String(data: data, encoding: .utf8)
+        }
+        return String(data: prettyData, encoding: .utf8)
+    }
+
+    private func responseBodyTemporaryURL() -> URL? {
+        guard let response = transaction.response,
+              let body = response.body else
+        {
+            return nil
+        }
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("RockxyInspector", isDirectory: true)
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let url = directory
+                .appendingPathComponent(transaction.id.uuidString)
+                .appendingPathExtension(responseBodyFileExtension())
+            let data = bodyDisplayText(for: body, response: response)
+                .map { Data($0.utf8) } ?? body
+            try data.write(to: url, options: .atomic)
+            return url
+        } catch {
+            return nil
+        }
+    }
+
+    private func responseBodyFileExtension() -> String {
+        switch transaction.response?.contentType {
+        case .json: "json"
+        case .xml: "xml"
+        case .html: "html"
+        case .text: "txt"
+        default: "bin"
+        }
+    }
+
+    private func openResponseBody(bundleIdentifier: String?) {
+        guard let url = responseBodyTemporaryURL() else {
+            return
+        }
+        if let bundleIdentifier,
+           let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleIdentifier)
+        {
+            NSWorkspace.shared.open([url], withApplicationAt: appURL, configuration: NSWorkspace.OpenConfiguration())
+            return
+        }
+        NSWorkspace.shared.open(url)
+    }
+
+    private func showResponseBodyInFinder() {
+        guard let url = responseBodyTemporaryURL() else {
+            return
+        }
+        NSWorkspace.shared.activateFileViewerSelecting([url])
+    }
+
+    private func copyResponseBodyToClipboard() {
+        guard let response = transaction.response,
+              let body = response.body else
+        {
+            return
+        }
+        let text = bodyDisplayText(for: body, response: response) ?? SizeFormatter.format(bytes: body.count)
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+    }
+
+    private func exportResponseBody() {
+        guard let body = transaction.response?.body else {
+            return
+        }
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = "response-body.\(responseBodyFileExtension())"
+        guard panel.runModal() == .OK, let url = panel.url else {
+            return
+        }
+        try? body.write(to: url)
+    }
+}
+
+private enum ResponseBodyDisplayMode {
+    case tree
+    case json
+    case hex
+
+    var displayName: String {
+        switch self {
+        case .tree: String(localized: "Tree")
+        case .json: "JSON"
+        case .hex: "Hex"
         }
     }
 }

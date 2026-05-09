@@ -22,6 +22,9 @@ struct RequestInspectorView: View {
             tabContent
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .onChange(of: transaction.id) { _, _ in
+            resetInspectorState()
+        }
     }
 
     // MARK: Private
@@ -57,8 +60,14 @@ struct RequestInspectorView: View {
                     }
                 }
             }
-        } trailingContent: {
+
+            Divider()
+                .frame(height: 14)
+                .padding(.horizontal, 4)
+
             previewTabMenuButton
+        } trailingContent: {
+            EmptyView()
         }
     }
 
@@ -73,7 +82,6 @@ struct RequestInspectorView: View {
         }
         .buttonStyle(.plain)
         .help(String(localized: "Preview Tabs"))
-        .padding(.leading, 2)
         .popover(isPresented: $showPreviewPopover, arrowEdge: .bottom) {
             PreviewTabPopover(panel: .request, store: previewTabStore)
         }
@@ -123,20 +131,8 @@ struct RequestInspectorView: View {
                     systemImage: "list.bullet"
                 )
             } else {
-                LazyVGrid(columns: [
-                    GridItem(.flexible(minimum: 120, maximum: 200), alignment: .topLeading),
-                    GridItem(.flexible(), alignment: .topLeading),
-                ], spacing: 4) {
-                    ForEach(Array(transaction.request.headers.enumerated()), id: \.offset) { _, header in
-                        Text(header.name)
-                            .font(.system(.caption, design: .monospaced))
-                            .fontWeight(.semibold)
-                        Text(header.value)
-                            .font(.system(.caption, design: .monospaced))
-                            .textSelection(.enabled)
-                    }
-                }
-                .padding()
+                HeaderKeyValueTable(headers: transaction.request.headers)
+                    .padding()
             }
         }
     }
@@ -186,5 +182,10 @@ struct RequestInspectorView: View {
             text += "\n\(bodyString)"
         }
         return text
+    }
+
+    private func resetInspectorState() {
+        selectedTab = .headers
+        selectedPreviewTab = nil
     }
 }
