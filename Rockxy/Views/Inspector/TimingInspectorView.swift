@@ -30,10 +30,10 @@ struct TimingInspectorView: View {
                 .padding()
             }
         } else {
-            ContentUnavailableView(
+            InspectorEmptyStateView(
                 "No Timing Data",
                 systemImage: "clock",
-                description: Text("Timing information is not available for this request")
+                description: "Timing information is not available for this request"
             )
         }
     }

@@ -33,7 +33,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/Rockxy-Dark.png" alt="Rockxy 在 macOS 上运行" width="800" />
+  <img src="docs/images/Rockxy-Light.png" alt="Rockxy 在 macOS 上运行" width="800" />
 </p>
 
 ---

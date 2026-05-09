@@ -26,8 +26,10 @@ struct InspectorTabStrip<Content: View, TrailingContent: View>: View {
             }
             .scrollIndicators(.hidden)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .layoutPriority(0)
 
             trailingContent
+                .layoutPriority(1)
                 .padding(.leading, 4)
                 .padding(.trailing, 4)
         }

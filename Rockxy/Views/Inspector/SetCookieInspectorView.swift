@@ -11,7 +11,7 @@ struct SetCookieInspectorView: View {
         if let response = transaction.response {
             let cookies = response.setCookies
             if cookies.isEmpty {
-                ContentUnavailableView(
+                InspectorEmptyStateView(
                     String(localized: "No Set-Cookie Headers"),
                     systemImage: "cup.and.saucer"
                 )
@@ -27,7 +27,7 @@ struct SetCookieInspectorView: View {
                 }
             }
         } else {
-            ContentUnavailableView(
+            InspectorEmptyStateView(
                 String(localized: "No Response"),
                 systemImage: "arrow.down.circle"
             )

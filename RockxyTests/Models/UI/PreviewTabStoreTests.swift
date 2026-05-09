@@ -81,16 +81,6 @@ struct PreviewTabStoreTests {
         #expect(!store.isEnabled(renderMode: .json, panel: .response))
     }
 
-    // MARK: - Remove by ID
-
-    @Test("Remove tab by ID removes from correct panel")
-    func removeByID() {
-        let store = makeCleanStore()
-        let tab = store.enableTab(renderMode: .xml, panel: .request)
-        store.removeTab(id: tab.id)
-        #expect(store.requestTabs.isEmpty)
-    }
-
     // MARK: - Multiple Tabs
 
     @Test("Multiple tabs in both panels")
@@ -117,6 +107,32 @@ struct PreviewTabStoreTests {
         store.disableTab(renderMode: .hex, panel: .request)
         #expect(store.requestTabs.isEmpty)
         #expect(store.responseTabs.count == 1)
+    }
+
+    @Test("Persisted custom raw tabs are ignored")
+    func persistedCustomTabsIgnored() throws {
+        UserDefaults.standard.removeObject(forKey: TestIdentity.previewTabBeautifyKey)
+        let tabs = [
+            PreviewTab(name: "Legacy Raw", renderMode: .raw, panel: .response, isBuiltIn: false),
+            PreviewTab(renderMode: .raw, panel: .response),
+        ]
+        UserDefaults.standard.set(try JSONEncoder().encode(tabs), forKey: TestIdentity.previewTabStorageKey)
+
+        let store = PreviewTabStore()
+
+        #expect(store.responseTabs.count == 1)
+        #expect(store.responseTabs.first?.isBuiltIn == true)
+        #expect(store.responseTabs.first?.name == "Raw")
+    }
+
+    @Test("Auto beautify preference persists when toggled")
+    func autoBeautifyPersistsWhenToggled() {
+        let store = makeCleanStore()
+        store.autoBeautify = false
+
+        let freshStore = PreviewTabStore()
+
+        #expect(freshStore.autoBeautify == false)
     }
 
     // MARK: Private

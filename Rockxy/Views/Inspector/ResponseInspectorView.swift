@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 // Renders the response inspector interface for the request and response inspector.
@@ -6,7 +7,7 @@ import SwiftUI
 
 /// Right half of the inspector split view. Provides tabbed access to response-side data:
 /// headers, body (with format picker), Set-Cookie headers, auth, and timing breakdown.
-/// Also supports custom preview tabs from PreviewTabStore.
+/// Also supports optional body preview tabs from PreviewTabStore.
 /// Conditionally shows protocol-specific tabs (WebSocket, GraphQL) when the selected
 /// transaction has protocol-specific data.
 struct ResponseInspectorView: View {
@@ -31,7 +32,7 @@ struct ResponseInspectorView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Color.clear.opacity(Double(coordinator.sslProxyingRefreshToken) * 0))
         .task(id: transaction.id) {
-            autoSelectProtocolTab()
+            syncInspectorStateForTransaction()
         }
     }
 
@@ -40,6 +41,10 @@ struct ResponseInspectorView: View {
     @State private var selectedTab: ResponseInspectorTab = .headers
     @State private var selectedPreviewTab: PreviewTab?
     @State private var protocolTab: ProtocolTabKind?
+    @State private var selectionIntent: ResponseSelectionIntent = .automatic
+    @State private var bodyDisplayMode: ResponseBodyDisplayMode = .json
+    @State private var sortJSONKeys = true
+    @State private var bodyFontSize: CGFloat = 12
 
     @State private var showPreviewPopover = false
     @Environment(\.openWindow) private var openWindow
@@ -77,6 +82,7 @@ struct ResponseInspectorView: View {
                     title: tab.displayName,
                     isActive: protocolTab == nil && selectedPreviewTab == nil && selectedTab == tab
                 ) {
+                    selectionIntent = .native
                     protocolTab = nil
                     selectedPreviewTab = nil
                     selectedTab = tab
@@ -93,6 +99,7 @@ struct ResponseInspectorView: View {
                         title: String(localized: "WebSocket"),
                         isActive: protocolTab == .websocket
                     ) {
+                        selectionIntent = .protocolSpecific
                         protocolTab = .websocket
                         selectedPreviewTab = nil
                     }
@@ -103,6 +110,7 @@ struct ResponseInspectorView: View {
                         title: String(localized: "GraphQL"),
                         isActive: protocolTab == .graphql
                     ) {
+                        selectionIntent = .protocolSpecific
                         protocolTab = .graphql
                         selectedPreviewTab = nil
                     }
@@ -119,13 +127,20 @@ struct ResponseInspectorView: View {
                         title: tab.name,
                         isActive: selectedPreviewTab == tab
                     ) {
+                        selectionIntent = .preview
                         protocolTab = nil
                         selectedPreviewTab = tab
                     }
                 }
             }
-        } trailingContent: {
+
+            Divider()
+                .frame(height: 14)
+                .padding(.horizontal, 4)
+
             previewTabMenuButton
+        } trailingContent: {
+            inspectorTrailingControls
         }
     }
 
@@ -140,9 +155,138 @@ struct ResponseInspectorView: View {
         }
         .buttonStyle(.plain)
         .help(String(localized: "Preview Tabs"))
-        .padding(.leading, 2)
         .popover(isPresented: $showPreviewPopover, arrowEdge: .bottom) {
             PreviewTabPopover(panel: .response, store: previewTabStore)
+        }
+    }
+
+    @ViewBuilder private var inspectorTrailingControls: some View {
+        if protocolTab == nil,
+           selectedPreviewTab == nil,
+           selectedTab == .body
+        {
+            responseBodyOptionsMenu
+        } else {
+            EmptyView()
+        }
+    }
+
+    private var responseBodyOptionsMenu: some View {
+        Menu {
+            Button {
+                bodyDisplayMode = .tree
+            } label: {
+                checkedMenuLabel(String(localized: "Tree View"), isSelected: bodyDisplayMode == .tree)
+            }
+
+            Button {
+                bodyDisplayMode = .json
+            } label: {
+                checkedMenuLabel("JSON", isSelected: bodyDisplayMode == .json)
+            }
+
+            Button {
+                bodyDisplayMode = .raw
+            } label: {
+                checkedMenuLabel(String(localized: "Raw"), isSelected: bodyDisplayMode == .raw)
+            }
+
+            Button {
+                bodyDisplayMode = .hex
+            } label: {
+                checkedMenuLabel("Hex", isSelected: bodyDisplayMode == .hex)
+            }
+
+            Divider()
+
+            Menu(String(localized: "Settings")) {
+                Toggle(String(localized: "Sort JSON Keys"), isOn: $sortJSONKeys)
+                Menu(String(localized: "Font Size")) {
+                    Button("11") { bodyFontSize = 11 }
+                    Button("12") { bodyFontSize = 12 }
+                    Button("13") { bodyFontSize = 13 }
+                    Button("14") { bodyFontSize = 14 }
+                }
+                Button(String(localized: "Theme…")) {}
+                    .disabled(true)
+            }
+
+            Menu(String(localized: "Format with")) {
+                Button(String(localized: "Prettify JSON")) {
+                    sortJSONKeys = true
+                    bodyDisplayMode = .json
+                }
+                .disabled(!canPrettifyResponseBody)
+            }
+
+            Menu(String(localized: "Open with")) {
+                Button {
+                    openResponseBody(bundleIdentifier: "com.microsoft.VSCode")
+                } label: {
+                    Label("Code", systemImage: "chevron.left.forwardslash.chevron.right")
+                }
+
+                Button {
+                    openResponseBody(bundleIdentifier: "com.todesktop.230313mzl4w4u92")
+                } label: {
+                    Label("Cursor", systemImage: "cursorarrow")
+                }
+
+                Button {
+                    openResponseBody(bundleIdentifier: "com.apple.TextEdit")
+                } label: {
+                    Label("TextEdit", systemImage: "doc.text")
+                }
+
+                Button {
+                    openResponseBody(bundleIdentifier: "com.apple.dt.Xcode")
+                } label: {
+                    Label("Xcode", systemImage: "hammer")
+                }
+
+                Divider()
+                Button {
+                    openResponseBody(bundleIdentifier: nil)
+                } label: {
+                    Label(String(localized: "Open by System…"), systemImage: "arrow.up.right.square")
+                }
+
+                Divider()
+                Button {
+                    showResponseBodyInFinder()
+                } label: {
+                    Label(String(localized: "Show in Finder…"), systemImage: "folder")
+                }
+            }
+
+            Menu(String(localized: "Export")) {
+                Button(String(localized: "Copy Body")) { copyResponseBodyToClipboard() }
+                Button(String(localized: "Save Body As…")) { exportResponseBody() }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(bodyDisplayMode.displayName)
+                    .font(.system(size: 11, weight: .medium))
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 8, weight: .semibold))
+                    .foregroundStyle(Color(nsColor: .tertiaryLabelColor))
+            }
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3)
+            .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 5))
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help(String(localized: "Response body display options"))
+    }
+
+    private func checkedMenuLabel(_ title: String, isSelected: Bool) -> some View {
+        HStack {
+            if isSelected {
+                Image(systemName: "checkmark")
+            }
+            Text(title)
         }
     }
 
@@ -187,62 +331,96 @@ struct ResponseInspectorView: View {
                 TimingInspectorView(transaction: transaction)
             }
         } else {
-            ContentUnavailableView(
+            InspectorEmptyStateView(
                 String(localized: "No Response"),
                 systemImage: "arrow.down.circle",
-                description: Text(String(localized: "Waiting for response..."))
+                description: String(localized: "Waiting for response...")
             )
         }
     }
 
+    @ViewBuilder
     private func responseHeadersView(response: HTTPResponseData) -> some View {
-        ScrollView {
-            if response.headers.isEmpty {
-                ContentUnavailableView(
-                    String(localized: "No Headers"),
-                    systemImage: "list.bullet"
-                )
-            } else {
-                LazyVGrid(columns: [
-                    GridItem(.flexible(minimum: 120, maximum: 200), alignment: .topLeading),
-                    GridItem(.flexible(), alignment: .topLeading),
-                ], spacing: 4) {
-                    ForEach(Array(response.headers.enumerated()), id: \.offset) { _, header in
-                        Text(header.name)
-                            .font(.system(.caption, design: .monospaced))
-                            .fontWeight(.semibold)
-                        Text(header.value)
-                            .font(.system(.caption, design: .monospaced))
-                            .textSelection(.enabled)
-                    }
-                }
-                .padding()
+        if response.headers.isEmpty {
+            InspectorEmptyStateView(
+                String(localized: "No Headers"),
+                systemImage: "list.bullet"
+            )
+        } else {
+            ScrollView {
+                HeaderKeyValueTable(headers: response.headers)
+                    .padding()
             }
         }
     }
 
     @ViewBuilder
     private func responseBodyView(response: HTTPResponseData) -> some View {
-        if response.contentType == .json, response.body != nil {
-            JSONInspectorView(transaction: transaction)
-        } else if let body = response.body {
-            ScrollView {
-                if let text = String(data: body, encoding: .utf8) {
-                    Text(text)
-                        .font(.system(.caption, design: .monospaced))
-                        .textSelection(.enabled)
-                        .padding()
-                } else {
-                    Text("\(body.count) bytes (binary)")
-                        .foregroundStyle(.secondary)
-                        .padding()
-                }
+        if bodyDisplayMode == .raw {
+            responseRawView()
+        } else if let body = response.body, !body.isEmpty {
+            switch bodyDisplayMode {
+            case .tree:
+                JSONTreeView(data: body)
+                    .id(transaction.id)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            case .json:
+                responseCodeEditor(for: body, response: response)
+            case .raw:
+                responseRawView()
+            case .hex:
+                AsyncHexDumpView(
+                    data: body,
+                    renderID: "\(transaction.id.uuidString)-response-hex-\(body.count)"
+                )
             }
+        } else if response.body != nil {
+            InspectorEmptyStateView(
+                String(localized: "Empty Body"),
+                systemImage: "doc",
+                description: String(localized: "The response body is empty.")
+            )
         } else {
-            ContentUnavailableView(
+            InspectorEmptyStateView(
                 String(localized: "No Body"),
                 systemImage: "doc",
-                description: Text(String(localized: "This response has no body"))
+                description: String(localized: "This response has no body")
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func responseRawView() -> some View {
+        let snapshot = InspectorTransactionSnapshot(transaction: transaction)
+        AsyncInspectorTextEditor(
+            renderID: "\(snapshot.id.uuidString)-response-raw-\(snapshot.response?.body?.count ?? 0)",
+            fontSize: bodyFontSize
+        ) {
+            if let text = InspectorPayloadFormatter.rawResponse(snapshot.response) {
+                return .text(text)
+            }
+            return .unavailable(
+                title: String(localized: "No Response"),
+                systemImage: "arrow.down.circle",
+                description: String(localized: "Waiting for response...")
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func responseCodeEditor(for body: Data, response _: HTTPResponseData) -> some View {
+        let sortedKeys = sortJSONKeys
+        AsyncInspectorTextEditor(
+            renderID: "\(transaction.id.uuidString)-response-json-\(sortedKeys)-\(body.count)",
+            fontSize: bodyFontSize
+        ) {
+            if let text = InspectorPayloadFormatter.responseDisplayText(body: body, sortedKeys: sortedKeys) {
+                return .text(text)
+            }
+            return .unavailable(
+                title: String(localized: "Binary Body"),
+                systemImage: "doc",
+                description: SizeFormatter.format(bytes: body.count)
             )
         }
     }
@@ -320,12 +498,149 @@ struct ResponseInspectorView: View {
         }
     }
 
-    private func autoSelectProtocolTab() {
-        protocolTab = ProtocolTabKind.defaultFor(transaction)
-        if protocolTab != nil {
-            selectedPreviewTab = nil
+    private func syncInspectorStateForTransaction() {
+        if let selectedPreviewTab,
+           !previewTabStore.responseTabs.contains(where: { $0.id == selectedPreviewTab.id })
+        {
+            self.selectedPreviewTab = nil
+            selectionIntent = .automatic
+        }
+
+        switch selectionIntent {
+        case .automatic:
+            protocolTab = ProtocolTabKind.defaultFor(transaction)
+        case .native,
+             .preview:
+            protocolTab = nil
+        case .protocolSpecific:
+            if let protocolTab,
+               ProtocolTabKind.isSupported(protocolTab, by: transaction)
+            {
+                return
+            }
+            protocolTab = ProtocolTabKind.defaultFor(transaction)
+            if protocolTab == nil {
+                selectionIntent = .native
+            }
         }
     }
+
+    private func bodyDisplayText(for body: Data, response _: HTTPResponseData) -> String? {
+        if let pretty = prettyJSONString(from: body, sortedKeys: sortJSONKeys)
+        {
+            return pretty
+        }
+        return String(data: body, encoding: .utf8)
+    }
+
+    private var canPrettifyResponseBody: Bool {
+        guard let body = transaction.response?.body else {
+            return false
+        }
+        return !body.isEmpty
+    }
+
+    private func prettyJSONString(from data: Data, sortedKeys: Bool) -> String? {
+        InspectorPayloadFormatter.responseDisplayText(body: data, sortedKeys: sortedKeys)
+    }
+
+    private func responseBodyTemporaryURL() -> URL? {
+        guard let response = transaction.response,
+              let body = response.body else
+        {
+            return nil
+        }
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("RockxyInspector", isDirectory: true)
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let url = directory
+                .appendingPathComponent(transaction.id.uuidString)
+                .appendingPathExtension(responseBodyFileExtension())
+            let data = bodyDisplayText(for: body, response: response)
+                .map { Data($0.utf8) } ?? body
+            try data.write(to: url, options: .atomic)
+            return url
+        } catch {
+            return nil
+        }
+    }
+
+    private func responseBodyFileExtension() -> String {
+        switch transaction.response?.contentType {
+        case .json: "json"
+        case .xml: "xml"
+        case .html: "html"
+        case .text: "txt"
+        default: "bin"
+        }
+    }
+
+    private func openResponseBody(bundleIdentifier: String?) {
+        guard let url = responseBodyTemporaryURL() else {
+            return
+        }
+        if let bundleIdentifier,
+           let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleIdentifier)
+        {
+            NSWorkspace.shared.open([url], withApplicationAt: appURL, configuration: NSWorkspace.OpenConfiguration())
+            return
+        }
+        NSWorkspace.shared.open(url)
+    }
+
+    private func showResponseBodyInFinder() {
+        guard let url = responseBodyTemporaryURL() else {
+            return
+        }
+        NSWorkspace.shared.activateFileViewerSelecting([url])
+    }
+
+    private func copyResponseBodyToClipboard() {
+        guard let response = transaction.response,
+              let body = response.body else
+        {
+            return
+        }
+        let text = bodyDisplayText(for: body, response: response) ?? SizeFormatter.format(bytes: body.count)
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+    }
+
+    private func exportResponseBody() {
+        guard let body = transaction.response?.body else {
+            return
+        }
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = "response-body.\(responseBodyFileExtension())"
+        guard panel.runModal() == .OK, let url = panel.url else {
+            return
+        }
+        try? body.write(to: url)
+    }
+}
+
+private enum ResponseBodyDisplayMode {
+    case tree
+    case json
+    case raw
+    case hex
+
+    var displayName: String {
+        switch self {
+        case .tree: String(localized: "Tree View")
+        case .json: "JSON"
+        case .raw: String(localized: "Raw")
+        case .hex: "Hex"
+        }
+    }
+}
+
+private enum ResponseSelectionIntent {
+    case automatic
+    case native
+    case protocolSpecific
+    case preview
 }
 
 // MARK: - HTTPSInspectionPromptAction
@@ -446,5 +761,14 @@ enum ProtocolTabKind {
             return .graphql
         }
         return nil
+    }
+
+    static func isSupported(_ tab: ProtocolTabKind, by transaction: HTTPTransaction) -> Bool {
+        switch tab {
+        case .websocket:
+            transaction.webSocketConnection != nil
+        case .graphql:
+            transaction.graphQLInfo != nil
+        }
     }
 }

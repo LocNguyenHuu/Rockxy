@@ -8,38 +8,17 @@ struct RawInspectorView: View {
     let transaction: HTTPTransaction
 
     var body: some View {
-        ScrollView {
-            Text(buildRawText())
-                .font(.system(.caption, design: .monospaced))
-                .textSelection(.enabled)
-                .padding()
-        }
-    }
-
-    // MARK: Private
-
-    private func buildRawText() -> String {
-        var text = ""
-        let request = transaction.request
-        text += "\(request.method) \(request.path) \(request.httpVersion)\n"
-        text += "Host: \(request.host)\n"
-        for header in request.headers {
-            text += "\(header.name): \(header.value)\n"
-        }
-        if let body = request.body, let bodyString = String(data: body, encoding: .utf8) {
-            text += "\n\(bodyString)"
-        }
-
-        if let response = transaction.response {
-            text += "\n\n--- Response ---\n"
-            text += "HTTP \(response.statusCode) \(response.statusMessage)\n"
-            for header in response.headers {
-                text += "\(header.name): \(header.value)\n"
+        let snapshot = InspectorTransactionSnapshot(transaction: transaction)
+        AsyncInspectorTextEditor(
+            renderID: "\(snapshot.id.uuidString)-full-raw-\(snapshot.response?.body?.count ?? 0)",
+            fontSize: 12
+        ) {
+            var text = InspectorPayloadFormatter.rawRequest(snapshot.request)
+            if let rawResponse = InspectorPayloadFormatter.rawResponse(snapshot.response) {
+                text += "\r\n\r\n--- Response ---\r\n"
+                text += rawResponse
             }
-            if let body = response.body, let bodyString = String(data: body, encoding: .utf8) {
-                text += "\n\(bodyString)"
-            }
+            return .text(text)
         }
-        return text
     }
 }
