@@ -202,9 +202,10 @@ struct ResponseInspectorView: View {
 
             Menu(String(localized: "Format with")) {
                 Button(String(localized: "Prettify JSON")) {
+                    sortJSONKeys = true
                     bodyDisplayMode = .json
                 }
-                .disabled(transaction.response?.body == nil)
+                .disabled(!canPrettifyResponseBody)
             }
 
             Menu(String(localized: "Open with")) {
@@ -319,22 +320,23 @@ struct ResponseInspectorView: View {
                 TimingInspectorView(transaction: transaction)
             }
         } else {
-            ContentUnavailableView(
+            InspectorEmptyStateView(
                 String(localized: "No Response"),
                 systemImage: "arrow.down.circle",
-                description: Text(String(localized: "Waiting for response..."))
+                description: String(localized: "Waiting for response...")
             )
         }
     }
 
+    @ViewBuilder
     private func responseHeadersView(response: HTTPResponseData) -> some View {
-        ScrollView {
-            if response.headers.isEmpty {
-                ContentUnavailableView(
-                    String(localized: "No Headers"),
-                    systemImage: "list.bullet"
-                )
-            } else {
+        if response.headers.isEmpty {
+            InspectorEmptyStateView(
+                String(localized: "No Headers"),
+                systemImage: "list.bullet"
+            )
+        } else {
+            ScrollView {
                 HeaderKeyValueTable(headers: response.headers)
                     .padding()
             }
@@ -346,11 +348,15 @@ struct ResponseInspectorView: View {
         if let body = response.body, !body.isEmpty {
             switch bodyDisplayMode {
             case .tree:
-                if response.contentType == .json {
+                if isJSONBody(body) {
                     JSONInspectorView(transaction: transaction)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 } else {
-                    responseCodeEditor(for: body, response: response)
+                    InspectorEmptyStateView(
+                        String(localized: "Tree View Unavailable"),
+                        systemImage: "curlybraces",
+                        description: String(localized: "This body is not valid JSON.")
+                    )
                 }
             case .json:
                 responseCodeEditor(for: body, response: response)
@@ -359,19 +365,17 @@ struct ResponseInspectorView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
         } else if response.body != nil {
-            ContentUnavailableView(
+            InspectorEmptyStateView(
                 String(localized: "Empty Body"),
                 systemImage: "doc",
-                description: Text(String(localized: "The response body is empty."))
+                description: String(localized: "The response body is empty.")
             )
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            ContentUnavailableView(
+            InspectorEmptyStateView(
                 String(localized: "No Body"),
                 systemImage: "doc",
-                description: Text(String(localized: "This response has no body"))
+                description: String(localized: "This response has no body")
             )
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 
@@ -380,12 +384,11 @@ struct ResponseInspectorView: View {
         if let text = bodyDisplayText(for: body, response: response) {
             InspectorBodyTextEditor(text: text, fontSize: bodyFontSize)
         } else {
-            ContentUnavailableView(
+            InspectorEmptyStateView(
                 String(localized: "Binary Body"),
                 systemImage: "doc",
-                description: Text(SizeFormatter.format(bytes: body.count))
+                description: SizeFormatter.format(bytes: body.count)
             )
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 
@@ -470,12 +473,22 @@ struct ResponseInspectorView: View {
     }
 
     private func bodyDisplayText(for body: Data, response: HTTPResponseData) -> String? {
-        if response.contentType == .json,
-           let pretty = prettyJSONString(from: body, sortedKeys: sortJSONKeys)
+        if let pretty = prettyJSONString(from: body, sortedKeys: sortJSONKeys)
         {
             return pretty
         }
         return String(data: body, encoding: .utf8)
+    }
+
+    private var canPrettifyResponseBody: Bool {
+        guard let body = transaction.response?.body else {
+            return false
+        }
+        return isJSONBody(body)
+    }
+
+    private func isJSONBody(_ data: Data) -> Bool {
+        (try? JSONSerialization.jsonObject(with: data)) != nil
     }
 
     private func prettyJSONString(from data: Data, sortedKeys: Bool) -> String? {
@@ -575,7 +588,7 @@ private enum ResponseBodyDisplayMode {
 
     var displayName: String {
         switch self {
-        case .tree: String(localized: "Tree")
+        case .tree: String(localized: "Tree View")
         case .json: "JSON"
         case .hex: "Hex"
         }

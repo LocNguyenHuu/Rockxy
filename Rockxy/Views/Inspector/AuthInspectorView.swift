@@ -18,10 +18,10 @@ struct AuthInspectorView: View {
                 .padding()
             }
         } else {
-            ContentUnavailableView(
+            InspectorEmptyStateView(
                 String(localized: "No Authorization"),
                 systemImage: "lock.open",
-                description: Text(String(localized: "No Authorization header found"))
+                description: String(localized: "No Authorization header found")
             )
         }
     }

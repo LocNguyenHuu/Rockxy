@@ -1,66 +1,122 @@
+import AppKit
 import SwiftUI
 
-/// SwiftUI-backed response body editor used by the inspector.
-/// Keeps rendering predictable while still allowing cursor placement, selection, and local edits.
-struct InspectorBodyTextEditor: View {
+/// NSTextView-backed body editor used by the inspector.
+/// Shows JSON/text payloads with code-like selection, cursor placement, line numbers,
+/// horizontal scrolling, and lightweight syntax coloring.
+struct InspectorBodyTextEditor: NSViewRepresentable {
     let text: String
     var fontSize: CGFloat = 12
 
-    @State private var editableText: String
-
-    init(text: String, fontSize: CGFloat = 12) {
-        self.text = text
-        self.fontSize = fontSize
-        _editableText = State(initialValue: text)
+    func makeNSView(context _: Context) -> NSScrollView {
+        let scrollView = NSTextView.scrollableTextView()
+        configure(scrollView)
+        apply(text, to: scrollView)
+        return scrollView
     }
 
-    var body: some View {
-        HStack(spacing: 0) {
-            lineNumberColumn
-            Divider()
-            TextEditor(text: $editableText)
-                .font(.system(size: fontSize, design: .monospaced))
-                .foregroundStyle(.primary)
-                .scrollContentBackground(.hidden)
-                .background(Color(nsColor: .textBackgroundColor))
-                .disableAutocorrection(true)
-                .textSelection(.enabled)
+    func updateNSView(_ nsView: NSScrollView, context _: Context) {
+        guard let textView = nsView.documentView as? NSTextView else {
+            return
         }
-        .background(Color(nsColor: .textBackgroundColor))
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .onChange(of: text) { _, newValue in
-            editableText = newValue
+        if textView.string != text {
+            let selectedRange = textView.selectedRange()
+            apply(text, to: nsView)
+            textView.setSelectedRange(clamped(range: selectedRange, length: (text as NSString).length))
         }
     }
 
-    private var lineNumberColumn: some View {
-        ScrollView(.vertical) {
-            VStack(alignment: .trailing, spacing: 0) {
-                ForEach(1 ... max(1, editableText.lineCount), id: \.self) { line in
-                    Text("\(line)")
-                        .font(.system(size: 11, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                        .frame(height: lineHeight, alignment: .topTrailing)
-                }
+    private func configure(_ scrollView: NSScrollView) {
+        scrollView.drawsBackground = true
+        scrollView.backgroundColor = .textBackgroundColor
+        scrollView.hasVerticalScroller = true
+        scrollView.hasHorizontalScroller = true
+        scrollView.autohidesScrollers = true
+
+        guard let textView = scrollView.documentView as? NSTextView else {
+            return
+        }
+
+        textView.isEditable = true
+        textView.isSelectable = true
+        textView.allowsUndo = true
+        textView.usesFindBar = true
+        textView.isRichText = true
+        textView.importsGraphics = false
+        textView.isAutomaticQuoteSubstitutionEnabled = false
+        textView.isAutomaticDashSubstitutionEnabled = false
+        textView.isAutomaticTextReplacementEnabled = false
+        textView.isAutomaticSpellingCorrectionEnabled = false
+        textView.font = .monospacedSystemFont(ofSize: fontSize, weight: .regular)
+        textView.textColor = .textColor
+        textView.backgroundColor = .textBackgroundColor
+        textView.textContainerInset = NSSize(width: 8, height: 8)
+        textView.isHorizontallyResizable = true
+        textView.isVerticallyResizable = true
+        textView.minSize = NSSize(width: 0, height: 0)
+        textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        textView.autoresizingMask = [.width]
+        textView.textContainer?.containerSize = NSSize(
+            width: CGFloat.greatestFiniteMagnitude,
+            height: CGFloat.greatestFiniteMagnitude
+        )
+        textView.textContainer?.widthTracksTextView = false
+
+        let ruler = ScriptCodeEditorRulerView(textView: textView)
+        scrollView.verticalRulerView = ruler
+        scrollView.hasVerticalRuler = true
+        scrollView.rulersVisible = true
+    }
+
+    private func apply(_ text: String, to scrollView: NSScrollView) {
+        guard let textView = scrollView.documentView as? NSTextView else {
+            return
+        }
+        textView.textStorage?.setAttributedString(highlightedText(text))
+    }
+
+    private func highlightedText(_ text: String) -> NSAttributedString {
+        let attributed = NSMutableAttributedString(
+            string: text,
+            attributes: [
+                .font: NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular),
+                .foregroundColor: NSColor.textColor,
+                .backgroundColor: NSColor.textBackgroundColor,
+            ]
+        )
+        let fullRange = NSRange(location: 0, length: (text as NSString).length)
+        applyPattern(#""(?:\\.|[^"\\])*""#, color: .systemRed, to: attributed, range: fullRange)
+        applyPattern(#""(?:\\.|[^"\\])*"(?=\s*:)"#, color: .systemPurple, to: attributed, range: fullRange)
+        applyPattern(#"(?<![\w.])-?\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b"#, color: .systemBlue, to: attributed, range: fullRange)
+        applyPattern(#"\b(?:true|false)\b"#, color: .systemOrange, to: attributed, range: fullRange)
+        applyPattern(#"\bnull\b"#, color: .secondaryLabelColor, to: attributed, range: fullRange)
+        applyPattern(#"[\{\}\[\],:]"#, color: .secondaryLabelColor, to: attributed, range: fullRange)
+        return attributed
+    }
+
+    private func applyPattern(
+        _ pattern: String,
+        color: NSColor,
+        to attributed: NSMutableAttributedString,
+        range: NSRange
+    ) {
+        guard let regex = try? NSRegularExpression(pattern: pattern) else {
+            return
+        }
+        regex.enumerateMatches(in: attributed.string, range: range) { match, _, _ in
+            guard let match else {
+                return
             }
-            .padding(.top, 8)
-            .padding(.horizontal, 6)
+            attributed.addAttribute(.foregroundColor, value: color, range: match.range)
         }
-        .scrollDisabled(true)
-        .frame(width: 42)
-        .background(Color(nsColor: .textBackgroundColor))
     }
 
-    private var lineHeight: CGFloat {
-        max(15, fontSize + 4)
-    }
-}
-
-private extension String {
-    var lineCount: Int {
-        if isEmpty {
-            return 1
+    private func clamped(range: NSRange, length: Int) -> NSRange {
+        guard range.location != NSNotFound else {
+            return NSRange(location: 0, length: 0)
         }
-        return split(separator: "\n", omittingEmptySubsequences: false).count
+        let location = min(range.location, length)
+        let upperBound = min(range.location + range.length, length)
+        return NSRange(location: location, length: max(0, upperBound - location))
     }
 }

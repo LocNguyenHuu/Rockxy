@@ -10,12 +10,10 @@ struct QueryInspectorView: View {
 
         Group {
             if queryItems.isEmpty {
-                ContentUnavailableView(
+                InspectorEmptyStateView(
                     String(localized: "No Query Parameters"),
                     systemImage: "questionmark.circle"
                 )
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .padding(.top, 24)
             } else {
                 ScrollView {
                     LazyVGrid(columns: [

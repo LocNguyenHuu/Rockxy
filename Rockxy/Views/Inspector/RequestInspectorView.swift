@@ -123,24 +123,24 @@ struct RequestInspectorView: View {
         }
     }
 
-    private var requestHeadersView: some View {
-        ScrollView {
-            if transaction.request.headers.isEmpty {
-                ContentUnavailableView(
-                    String(localized: "No Headers"),
-                    systemImage: "list.bullet"
-                )
-            } else {
+    @ViewBuilder private var requestHeadersView: some View {
+        if transaction.request.headers.isEmpty {
+            InspectorEmptyStateView(
+                String(localized: "No Headers"),
+                systemImage: "list.bullet"
+            )
+        } else {
+            ScrollView {
                 HeaderKeyValueTable(headers: transaction.request.headers)
                     .padding()
             }
         }
     }
 
-    private var requestBodyView: some View {
-        ScrollView {
-            VStack(alignment: .leading) {
-                if let body = transaction.request.body {
+    @ViewBuilder private var requestBodyView: some View {
+        if let body = transaction.request.body {
+            ScrollView {
+                VStack(alignment: .leading) {
                     if let text = String(data: body, encoding: .utf8) {
                         Text(text)
                             .font(.system(.caption, design: .monospaced))
@@ -151,14 +151,14 @@ struct RequestInspectorView: View {
                             .foregroundStyle(.secondary)
                             .padding()
                     }
-                } else {
-                    ContentUnavailableView(
-                        String(localized: "No Body"),
-                        systemImage: "doc",
-                        description: Text(String(localized: "This request has no body"))
-                    )
                 }
             }
+        } else {
+            InspectorEmptyStateView(
+                String(localized: "No Body"),
+                systemImage: "doc",
+                description: String(localized: "This request has no body")
+            )
         }
     }
 

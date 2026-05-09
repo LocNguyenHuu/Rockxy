@@ -43,10 +43,10 @@ struct GraphQLInspectorView: View {
                 .padding()
             }
         } else {
-            ContentUnavailableView(
+            InspectorEmptyStateView(
                 "No GraphQL Data",
                 systemImage: "circle.hexagongrid",
-                description: Text("This request is not a GraphQL operation")
+                description: "This request is not a GraphQL operation"
             )
         }
     }

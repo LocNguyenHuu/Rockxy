@@ -24,10 +24,10 @@ struct WebSocketInspectorView: View {
                 }
             }
         } else {
-            ContentUnavailableView(
+            InspectorEmptyStateView(
                 String(localized: "No WebSocket Data"),
                 systemImage: "arrow.left.arrow.right",
-                description: Text(String(localized: "This request does not contain WebSocket frames."))
+                description: String(localized: "This request does not contain WebSocket frames.")
             )
         }
     }
@@ -98,10 +98,10 @@ struct WebSocketInspectorView: View {
 
                 framePayloadView(frame)
             } else if showDetail {
-                ContentUnavailableView(
+                InspectorEmptyStateView(
                     String(localized: "No Frame Selected"),
                     systemImage: "arrow.left.arrow.right",
-                    description: Text(String(localized: "Select a frame to inspect its payload."))
+                    description: String(localized: "Select a frame to inspect its payload.")
                 )
                 .frame(maxHeight: 120)
             }
@@ -184,12 +184,10 @@ struct WebSocketInspectorView: View {
         let frames = filteredFrames(connection)
         return Group {
             if frames.isEmpty {
-                ContentUnavailableView(
+                InspectorEmptyStateView(
                     String(localized: "Waiting for Frames"),
                     systemImage: "arrow.left.arrow.right",
-                    description: Text(
-                        String(localized: "WebSocket connection established. Frames will appear here as they arrive.")
-                    )
+                    description: String(localized: "WebSocket connection established. Frames will appear here as they arrive.")
                 )
             } else {
                 List(frames, selection: $selectedFrameID) { frame in
