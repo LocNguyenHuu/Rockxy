@@ -32,7 +32,7 @@ struct ResponseInspectorView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Color.clear.opacity(Double(coordinator.sslProxyingRefreshToken) * 0))
         .task(id: transaction.id) {
-            resetInspectorStateForTransaction()
+            syncInspectorStateForTransaction()
         }
     }
 
@@ -41,6 +41,7 @@ struct ResponseInspectorView: View {
     @State private var selectedTab: ResponseInspectorTab = .headers
     @State private var selectedPreviewTab: PreviewTab?
     @State private var protocolTab: ProtocolTabKind?
+    @State private var selectionIntent: ResponseSelectionIntent = .automatic
     @State private var bodyDisplayMode: ResponseBodyDisplayMode = .json
     @State private var sortJSONKeys = true
     @State private var bodyFontSize: CGFloat = 12
@@ -81,6 +82,7 @@ struct ResponseInspectorView: View {
                     title: tab.displayName,
                     isActive: protocolTab == nil && selectedPreviewTab == nil && selectedTab == tab
                 ) {
+                    selectionIntent = .native
                     protocolTab = nil
                     selectedPreviewTab = nil
                     selectedTab = tab
@@ -97,6 +99,7 @@ struct ResponseInspectorView: View {
                         title: String(localized: "WebSocket"),
                         isActive: protocolTab == .websocket
                     ) {
+                        selectionIntent = .protocolSpecific
                         protocolTab = .websocket
                         selectedPreviewTab = nil
                     }
@@ -107,6 +110,7 @@ struct ResponseInspectorView: View {
                         title: String(localized: "GraphQL"),
                         isActive: protocolTab == .graphql
                     ) {
+                        selectionIntent = .protocolSpecific
                         protocolTab = .graphql
                         selectedPreviewTab = nil
                     }
@@ -123,6 +127,7 @@ struct ResponseInspectorView: View {
                         title: tab.name,
                         isActive: selectedPreviewTab == tab
                     ) {
+                        selectionIntent = .preview
                         protocolTab = nil
                         selectedPreviewTab = tab
                     }
@@ -465,11 +470,31 @@ struct ResponseInspectorView: View {
         }
     }
 
-    private func resetInspectorStateForTransaction() {
-        selectedTab = .headers
-        selectedPreviewTab = nil
-        bodyDisplayMode = .json
-        protocolTab = ProtocolTabKind.defaultFor(transaction)
+    private func syncInspectorStateForTransaction() {
+        if let selectedPreviewTab,
+           !previewTabStore.responseTabs.contains(where: { $0.id == selectedPreviewTab.id })
+        {
+            self.selectedPreviewTab = nil
+            selectionIntent = .automatic
+        }
+
+        switch selectionIntent {
+        case .automatic:
+            protocolTab = ProtocolTabKind.defaultFor(transaction)
+        case .native,
+             .preview:
+            protocolTab = nil
+        case .protocolSpecific:
+            if let protocolTab,
+               ProtocolTabKind.isSupported(protocolTab, by: transaction)
+            {
+                return
+            }
+            protocolTab = ProtocolTabKind.defaultFor(transaction)
+            if protocolTab == nil {
+                selectionIntent = .native
+            }
+        }
     }
 
     private func bodyDisplayText(for body: Data, response: HTTPResponseData) -> String? {
@@ -595,6 +620,13 @@ private enum ResponseBodyDisplayMode {
     }
 }
 
+private enum ResponseSelectionIntent {
+    case automatic
+    case native
+    case protocolSpecific
+    case preview
+}
+
 // MARK: - HTTPSInspectionPromptAction
 
 enum HTTPSInspectionPromptAction: Equatable {
@@ -713,5 +745,14 @@ enum ProtocolTabKind {
             return .graphql
         }
         return nil
+    }
+
+    static func isSupported(_ tab: ProtocolTabKind, by transaction: HTTPTransaction) -> Bool {
+        switch tab {
+        case .websocket:
+            transaction.webSocketConnection != nil
+        case .graphql:
+            transaction.graphQLInfo != nil
+        }
     }
 }

@@ -22,9 +22,6 @@ struct RequestInspectorView: View {
             tabContent
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .onChange(of: transaction.id) { _, _ in
-            resetInspectorState()
-        }
     }
 
     // MARK: Private
@@ -182,10 +179,5 @@ struct RequestInspectorView: View {
             text += "\n\(bodyString)"
         }
         return text
-    }
-
-    private func resetInspectorState() {
-        selectedTab = .headers
-        selectedPreviewTab = nil
     }
 }

@@ -28,6 +28,7 @@ struct JSONInspectorView: View {
             Divider()
             contentArea
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     // MARK: Private
@@ -51,22 +52,24 @@ struct JSONInspectorView: View {
     private var contentArea: some View {
         ScrollView([.horizontal, .vertical]) {
             let data = bodyData(for: selectedTab)
-            if let data, let parsed = parseJSON(data) {
-                JSONNodeTreeView(value: parsed, label: "root", depth: 0)
-                    .padding(12)
-            } else if let data, let text = String(data: data, encoding: .utf8) {
-                Text(text)
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .padding(12)
-                    .textSelection(.enabled)
-            } else {
-                Text(String(localized: "No data available"))
-                    .font(.system(size: 12))
-                    .foregroundStyle(.tertiary)
-                    .padding(12)
+            VStack(alignment: .leading, spacing: 0) {
+                if let data, let parsed = parseJSON(data) {
+                    JSONNodeTreeView(value: parsed, label: "root", depth: 0)
+                } else if let data, let text = String(data: data, encoding: .utf8) {
+                    Text(text)
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                } else {
+                    Text(String(localized: "No data available"))
+                        .font(.system(size: 12))
+                        .foregroundStyle(.tertiary)
+                }
             }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     private func tabButton(_ tab: JSONTab) -> some View {
