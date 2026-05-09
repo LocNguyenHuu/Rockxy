@@ -7,7 +7,7 @@ import Foundation
 
 /// A single captured WebSocket frame with direction, opcode, and raw payload.
 /// Displayed in the WebSocket inspector tab as a chronological message log.
-struct WebSocketFrameData: Identifiable {
+struct WebSocketFrameData: Identifiable, Sendable {
     // MARK: Lifecycle
 
     init(
@@ -39,7 +39,7 @@ struct WebSocketFrameData: Identifiable {
 // MARK: - FrameDirection
 
 /// Whether a WebSocket frame was sent by the client or received from the server.
-enum FrameDirection: String {
+enum FrameDirection: String, Sendable {
     case sent
     case received
 }
@@ -47,7 +47,7 @@ enum FrameDirection: String {
 // MARK: - FrameOpcode
 
 /// WebSocket frame opcodes as defined in RFC 6455 Section 5.2.
-enum FrameOpcode: UInt8 {
+enum FrameOpcode: UInt8, Sendable {
     case continuation = 0
     case text = 1
     case binary = 2

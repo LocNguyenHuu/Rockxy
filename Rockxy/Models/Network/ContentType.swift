@@ -3,7 +3,7 @@ import Foundation
 /// Normalized content type categories derived from the `Content-Type` header.
 /// Used to select the appropriate body renderer (JSON tree, image preview, hex dump, etc.)
 /// and to power content-type-based protocol filters.
-enum ContentType: String {
+enum ContentType: String, Sendable {
     case json
     case xml
     case html

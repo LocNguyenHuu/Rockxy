@@ -9,30 +9,116 @@ struct PreviewTabContentView: View {
     var beautify: Bool = false
 
     var body: some View {
-        let result = previewResult
+        let snapshot = InspectorTransactionSnapshot(transaction: transaction)
 
+        if tab.renderMode == .jsonTree {
+            jsonTreePreview(snapshot: snapshot)
+        } else {
+            AsyncPreviewTabRenderView(
+                renderID: renderID(snapshot: snapshot),
+                mode: tab.renderMode,
+                baseURL: transaction.request.url
+            ) {
+                Self.renderPreview(tab: tab, snapshot: snapshot, beautify: beautify)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func jsonTreePreview(snapshot: InspectorTransactionSnapshot) -> some View {
+        if let data = tab.panel == .request ? snapshot.request.body : snapshot.response?.body {
+            JSONTreeView(data: data)
+                .id("\(snapshot.id.uuidString)-\(tab.id.uuidString)")
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        } else {
+            ContentUnavailableView {
+                Label(String(localized: "No Preview"), systemImage: "doc.text")
+            } description: {
+                Text(String(localized: "No body data"))
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+
+    private func renderID(snapshot: InspectorTransactionSnapshot) -> String {
+        let bodyCount = tab.panel == .request
+            ? snapshot.request.body?.count ?? 0
+            : snapshot.response?.body?.count ?? 0
+        return "\(snapshot.id.uuidString)-\(tab.id.uuidString)-\(tab.renderMode.rawValue)-\(beautify)-\(bodyCount)"
+    }
+
+    nonisolated private static func renderPreview(
+        tab: PreviewTab,
+        snapshot: InspectorTransactionSnapshot,
+        beautify: Bool
+    )
+        -> AsyncPreviewResult
+    {
+        if tab.renderMode == .raw {
+            switch tab.panel {
+            case .request:
+                return .text(InspectorPayloadFormatter.rawRequest(snapshot.request))
+            case .response:
+                if let rawResponse = InspectorPayloadFormatter.rawResponse(snapshot.response) {
+                    return .text(rawResponse)
+                }
+                return .empty(reason: String(localized: "No response data"))
+            }
+        }
+
+        let bodyData = tab.panel == .request ? snapshot.request.body : snapshot.response?.body
+        switch PreviewRenderer.render(body: bodyData, mode: tab.renderMode, beautify: beautify) {
+        case let .text(text):
+            return .text(text)
+        case let .hex(text):
+            return .hex(text)
+        case .json:
+            return .empty(reason: String(localized: "Body is not valid JSON"))
+        case let .imageData(data, _, _):
+            return .imageData(data)
+        case let .empty(reason):
+            return .empty(reason: reason)
+        }
+    }
+}
+
+// MARK: - AsyncPreviewTabRenderView
+
+private struct AsyncPreviewTabRenderView: View {
+    let renderID: String
+    let mode: PreviewRenderMode
+    let baseURL: URL
+    let render: @Sendable () -> AsyncPreviewResult
+
+    var body: some View {
+        Group {
+            switch state {
+            case .loading:
+                InspectorLoadingStateView(title: String(localized: "Rendering Preview..."))
+            case let .loaded(result):
+                loadedContent(result)
+            }
+        }
+        .task(id: renderID) {
+            await renderCurrentPreview()
+        }
+    }
+
+    @State private var state: AsyncPreviewLoadState = .loading
+
+    @ViewBuilder
+    private func loadedContent(_ result: AsyncPreviewResult) -> some View {
         switch result {
         case let .text(text):
-            if tab.renderMode == .htmlPreview {
-                HTMLPreviewView(html: text, baseURL: transaction.request.url)
+            if mode == .htmlPreview {
+                HTMLPreviewView(html: text, baseURL: baseURL)
             } else {
                 InspectorBodyTextEditor(text: text, fontSize: 12)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         case let .hex(text):
             HexDumpView(hexText: text)
-        case .json:
-            if let data = tab.panel == .request ? transaction.request.body : transaction.response?.body {
-                JSONTreeView(data: data)
-            } else {
-                ContentUnavailableView {
-                    Label(String(localized: "No Preview"), systemImage: "doc.text")
-                } description: {
-                    Text(String(localized: "No body data"))
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-        case let .imageData(data, _, _):
+        case let .imageData(data):
             ImagePreviewView(data: data)
         case let .empty(reason):
             ContentUnavailableView {
@@ -44,25 +130,31 @@ struct PreviewTabContentView: View {
         }
     }
 
-    private var previewResult: PreviewResult {
-        if tab.renderMode == .raw {
-            return rawPreviewResult
+    @MainActor
+    private func renderCurrentPreview() async {
+        state = .loading
+        let result = await Task.detached(priority: .userInitiated) {
+            render()
+        }.value
+        guard !Task.isCancelled else {
+            return
         }
-
-        let bodyData = tab.panel == .request ? transaction.request.body : transaction.response?.body
-        return PreviewRenderer.render(body: bodyData, mode: tab.renderMode, beautify: beautify)
+        state = .loaded(result)
     }
+}
 
-    private var rawPreviewResult: PreviewResult {
-        switch tab.panel {
-        case .request:
-            return .text(RequestCopyFormatter.rawRequest(for: transaction))
-        case .response:
-            if let rawResponse = RequestCopyFormatter.rawResponse(for: transaction) {
-                return .text(rawResponse)
-            } else {
-                return .empty(reason: String(localized: "No response data"))
-            }
-        }
-    }
+// MARK: - AsyncPreviewLoadState
+
+private enum AsyncPreviewLoadState: Sendable {
+    case loading
+    case loaded(AsyncPreviewResult)
+}
+
+// MARK: - AsyncPreviewResult
+
+private enum AsyncPreviewResult: Sendable {
+    case text(String)
+    case hex(String)
+    case imageData(Data)
+    case empty(reason: String)
 }

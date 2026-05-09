@@ -8,20 +8,17 @@ struct RawInspectorView: View {
     let transaction: HTTPTransaction
 
     var body: some View {
-        InspectorBodyTextEditor(text: buildRawText(), fontSize: 12)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    // MARK: Private
-
-    private func buildRawText() -> String {
-        var text = ""
-        text += RequestCopyFormatter.rawRequest(for: transaction)
-
-        if let rawResponse = RequestCopyFormatter.rawResponse(for: transaction) {
-            text += "\r\n\r\n--- Response ---\r\n"
-            text += rawResponse
+        let snapshot = InspectorTransactionSnapshot(transaction: transaction)
+        AsyncInspectorTextEditor(
+            renderID: "\(snapshot.id.uuidString)-full-raw-\(snapshot.response?.body?.count ?? 0)",
+            fontSize: 12
+        ) {
+            var text = InspectorPayloadFormatter.rawRequest(snapshot.request)
+            if let rawResponse = InspectorPayloadFormatter.rawResponse(snapshot.response) {
+                text += "\r\n\r\n--- Response ---\r\n"
+                text += rawResponse
+            }
+            return .text(text)
         }
-        return text
     }
 }

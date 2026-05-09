@@ -136,19 +136,11 @@ struct RequestInspectorView: View {
 
     @ViewBuilder private var requestBodyView: some View {
         if let body = transaction.request.body {
-            ScrollView {
-                VStack(alignment: .leading) {
-                    if let text = String(data: body, encoding: .utf8) {
-                        Text(text)
-                            .font(.system(.caption, design: .monospaced))
-                            .textSelection(.enabled)
-                            .padding()
-                    } else {
-                        Text("\(body.count) bytes (binary)")
-                            .foregroundStyle(.secondary)
-                            .padding()
-                    }
-                }
+            AsyncInspectorTextEditor(
+                renderID: "\(transaction.id.uuidString)-request-body-\(body.count)",
+                fontSize: 12
+            ) {
+                InspectorPayloadFormatter.requestBodyText(body)
             }
         } else {
             InspectorEmptyStateView(
@@ -160,7 +152,12 @@ struct RequestInspectorView: View {
     }
 
     private var requestRawView: some View {
-        InspectorBodyTextEditor(text: RequestCopyFormatter.rawRequest(for: transaction), fontSize: 12)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        let snapshot = InspectorTransactionSnapshot(transaction: transaction)
+        return AsyncInspectorTextEditor(
+            renderID: "\(snapshot.id.uuidString)-request-raw-\(snapshot.request.body?.count ?? 0)",
+            fontSize: 12
+        ) {
+            .text(InspectorPayloadFormatter.rawRequest(snapshot.request))
+        }
     }
 }

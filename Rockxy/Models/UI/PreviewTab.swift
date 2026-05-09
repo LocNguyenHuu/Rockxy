@@ -4,7 +4,7 @@ import Foundation
 
 // MARK: - PreviewRenderMode
 
-enum PreviewRenderMode: String, Codable, CaseIterable, Identifiable {
+enum PreviewRenderMode: String, Codable, CaseIterable, Identifiable, Sendable {
     case json
     case jsonTree
     case formURLEncoded
@@ -42,14 +42,14 @@ enum PreviewRenderMode: String, Codable, CaseIterable, Identifiable {
 
 // MARK: - PreviewPanel
 
-enum PreviewPanel: String, Codable {
+enum PreviewPanel: String, Codable, Sendable {
     case request
     case response
 }
 
 // MARK: - PreviewTab
 
-struct PreviewTab: Identifiable, Codable, Hashable {
+struct PreviewTab: Identifiable, Codable, Hashable, Sendable {
     // MARK: Lifecycle
 
     init(

@@ -6,25 +6,19 @@ struct BodyInspectorView: View {
     let transaction: HTTPTransaction
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading) {
-                if let body = transaction.response?.body {
-                    if let text = String(data: body, encoding: .utf8) {
-                        Text(text)
-                            .font(.system(.caption, design: .monospaced))
-                            .textSelection(.enabled)
-                            .padding()
-                    } else {
-                        Text("\(body.count) bytes (binary)")
-                            .foregroundStyle(.secondary)
-                            .padding()
-                    }
-                } else {
-                    Text("No body")
-                        .foregroundStyle(.secondary)
-                        .padding()
-                }
+        if let body = transaction.response?.body {
+            AsyncInspectorTextEditor(
+                renderID: "\(transaction.id.uuidString)-legacy-body-\(body.count)",
+                fontSize: 12
+            ) {
+                InspectorPayloadFormatter.requestBodyText(body)
             }
+        } else {
+            InspectorEmptyStateView(
+                String(localized: "No Body"),
+                systemImage: "doc",
+                description: String(localized: "This response has no body")
+            )
         }
     }
 }

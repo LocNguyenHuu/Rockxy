@@ -369,8 +369,10 @@ struct ResponseInspectorView: View {
             case .raw:
                 responseRawView()
             case .hex:
-                HexDumpView(hexText: PreviewRenderer.formatHexDump(body))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                AsyncHexDumpView(
+                    data: body,
+                    renderID: "\(transaction.id.uuidString)-response-hex-\(body.count)"
+                )
             }
         } else if response.body != nil {
             InspectorEmptyStateView(
@@ -389,12 +391,16 @@ struct ResponseInspectorView: View {
 
     @ViewBuilder
     private func responseRawView() -> some View {
-        if let rawResponse = RequestCopyFormatter.rawResponse(for: transaction) {
-            InspectorBodyTextEditor(text: rawResponse, fontSize: bodyFontSize)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else {
-            InspectorEmptyStateView(
-                String(localized: "No Response"),
+        let snapshot = InspectorTransactionSnapshot(transaction: transaction)
+        AsyncInspectorTextEditor(
+            renderID: "\(snapshot.id.uuidString)-response-raw-\(snapshot.response?.body?.count ?? 0)",
+            fontSize: bodyFontSize
+        ) {
+            if let text = InspectorPayloadFormatter.rawResponse(snapshot.response) {
+                return .text(text)
+            }
+            return .unavailable(
+                title: String(localized: "No Response"),
                 systemImage: "arrow.down.circle",
                 description: String(localized: "Waiting for response...")
             )
@@ -402,12 +408,17 @@ struct ResponseInspectorView: View {
     }
 
     @ViewBuilder
-    private func responseCodeEditor(for body: Data, response: HTTPResponseData) -> some View {
-        if let text = bodyDisplayText(for: body, response: response) {
-            InspectorBodyTextEditor(text: text, fontSize: bodyFontSize)
-        } else {
-            InspectorEmptyStateView(
-                String(localized: "Binary Body"),
+    private func responseCodeEditor(for body: Data, response _: HTTPResponseData) -> some View {
+        let sortedKeys = sortJSONKeys
+        AsyncInspectorTextEditor(
+            renderID: "\(transaction.id.uuidString)-response-json-\(sortedKeys)-\(body.count)",
+            fontSize: bodyFontSize
+        ) {
+            if let text = InspectorPayloadFormatter.responseDisplayText(body: body, sortedKeys: sortedKeys) {
+                return .text(text)
+            }
+            return .unavailable(
+                title: String(localized: "Binary Body"),
                 systemImage: "doc",
                 description: SizeFormatter.format(bytes: body.count)
             )
@@ -514,7 +525,7 @@ struct ResponseInspectorView: View {
         }
     }
 
-    private func bodyDisplayText(for body: Data, response: HTTPResponseData) -> String? {
+    private func bodyDisplayText(for body: Data, response _: HTTPResponseData) -> String? {
         if let pretty = prettyJSONString(from: body, sortedKeys: sortJSONKeys)
         {
             return pretty
@@ -526,25 +537,11 @@ struct ResponseInspectorView: View {
         guard let body = transaction.response?.body else {
             return false
         }
-        return isJSONBody(body)
-    }
-
-    private func isJSONBody(_ data: Data) -> Bool {
-        (try? JSONSerialization.jsonObject(with: data)) != nil
+        return !body.isEmpty
     }
 
     private func prettyJSONString(from data: Data, sortedKeys: Bool) -> String? {
-        guard let object = try? JSONSerialization.jsonObject(with: data) else {
-            return String(data: data, encoding: .utf8)
-        }
-        var options: JSONSerialization.WritingOptions = [.prettyPrinted]
-        if sortedKeys {
-            options.insert(.sortedKeys)
-        }
-        guard let prettyData = try? JSONSerialization.data(withJSONObject: object, options: options) else {
-            return String(data: data, encoding: .utf8)
-        }
-        return String(data: prettyData, encoding: .utf8)
+        InspectorPayloadFormatter.responseDisplayText(body: data, sortedKeys: sortedKeys)
     }
 
     private func responseBodyTemporaryURL() -> URL? {
