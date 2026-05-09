@@ -27,18 +27,6 @@ struct HeadersInspectorView: View {
     // MARK: Private
 
     private func headerTable(headers: [HTTPHeader]) -> some View {
-        LazyVGrid(columns: [
-            GridItem(.flexible(minimum: 120, maximum: 200), alignment: .topLeading),
-            GridItem(.flexible(), alignment: .topLeading),
-        ], spacing: 4) {
-            ForEach(Array(headers.enumerated()), id: \.offset) { _, header in
-                Text(header.name)
-                    .font(.system(.caption, design: .monospaced))
-                    .fontWeight(.semibold)
-                Text(header.value)
-                    .font(.system(.caption, design: .monospaced))
-                    .textSelection(.enabled)
-            }
-        }
+        HeaderKeyValueTable(headers: headers)
     }
 }

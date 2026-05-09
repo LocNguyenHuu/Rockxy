@@ -148,8 +148,8 @@ struct RockxyApp: App {
         .defaultSize(width: 1_120, height: 740)
         .defaultPosition(.center)
 
-        Window(String(localized: "Custom Previewer Tabs"), id: "customPreviewerTabs") {
-            CustomPreviewerTabView()
+        Window(String(localized: "Body Previewer Tabs"), id: "bodyPreviewerTabs") {
+            PreviewerTabSettingsView()
         }
         .commandsRemoved()
         .windowResizability(.contentSize)
@@ -631,8 +631,8 @@ struct RockxyMenuCommands: Commands {
 
             Divider()
 
-            Button(String(localized: "Custom Previewer Tabs…")) {
-                openWindow(id: "customPreviewerTabs")
+            Button(String(localized: "Body Previewer Tabs…")) {
+                openWindow(id: "bodyPreviewerTabs")
             }
 
             Button(String(localized: "Custom Header Columns…")) {

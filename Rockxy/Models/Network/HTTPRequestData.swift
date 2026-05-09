@@ -8,7 +8,7 @@ import Foundation
 /// Captured HTTP request data including method, URL, headers, and optional body.
 /// This is a value type snapshot — mutating headers or body creates a modified copy
 /// used by the rule engine (breakpoint editing) and request replay.
-struct HTTPRequestData {
+struct HTTPRequestData: Sendable {
     let method: String
     let url: URL
     let httpVersion: String
@@ -38,7 +38,7 @@ struct HTTPRequestData {
 // MARK: - HTTPHeader
 
 /// A single HTTP header name-value pair, used in both requests and responses.
-struct HTTPHeader: Equatable {
+struct HTTPHeader: Equatable, Sendable {
     let name: String
     let value: String
 }

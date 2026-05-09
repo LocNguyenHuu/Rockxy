@@ -11,24 +11,29 @@ struct WebSocketInspectorView: View {
     var body: some View {
         // swiftlint:disable:next redundant_discardable_let
         let _ = transaction.webSocketFrameVersion
-        if let connection = transaction.webSocketConnection {
-            VStack(spacing: 0) {
-                connectionSummary(connection)
-                Divider()
-                directionFilter(connection)
-                Divider()
-                frameList(connection)
-                if selectedFrame != nil {
+        Group {
+            if let connection = transaction.webSocketConnection {
+                VStack(spacing: 0) {
+                    connectionSummary(connection)
                     Divider()
-                    frameDetail
+                    directionFilter(connection)
+                    Divider()
+                    frameList(connection)
+                    if selectedFrame != nil {
+                        Divider()
+                        frameDetail
+                    }
                 }
+            } else {
+                InspectorEmptyStateView(
+                    String(localized: "No WebSocket Data"),
+                    systemImage: "arrow.left.arrow.right",
+                    description: String(localized: "This request does not contain WebSocket frames.")
+                )
             }
-        } else {
-            ContentUnavailableView(
-                String(localized: "No WebSocket Data"),
-                systemImage: "arrow.left.arrow.right",
-                description: Text(String(localized: "This request does not contain WebSocket frames."))
-            )
+        }
+        .task(id: transaction.id) {
+            selectedFrameID = nil
         }
     }
 
@@ -98,10 +103,10 @@ struct WebSocketInspectorView: View {
 
                 framePayloadView(frame)
             } else if showDetail {
-                ContentUnavailableView(
+                InspectorEmptyStateView(
                     String(localized: "No Frame Selected"),
                     systemImage: "arrow.left.arrow.right",
-                    description: Text(String(localized: "Select a frame to inspect its payload."))
+                    description: String(localized: "Select a frame to inspect its payload.")
                 )
                 .frame(maxHeight: 120)
             }
@@ -184,12 +189,10 @@ struct WebSocketInspectorView: View {
         let frames = filteredFrames(connection)
         return Group {
             if frames.isEmpty {
-                ContentUnavailableView(
+                InspectorEmptyStateView(
                     String(localized: "Waiting for Frames"),
                     systemImage: "arrow.left.arrow.right",
-                    description: Text(
-                        String(localized: "WebSocket connection established. Frames will appear here as they arrive.")
-                    )
+                    description: String(localized: "WebSocket connection established. Frames will appear here as they arrive.")
                 )
             } else {
                 List(frames, selection: $selectedFrameID) { frame in
@@ -251,19 +254,28 @@ struct WebSocketInspectorView: View {
                 .foregroundStyle(.tertiary)
                 .padding(12)
         } else if frame.opcode == .text || frame.opcode == .connectionClose,
-                  let text = String(data: frame.payload, encoding: .utf8)
+                  frame.payload.isProbablyUTF8Text
         {
-            ScrollView {
-                Text(text)
-                    .font(.system(size: 11, design: .monospaced))
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(12)
+            let payload = frame.payload
+            AsyncInspectorTextEditor(
+                renderID: "\(frame.id.uuidString)-payload-text-\(payload.count)",
+                fontSize: 11
+            ) {
+                if let text = String(data: payload, encoding: .utf8) {
+                    return .text(text)
+                }
+                return .unavailable(
+                    title: String(localized: "Binary Payload"),
+                    systemImage: "doc",
+                    description: SizeFormatter.format(bytes: payload.count)
+                )
             }
             .frame(maxHeight: 200)
         } else {
-            let hexText = formatHexDump(frame.payload)
-            HexDumpView(hexText: hexText)
+            AsyncHexDumpView(
+                data: frame.payload,
+                renderID: "\(frame.id.uuidString)-payload-hex-\(frame.payload.count)"
+            )
                 .frame(maxHeight: 200)
         }
     }
@@ -309,7 +321,8 @@ struct WebSocketInspectorView: View {
     private func payloadPreview(_ frame: WebSocketFrameData) -> String {
         switch frame.opcode {
         case .text:
-            guard let text = String(data: frame.payload, encoding: .utf8) else {
+            let previewBytes = frame.payload.prefix(Self.maxPayloadPreviewBytes)
+            guard let text = String(data: previewBytes, encoding: .utf8) else {
                 return "(\(frame.payload.count) bytes)"
             }
             if text.count > 80 {
@@ -322,7 +335,7 @@ struct WebSocketInspectorView: View {
             if frame.payload.count >= 2 {
                 let code = UInt16(frame.payload[0]) << 8 | UInt16(frame.payload[1])
                 let reason = frame.payload.count > 2
-                    ? String(data: frame.payload.dropFirst(2), encoding: .utf8) ?? ""
+                    ? String(data: frame.payload.dropFirst(2).prefix(Self.maxPayloadPreviewBytes), encoding: .utf8) ?? ""
                     : ""
                 return "\(code) \(reason)".trimmingCharacters(in: .whitespaces)
             }
@@ -340,34 +353,11 @@ struct WebSocketInspectorView: View {
         return formatter.string(from: date)
     }
 
-    private func formatHexDump(_ data: Data) -> String {
-        var result = ""
-        let bytes = [UInt8](data)
-        let lineSize = 16
-        for offset in stride(from: 0, to: bytes.count, by: lineSize) {
-            let end = min(offset + lineSize, bytes.count)
-            let lineBytes = bytes[offset ..< end]
+    private static let maxPayloadPreviewBytes = 512
+}
 
-            result += String(format: "%08x  ", offset)
-            for (index, byte) in lineBytes.enumerated() {
-                result += String(format: "%02x ", byte)
-                if index == 7 {
-                    result += " "
-                }
-            }
-            let padding = lineSize - lineBytes.count
-            for _ in 0 ..< padding {
-                result += "   "
-            }
-            if lineBytes.count <= 8 {
-                result += " "
-            }
-            result += " "
-            for byte in lineBytes {
-                result += (byte >= 0x20 && byte < 0x7F) ? String(UnicodeScalar(byte)) : "."
-            }
-            result += "\n"
-        }
-        return result
+private extension Data {
+    var isProbablyUTF8Text: Bool {
+        String(data: prefix(512), encoding: .utf8) != nil
     }
 }

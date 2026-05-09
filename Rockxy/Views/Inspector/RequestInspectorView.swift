@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Left half of the inspector split view. Provides tabbed access to request-side data:
 /// headers, query parameters, body, cookies, raw text, synopsis, and comments.
-/// Also supports custom preview tabs from PreviewTabStore.
+/// Also supports optional body preview tabs from PreviewTabStore.
 struct RequestInspectorView: View {
     // MARK: Internal
 
@@ -57,8 +57,14 @@ struct RequestInspectorView: View {
                     }
                 }
             }
-        } trailingContent: {
+
+            Divider()
+                .frame(height: 14)
+                .padding(.horizontal, 4)
+
             previewTabMenuButton
+        } trailingContent: {
+            EmptyView()
         }
     }
 
@@ -73,7 +79,6 @@ struct RequestInspectorView: View {
         }
         .buttonStyle(.plain)
         .help(String(localized: "Preview Tabs"))
-        .padding(.leading, 2)
         .popover(isPresented: $showPreviewPopover, arrowEdge: .bottom) {
             PreviewTabPopover(panel: .request, store: previewTabStore)
         }
@@ -115,76 +120,44 @@ struct RequestInspectorView: View {
         }
     }
 
-    private var requestHeadersView: some View {
-        ScrollView {
-            if transaction.request.headers.isEmpty {
-                ContentUnavailableView(
-                    String(localized: "No Headers"),
-                    systemImage: "list.bullet"
-                )
-            } else {
-                LazyVGrid(columns: [
-                    GridItem(.flexible(minimum: 120, maximum: 200), alignment: .topLeading),
-                    GridItem(.flexible(), alignment: .topLeading),
-                ], spacing: 4) {
-                    ForEach(Array(transaction.request.headers.enumerated()), id: \.offset) { _, header in
-                        Text(header.name)
-                            .font(.system(.caption, design: .monospaced))
-                            .fontWeight(.semibold)
-                        Text(header.value)
-                            .font(.system(.caption, design: .monospaced))
-                            .textSelection(.enabled)
-                    }
-                }
-                .padding()
+    @ViewBuilder private var requestHeadersView: some View {
+        if transaction.request.headers.isEmpty {
+            InspectorEmptyStateView(
+                String(localized: "No Headers"),
+                systemImage: "list.bullet"
+            )
+        } else {
+            ScrollView {
+                HeaderKeyValueTable(headers: transaction.request.headers)
+                    .padding()
             }
         }
     }
 
-    private var requestBodyView: some View {
-        ScrollView {
-            VStack(alignment: .leading) {
-                if let body = transaction.request.body {
-                    if let text = String(data: body, encoding: .utf8) {
-                        Text(text)
-                            .font(.system(.caption, design: .monospaced))
-                            .textSelection(.enabled)
-                            .padding()
-                    } else {
-                        Text("\(body.count) bytes (binary)")
-                            .foregroundStyle(.secondary)
-                            .padding()
-                    }
-                } else {
-                    ContentUnavailableView(
-                        String(localized: "No Body"),
-                        systemImage: "doc",
-                        description: Text(String(localized: "This request has no body"))
-                    )
-                }
+    @ViewBuilder private var requestBodyView: some View {
+        if let body = transaction.request.body {
+            AsyncInspectorTextEditor(
+                renderID: "\(transaction.id.uuidString)-request-body-\(body.count)",
+                fontSize: 12
+            ) {
+                InspectorPayloadFormatter.requestBodyText(body)
             }
+        } else {
+            InspectorEmptyStateView(
+                String(localized: "No Body"),
+                systemImage: "doc",
+                description: String(localized: "This request has no body")
+            )
         }
     }
 
     private var requestRawView: some View {
-        ScrollView {
-            Text(buildRequestRaw())
-                .font(.system(.caption, design: .monospaced))
-                .textSelection(.enabled)
-                .padding()
+        let snapshot = InspectorTransactionSnapshot(transaction: transaction)
+        return AsyncInspectorTextEditor(
+            renderID: "\(snapshot.id.uuidString)-request-raw-\(snapshot.request.body?.count ?? 0)",
+            fontSize: 12
+        ) {
+            .text(InspectorPayloadFormatter.rawRequest(snapshot.request))
         }
-    }
-
-    private func buildRequestRaw() -> String {
-        let request = transaction.request
-        var text = "\(request.method) \(request.path) \(request.httpVersion)\n"
-        text += "Host: \(request.host)\n"
-        for header in request.headers {
-            text += "\(header.name): \(header.value)\n"
-        }
-        if let body = request.body, let bodyString = String(data: body, encoding: .utf8) {
-            text += "\n\(bodyString)"
-        }
-        return text
     }
 }

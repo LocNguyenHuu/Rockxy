@@ -3,7 +3,7 @@ import Foundation
 /// Captured HTTP response data including status code, headers, and optional body.
 /// Provides convenience accessors for cookie parsing and status code classification
 /// used by the inspector UI and protocol filters.
-struct HTTPResponseData {
+struct HTTPResponseData: Sendable {
     let statusCode: Int
     let statusMessage: String
     var headers: [HTTPHeader]

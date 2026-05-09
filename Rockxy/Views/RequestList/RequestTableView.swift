@@ -181,7 +181,7 @@ struct RequestTableView: NSViewRepresentable {
             ColumnSpec(id: "url", title: String(localized: "URL"), width: 300, minWidth: 200),
             ColumnSpec(id: "client", title: String(localized: "Client"), width: 120, minWidth: 60),
             ColumnSpec(id: "method", title: String(localized: "Method"), width: 70, minWidth: 55),
-            ColumnSpec(id: "state", title: String(localized: "Status"), width: 90, minWidth: 70),
+            ColumnSpec(id: "state", title: String(localized: "Status"), width: 150, minWidth: 112),
             ColumnSpec(id: "code", title: String(localized: "Code"), width: 52, minWidth: 44),
             ColumnSpec(id: "time", title: String(localized: "Time"), width: 80, minWidth: 60),
             ColumnSpec(id: "duration", title: String(localized: "Duration"), width: 70, minWidth: 50),
@@ -316,6 +316,10 @@ extension RequestTableView {
                 )
             }
 
+            if columnID == "state", isErrorStatus(rowData) {
+                return makeErrorStatusBadgeView(row: rowData, in: tableView)
+            }
+
             let cellID = NSUserInterfaceItemIdentifier("Cell_\(columnID)")
             let cell: NSView = if let reused = tableView.makeView(withIdentifier: cellID, owner: nil) {
                 reused
@@ -393,8 +397,10 @@ extension RequestTableView {
                     text = rowData.method
                     font = .systemFont(ofSize: 12, weight: .semibold)
                 case "state":
-                    text = rowData.displayStatus
-                    font = .systemFont(ofSize: 12, weight: .medium)
+                    text = errorStatusBadgeTitle(for: rowData) ?? rowData.displayStatus
+                    font = isErrorStatus(rowData)
+                        ? .systemFont(ofSize: 12, weight: .bold)
+                        : .systemFont(ofSize: 12, weight: .medium)
                 case "code":
                     text = rowData.statusCode.map { "\($0)" } ?? ""
                     font = .monospacedDigitSystemFont(ofSize: 12, weight: .medium)
@@ -1419,6 +1425,73 @@ extension RequestTableView {
             case .blocked:
                 return .systemGray
             }
+        }
+
+        private func isErrorStatus(_ row: RequestListRow) -> Bool {
+            if row.state == .failed {
+                return true
+            }
+            guard let statusCode = row.statusCode else {
+                return false
+            }
+            return statusCode >= 400
+        }
+
+        private func errorStatusBadgeTitle(for row: RequestListRow) -> String? {
+            if let statusCode = row.statusCode {
+                let message = row.statusMessage?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                guard !message.isEmpty else {
+                    return "\(statusCode)"
+                }
+                return "\(statusCode) \(message)"
+            }
+            guard row.state == .failed else {
+                return nil
+            }
+            return String(localized: "Failed")
+        }
+
+        private func makeErrorStatusBadgeView(
+            row: RequestListRow,
+            in tableView: NSTableView
+        )
+            -> NSView
+        {
+            let cellID = NSUserInterfaceItemIdentifier("Cell_state_errorBadge")
+            let label: NSTextField
+            let container: NSView
+
+            if let existing = tableView.makeView(withIdentifier: cellID, owner: nil),
+               let existingLabel = existing.subviews.first as? NSTextField
+            {
+                container = existing
+                label = existingLabel
+            } else {
+                container = NSView()
+                container.identifier = cellID
+
+                label = NSTextField(labelWithString: "")
+                label.alignment = .center
+                label.font = .systemFont(ofSize: 12, weight: .bold)
+                label.textColor = .white
+                label.lineBreakMode = .byTruncatingTail
+                label.wantsLayer = true
+                label.layer?.cornerRadius = 8
+                label.layer?.masksToBounds = true
+                label.translatesAutoresizingMaskIntoConstraints = false
+                container.addSubview(label)
+
+                NSLayoutConstraint.activate([
+                    label.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 4),
+                    label.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor, constant: -4),
+                    label.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+                    label.heightAnchor.constraint(equalToConstant: 18),
+                ])
+            }
+
+            label.stringValue = errorStatusBadgeTitle(for: row) ?? row.displayStatus
+            label.layer?.backgroundColor = NSColor.systemRed.cgColor
+            return container
         }
 
         private func configureSSLImageView(_ imageView: NSImageView, row: RequestListRow) {

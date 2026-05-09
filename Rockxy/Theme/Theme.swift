@@ -89,12 +89,21 @@ enum Theme {
     // MARK: - JSON Syntax
 
     enum JSON {
-        static let key = Color.primary
-        static let string = Color(red: 0.76, green: 0.24, blue: 0.16)
-        static let number = Color.blue
-        static let bool = Color.orange
-        static let null = Color.gray
-        static let bracket = Color.secondary
+        static let key = Color(nsColor: keyNS)
+        static let string = Color(nsColor: stringNS)
+        static let number = Color(nsColor: numberNS)
+        static let bool = Color(nsColor: boolNS)
+        static let null = Color(nsColor: nullNS)
+        static let bracket = Color(nsColor: bracketNS)
+
+        static let keyNS = NSColor.systemRed
+        static let stringNS = NSColor.systemBlue
+        static let numberNS = NSColor.systemGreen
+        static let boolNS = NSColor.systemPurple
+        static let nullNS = NSColor.secondaryLabelColor
+        static let bracketNS = NSColor.systemGreen
+        static let headerNS = NSColor.systemBlue
+        static let statusNS = NSColor.systemRed
     }
 
     // MARK: - Filter Pills
