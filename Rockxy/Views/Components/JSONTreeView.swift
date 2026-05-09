@@ -13,31 +13,93 @@ struct JSONTreeView: View {
     let data: Data
 
     var body: some View {
-        ScrollView([.horizontal, .vertical]) {
-            if let parsed = Self.parseJSON(data) {
-                JSONTreeNodeView(value: parsed, key: nil, depth: 0, isLast: true)
-                    .padding(12)
-            } else if let text = String(data: data, encoding: .utf8) {
-                Text(text)
-                    .font(.system(size: 12, design: .monospaced))
-                    .textSelection(.enabled)
-                    .padding(12)
-            } else {
-                Text(String(localized: "Unable to display content"))
-                    .foregroundStyle(.secondary)
-                    .padding(12)
+        GeometryReader { proxy in
+            ScrollView([.horizontal, .vertical]) {
+                content
+                    .padding(Self.contentPadding)
+                    .frame(
+                        minWidth: max(0, proxy.size.width - Self.contentPadding * 2),
+                        minHeight: max(0, proxy.size.height - Self.contentPadding * 2),
+                        alignment: .topLeading
+                    )
             }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .task(id: data) {
+            await parseCurrentData()
         }
     }
 
     // MARK: Private
 
-    private static func parseJSON(_ data: Data) -> JSONTreeValue? {
-        guard let object = try? JSONSerialization.jsonObject(with: data) else {
-            return nil
+    private static let contentPadding: CGFloat = 12
+
+    @State private var state: JSONTreeLoadState = .loading
+
+    @ViewBuilder private var content: some View {
+        switch state {
+        case .loading:
+            HStack(spacing: 6) {
+                ProgressView()
+                    .controlSize(.small)
+                Text(String(localized: "Parsing JSON..."))
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+        case let .parsed(parsed):
+            JSONTreeNodeView(value: parsed, key: nil, depth: 0, isLast: true)
+
+        case let .text(text):
+            Text(text)
+                .font(.system(size: 12, design: .monospaced))
+                .textSelection(.enabled)
+
+        case .unavailable:
+            Text(String(localized: "Unable to display content"))
+                .foregroundStyle(.secondary)
         }
-        return JSONTreeValue(from: object)
     }
+
+    @MainActor
+    private func parseCurrentData() async {
+        state = .loading
+
+        let result = try? await Task.detached(priority: .userInitiated) {
+            try Task.checkCancellation()
+            let result = Self.parse(data)
+            try Task.checkCancellation()
+            return result
+        }.value
+
+        guard let result, !Task.isCancelled else {
+            return
+        }
+        state = result
+    }
+
+    nonisolated private static func parse(_ data: Data) -> JSONTreeLoadState {
+        guard let object = try? JSONSerialization.jsonObject(with: data) else {
+            if let text = String(data: data, encoding: .utf8) {
+                return .text(text)
+            }
+            return .unavailable
+        }
+        guard let parsed = JSONTreeValue(from: object) else {
+            return .unavailable
+        }
+        return .parsed(parsed)
+    }
+}
+
+// MARK: - JSONTreeLoadState
+
+private enum JSONTreeLoadState: Sendable {
+    case loading
+    case parsed(JSONTreeValue)
+    case text(String)
+    case unavailable
 }
 
 // MARK: - JSONTreeValue
@@ -45,9 +107,9 @@ struct JSONTreeView: View {
 /// Recursive enum representing a parsed JSON value. Object keys are sorted alphabetically
 /// for stable display order. Uses `CFBooleanGetTypeID` to distinguish booleans from numbers,
 /// since `NSJSONSerialization` represents both as `NSNumber`.
-private enum JSONTreeValue {
+private enum JSONTreeValue: Sendable {
     case string(String)
-    case number(NSNumber)
+    case number(String)
     case bool(Bool)
     case null
     case array([JSONTreeValue])
@@ -73,7 +135,7 @@ private enum JSONTreeValue {
             if CFBooleanGetTypeID() == CFGetTypeID(number) {
                 self = .bool(number.boolValue)
             } else {
-                self = .number(number)
+                self = .number(number.stringValue)
             }
         case is NSNull:
             self = .null
@@ -155,7 +217,7 @@ private struct JSONTreeNodeView: View {
 
         case let .number(num):
             leafView {
-                Text("\(num)")
+                Text(num)
                     .foregroundStyle(Theme.JSON.number)
             }
 

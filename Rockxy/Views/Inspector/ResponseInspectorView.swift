@@ -361,16 +361,9 @@ struct ResponseInspectorView: View {
         } else if let body = response.body, !body.isEmpty {
             switch bodyDisplayMode {
             case .tree:
-                if isJSONBody(body) {
-                    JSONInspectorView(transaction: transaction)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                } else {
-                    InspectorEmptyStateView(
-                        String(localized: "Tree View Unavailable"),
-                        systemImage: "curlybraces",
-                        description: String(localized: "This body is not valid JSON.")
-                    )
-                }
+                JSONTreeView(data: body)
+                    .id(transaction.id)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             case .json:
                 responseCodeEditor(for: body, response: response)
             case .raw:

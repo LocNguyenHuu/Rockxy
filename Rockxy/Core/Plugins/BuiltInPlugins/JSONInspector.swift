@@ -1,7 +1,7 @@
 import Foundation
 
 // Built-in inspector plugin for JSON content. Declares support for JSON
-// content type. View rendering is handled by JSONInspectorView in Views/.
+// content type. View rendering is handled by shared JSON tree/code inspector views.
 
 // MARK: - JSONInspector
 
