@@ -204,7 +204,7 @@ private struct JSONNodeTreeView: View {
             HStack(spacing: 4) {
                 Text(label)
                     .font(.system(size: 12, weight: .medium, design: .monospaced))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Theme.JSON.key)
                 Text("{\(pairs.count)}")
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundStyle(.tertiary)
@@ -221,7 +221,7 @@ private struct JSONNodeTreeView: View {
             HStack(spacing: 4) {
                 Text(label)
                     .font(.system(size: 12, weight: .medium, design: .monospaced))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Theme.JSON.key)
                 Text("[\(items.count)]")
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundStyle(.tertiary)
@@ -233,10 +233,10 @@ private struct JSONNodeTreeView: View {
         HStack(spacing: 4) {
             Text(label)
                 .font(.system(size: 12, weight: .medium, design: .monospaced))
-                .foregroundStyle(.primary)
+                .foregroundStyle(Theme.JSON.key)
             Text(":")
                 .font(.system(size: 12, design: .monospaced))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.JSON.bracket)
             Text(valueText)
                 .font(.system(size: 12, design: .monospaced))
                 .foregroundStyle(color)

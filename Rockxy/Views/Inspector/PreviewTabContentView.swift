@@ -9,21 +9,15 @@ struct PreviewTabContentView: View {
     var beautify: Bool = false
 
     var body: some View {
-        let bodyData = tab.panel == .request ? transaction.request.body : transaction.response?.body
-        let result = PreviewRenderer.render(body: bodyData, mode: tab.renderMode, beautify: beautify)
+        let result = previewResult
 
         switch result {
         case let .text(text):
             if tab.renderMode == .htmlPreview {
                 HTMLPreviewView(html: text, baseURL: transaction.request.url)
             } else {
-                ScrollView {
-                    Text(text)
-                        .font(.system(size: 11, design: .monospaced))
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(12)
-                }
+                InspectorBodyTextEditor(text: text, fontSize: 12)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         case let .hex(text):
             HexDumpView(hexText: text)
@@ -36,6 +30,7 @@ struct PreviewTabContentView: View {
                 } description: {
                     Text(String(localized: "No body data"))
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         case let .imageData(data, _, _):
             ImagePreviewView(data: data)
@@ -44,6 +39,29 @@ struct PreviewTabContentView: View {
                 Label(String(localized: "No Preview"), systemImage: "doc.text")
             } description: {
                 Text(reason)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+
+    private var previewResult: PreviewResult {
+        if tab.renderMode == .raw {
+            return rawPreviewResult
+        }
+
+        let bodyData = tab.panel == .request ? transaction.request.body : transaction.response?.body
+        return PreviewRenderer.render(body: bodyData, mode: tab.renderMode, beautify: beautify)
+    }
+
+    private var rawPreviewResult: PreviewResult {
+        switch tab.panel {
+        case .request:
+            return .text(RequestCopyFormatter.rawRequest(for: transaction))
+        case .response:
+            if let rawResponse = RequestCopyFormatter.rawResponse(for: transaction) {
+                return .text(rawResponse)
+            } else {
+                return .empty(reason: String(localized: "No response data"))
             }
         }
     }

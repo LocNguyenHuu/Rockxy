@@ -15,7 +15,11 @@ final class PreviewTabStore {
 
     var requestTabs: [PreviewTab] = []
     var responseTabs: [PreviewTab] = []
-    var autoBeautify: Bool = true
+    var autoBeautify: Bool = true {
+        didSet {
+            saveBeautifyPreference()
+        }
+    }
 
     // MARK: - Tab Management
 
@@ -24,12 +28,12 @@ final class PreviewTabStore {
         let tab = PreviewTab(renderMode: renderMode, panel: panel)
         switch panel {
         case .request:
-            if let existingTab = requestTabs.first(where: { $0.renderMode == renderMode }) {
+            if let existingTab = requestTabs.first(where: { $0.renderMode == renderMode && $0.isBuiltIn }) {
                 return existingTab
             }
             requestTabs.append(tab)
         case .response:
-            if let existingTab = responseTabs.first(where: { $0.renderMode == renderMode }) {
+            if let existingTab = responseTabs.first(where: { $0.renderMode == renderMode && $0.isBuiltIn }) {
                 return existingTab
             }
             responseTabs.append(tab)
@@ -42,9 +46,9 @@ final class PreviewTabStore {
     func disableTab(renderMode: PreviewRenderMode, panel: PreviewPanel) {
         switch panel {
         case .request:
-            requestTabs.removeAll { $0.renderMode == renderMode }
+            requestTabs.removeAll { $0.renderMode == renderMode && $0.isBuiltIn }
         case .response:
-            responseTabs.removeAll { $0.renderMode == renderMode }
+            responseTabs.removeAll { $0.renderMode == renderMode && $0.isBuiltIn }
         }
         save()
         Self.logger.info("Disabled preview tab: \(renderMode.displayName) from \(panel.rawValue) panel")
@@ -53,9 +57,9 @@ final class PreviewTabStore {
     func isEnabled(renderMode: PreviewRenderMode, panel: PreviewPanel) -> Bool {
         switch panel {
         case .request:
-            requestTabs.contains { $0.renderMode == renderMode }
+            requestTabs.contains { $0.renderMode == renderMode && $0.isBuiltIn }
         case .response:
-            responseTabs.contains { $0.renderMode == renderMode }
+            responseTabs.contains { $0.renderMode == renderMode && $0.isBuiltIn }
         }
     }
 
@@ -75,7 +79,11 @@ final class PreviewTabStore {
 
     @discardableResult
     func addCustomTab(name: String, panel: PreviewPanel) -> PreviewTab {
-        let tab = PreviewTab(name: name, renderMode: .raw, panel: panel, isBuiltIn: false)
+        let normalizedName = uniqueCustomTabName(
+            name.trimmingCharacters(in: .whitespacesAndNewlines),
+            panel: panel
+        )
+        let tab = PreviewTab(name: normalizedName, renderMode: .raw, panel: panel, isBuiltIn: false)
         switch panel {
         case .request:
             requestTabs.append(tab)
@@ -83,7 +91,7 @@ final class PreviewTabStore {
             responseTabs.append(tab)
         }
         save()
-        Self.logger.info("Added custom tab: \(name) in \(panel.rawValue) panel")
+        Self.logger.info("Added custom tab: \(normalizedName) in \(panel.rawValue) panel")
         return tab
     }
 
@@ -102,6 +110,20 @@ final class PreviewTabStore {
     private static let storageKey = RockxyIdentity.current.defaultsKey("previewTabs")
     private static let beautifyKey = RockxyIdentity.current.defaultsKey("previewAutoBeautify")
 
+    private func uniqueCustomTabName(_ name: String, panel: PreviewPanel) -> String {
+        let baseName = name.isEmpty ? String(localized: "Custom") : name
+        let existingNames = Set(customTabs(for: panel).map { $0.name.lowercased() })
+        guard existingNames.contains(baseName.lowercased()) else {
+            return baseName
+        }
+
+        var suffix = 2
+        while existingNames.contains("\(baseName) \(suffix)".lowercased()) {
+            suffix += 1
+        }
+        return "\(baseName) \(suffix)"
+    }
+
     // MARK: - Persistence
 
     private func save() {
@@ -109,10 +131,14 @@ final class PreviewTabStore {
             let allTabs = requestTabs + responseTabs
             let data = try JSONEncoder().encode(allTabs)
             UserDefaults.standard.set(data, forKey: Self.storageKey)
-            UserDefaults.standard.set(autoBeautify, forKey: Self.beautifyKey)
+            saveBeautifyPreference()
         } catch {
             Self.logger.error("Failed to save preview tabs: \(error.localizedDescription)")
         }
+    }
+
+    private func saveBeautifyPreference() {
+        UserDefaults.standard.set(autoBeautify, forKey: Self.beautifyKey)
     }
 
     private func load() {

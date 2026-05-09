@@ -52,6 +52,32 @@ struct PreviewTabStoreTests {
         #expect(store.requestTabs.isEmpty)
     }
 
+    @Test("Disable built-in raw tab preserves custom raw tabs")
+    func disableBuiltInRawPreservesCustomTabs() {
+        let store = makeCleanStore()
+        let custom = store.addCustomTab(name: "Raw+", panel: .response)
+        store.enableTab(renderMode: .raw, panel: .response)
+
+        store.disableTab(renderMode: .raw, panel: .response)
+
+        #expect(!store.isEnabled(renderMode: .raw, panel: .response))
+        #expect(store.responseTabs == [custom])
+        #expect(store.customTabs(for: .response) == [custom])
+    }
+
+    @Test("Enable built-in raw tab does not reuse custom raw tab")
+    func enableBuiltInRawDoesNotReuseCustomTab() {
+        let store = makeCleanStore()
+        let custom = store.addCustomTab(name: "Raw+", panel: .response)
+        let builtIn = store.enableTab(renderMode: .raw, panel: .response)
+
+        #expect(custom.id != builtIn.id)
+        #expect(!custom.isBuiltIn)
+        #expect(builtIn.isBuiltIn)
+        #expect(store.responseTabs.count == 2)
+        #expect(store.isEnabled(renderMode: .raw, panel: .response))
+    }
+
     @Test("Disable non-existent tab is no-op")
     func disableNonExistent() {
         let store = makeCleanStore()
@@ -117,6 +143,29 @@ struct PreviewTabStoreTests {
         store.disableTab(renderMode: .hex, panel: .request)
         #expect(store.requestTabs.isEmpty)
         #expect(store.responseTabs.count == 1)
+    }
+
+    @Test("Custom tab names are trimmed and uniqued per panel")
+    func customTabNamesAreTrimmedAndUniqued() {
+        let store = makeCleanStore()
+
+        let first = store.addCustomTab(name: " Raw+ ", panel: .request)
+        let second = store.addCustomTab(name: "Raw+", panel: .request)
+        let response = store.addCustomTab(name: "Raw+", panel: .response)
+
+        #expect(first.name == "Raw+")
+        #expect(second.name == "Raw+ 2")
+        #expect(response.name == "Raw+")
+    }
+
+    @Test("Auto beautify preference persists when toggled")
+    func autoBeautifyPersistsWhenToggled() {
+        let store = makeCleanStore()
+        store.autoBeautify = false
+
+        let freshStore = PreviewTabStore()
+
+        #expect(freshStore.autoBeautify == false)
     }
 
     // MARK: Private

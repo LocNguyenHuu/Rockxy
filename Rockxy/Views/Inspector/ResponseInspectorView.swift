@@ -186,6 +186,12 @@ struct ResponseInspectorView: View {
             }
 
             Button {
+                bodyDisplayMode = .raw
+            } label: {
+                checkedMenuLabel(String(localized: "Raw"), isSelected: bodyDisplayMode == .raw)
+            }
+
+            Button {
                 bodyDisplayMode = .hex
             } label: {
                 checkedMenuLabel("Hex", isSelected: bodyDisplayMode == .hex)
@@ -350,7 +356,9 @@ struct ResponseInspectorView: View {
 
     @ViewBuilder
     private func responseBodyView(response: HTTPResponseData) -> some View {
-        if let body = response.body, !body.isEmpty {
+        if bodyDisplayMode == .raw {
+            responseRawView()
+        } else if let body = response.body, !body.isEmpty {
             switch bodyDisplayMode {
             case .tree:
                 if isJSONBody(body) {
@@ -365,6 +373,8 @@ struct ResponseInspectorView: View {
                 }
             case .json:
                 responseCodeEditor(for: body, response: response)
+            case .raw:
+                responseRawView()
             case .hex:
                 HexDumpView(hexText: PreviewRenderer.formatHexDump(body))
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -380,6 +390,20 @@ struct ResponseInspectorView: View {
                 String(localized: "No Body"),
                 systemImage: "doc",
                 description: String(localized: "This response has no body")
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func responseRawView() -> some View {
+        if let rawResponse = RequestCopyFormatter.rawResponse(for: transaction) {
+            InspectorBodyTextEditor(text: rawResponse, fontSize: bodyFontSize)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            InspectorEmptyStateView(
+                String(localized: "No Response"),
+                systemImage: "arrow.down.circle",
+                description: String(localized: "Waiting for response...")
             )
         }
     }
@@ -609,12 +633,14 @@ struct ResponseInspectorView: View {
 private enum ResponseBodyDisplayMode {
     case tree
     case json
+    case raw
     case hex
 
     var displayName: String {
         switch self {
         case .tree: String(localized: "Tree View")
         case .json: "JSON"
+        case .raw: String(localized: "Raw")
         case .hex: "Hex"
         }
     }

@@ -8,37 +8,19 @@ struct RawInspectorView: View {
     let transaction: HTTPTransaction
 
     var body: some View {
-        ScrollView {
-            Text(buildRawText())
-                .font(.system(.caption, design: .monospaced))
-                .textSelection(.enabled)
-                .padding()
-        }
+        InspectorBodyTextEditor(text: buildRawText(), fontSize: 12)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: Private
 
     private func buildRawText() -> String {
         var text = ""
-        let request = transaction.request
-        text += "\(request.method) \(request.path) \(request.httpVersion)\n"
-        text += "Host: \(request.host)\n"
-        for header in request.headers {
-            text += "\(header.name): \(header.value)\n"
-        }
-        if let body = request.body, let bodyString = String(data: body, encoding: .utf8) {
-            text += "\n\(bodyString)"
-        }
+        text += RequestCopyFormatter.rawRequest(for: transaction)
 
-        if let response = transaction.response {
-            text += "\n\n--- Response ---\n"
-            text += "HTTP \(response.statusCode) \(response.statusMessage)\n"
-            for header in response.headers {
-                text += "\(header.name): \(header.value)\n"
-            }
-            if let body = response.body, let bodyString = String(data: body, encoding: .utf8) {
-                text += "\n\(bodyString)"
-            }
+        if let rawResponse = RequestCopyFormatter.rawResponse(for: transaction) {
+            text += "\r\n\r\n--- Response ---\r\n"
+            text += rawResponse
         }
         return text
     }

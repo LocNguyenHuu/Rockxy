@@ -160,24 +160,7 @@ struct RequestInspectorView: View {
     }
 
     private var requestRawView: some View {
-        ScrollView {
-            Text(buildRequestRaw())
-                .font(.system(.caption, design: .monospaced))
-                .textSelection(.enabled)
-                .padding()
-        }
-    }
-
-    private func buildRequestRaw() -> String {
-        let request = transaction.request
-        var text = "\(request.method) \(request.path) \(request.httpVersion)\n"
-        text += "Host: \(request.host)\n"
-        for header in request.headers {
-            text += "\(header.name): \(header.value)\n"
-        }
-        if let body = request.body, let bodyString = String(data: body, encoding: .utf8) {
-            text += "\n\(bodyString)"
-        }
-        return text
+        InspectorBodyTextEditor(text: RequestCopyFormatter.rawRequest(for: transaction), fontSize: 12)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

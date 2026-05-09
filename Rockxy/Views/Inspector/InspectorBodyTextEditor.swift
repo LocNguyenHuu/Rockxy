@@ -85,12 +85,24 @@ struct InspectorBodyTextEditor: NSViewRepresentable {
             ]
         )
         let fullRange = NSRange(location: 0, length: (text as NSString).length)
-        applyPattern(#""(?:\\.|[^"\\])*""#, color: .systemRed, to: attributed, range: fullRange)
-        applyPattern(#""(?:\\.|[^"\\])*"(?=\s*:)"#, color: .systemPurple, to: attributed, range: fullRange)
-        applyPattern(#"(?<![\w.])-?\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b"#, color: .systemBlue, to: attributed, range: fullRange)
-        applyPattern(#"\b(?:true|false)\b"#, color: .systemOrange, to: attributed, range: fullRange)
-        applyPattern(#"\bnull\b"#, color: .secondaryLabelColor, to: attributed, range: fullRange)
-        applyPattern(#"[\{\}\[\],:]"#, color: .secondaryLabelColor, to: attributed, range: fullRange)
+        applyPattern(#""(?:\\.|[^"\\])*""#, color: Theme.JSON.stringNS, to: attributed, range: fullRange)
+        applyPattern(#""(?:\\.|[^"\\])*"(?=\s*:)"#, color: Theme.JSON.keyNS, to: attributed, range: fullRange)
+        applyPattern(
+            #"(?<![\w.])-?\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b"#,
+            color: Theme.JSON.numberNS,
+            to: attributed,
+            range: fullRange
+        )
+        applyPattern(#"\b(?:true|false)\b"#, color: Theme.JSON.boolNS, to: attributed, range: fullRange)
+        applyPattern(#"\bnull\b"#, color: Theme.JSON.nullNS, to: attributed, range: fullRange)
+        applyPattern(#"[\{\}\[\],:]"#, color: Theme.JSON.bracketNS, to: attributed, range: fullRange)
+        applyPattern(#"(?m)^HTTP/\d(?:\.\d)?"#, color: Theme.JSON.statusNS, to: attributed, range: fullRange)
+        applyPattern(
+            #"(?m)^[A-Za-z0-9!#$%&'*+.^_`|~-]+:"#,
+            color: Theme.JSON.headerNS,
+            to: attributed,
+            range: fullRange
+        )
         return attributed
     }
 
