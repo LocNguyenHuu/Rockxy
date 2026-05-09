@@ -1,7 +1,7 @@
 import Foundation
 import os
 
-// Persists and coordinates custom preview tab configuration for the inspector.
+// Persists and coordinates body preview tab configuration for the inspector.
 
 @MainActor @Observable
 final class PreviewTabStore {
@@ -71,58 +71,11 @@ final class PreviewTabStore {
         }
     }
 
-    func removeTab(id: UUID) {
-        requestTabs.removeAll { $0.id == id }
-        responseTabs.removeAll { $0.id == id }
-        save()
-    }
-
-    @discardableResult
-    func addCustomTab(name: String, panel: PreviewPanel) -> PreviewTab {
-        let normalizedName = uniqueCustomTabName(
-            name.trimmingCharacters(in: .whitespacesAndNewlines),
-            panel: panel
-        )
-        let tab = PreviewTab(name: normalizedName, renderMode: .raw, panel: panel, isBuiltIn: false)
-        switch panel {
-        case .request:
-            requestTabs.append(tab)
-        case .response:
-            responseTabs.append(tab)
-        }
-        save()
-        Self.logger.info("Added custom tab: \(normalizedName) in \(panel.rawValue) panel")
-        return tab
-    }
-
-    func customTabs(for panel: PreviewPanel) -> [PreviewTab] {
-        switch panel {
-        case .request:
-            requestTabs.filter { !$0.isBuiltIn }
-        case .response:
-            responseTabs.filter { !$0.isBuiltIn }
-        }
-    }
-
     // MARK: Private
 
     private static let logger = Logger(subsystem: RockxyIdentity.current.logSubsystem, category: "PreviewTabStore")
     private static let storageKey = RockxyIdentity.current.defaultsKey("previewTabs")
     private static let beautifyKey = RockxyIdentity.current.defaultsKey("previewAutoBeautify")
-
-    private func uniqueCustomTabName(_ name: String, panel: PreviewPanel) -> String {
-        let baseName = name.isEmpty ? String(localized: "Custom") : name
-        let existingNames = Set(customTabs(for: panel).map { $0.name.lowercased() })
-        guard existingNames.contains(baseName.lowercased()) else {
-            return baseName
-        }
-
-        var suffix = 2
-        while existingNames.contains("\(baseName) \(suffix)".lowercased()) {
-            suffix += 1
-        }
-        return "\(baseName) \(suffix)"
-    }
 
     // MARK: - Persistence
 
@@ -149,8 +102,8 @@ final class PreviewTabStore {
         }
         do {
             let allTabs = try JSONDecoder().decode([PreviewTab].self, from: data)
-            requestTabs = allTabs.filter { $0.panel == .request }
-            responseTabs = allTabs.filter { $0.panel == .response }
+            requestTabs = allTabs.filter { $0.panel == .request && $0.isBuiltIn }
+            responseTabs = allTabs.filter { $0.panel == .response && $0.isBuiltIn }
             Self.logger.info("Loaded \(allTabs.count) preview tabs")
         } catch {
             Self.logger.error("Failed to load preview tabs: \(error.localizedDescription)")

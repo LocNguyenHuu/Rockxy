@@ -52,32 +52,6 @@ struct PreviewTabStoreTests {
         #expect(store.requestTabs.isEmpty)
     }
 
-    @Test("Disable built-in raw tab preserves custom raw tabs")
-    func disableBuiltInRawPreservesCustomTabs() {
-        let store = makeCleanStore()
-        let custom = store.addCustomTab(name: "Raw+", panel: .response)
-        store.enableTab(renderMode: .raw, panel: .response)
-
-        store.disableTab(renderMode: .raw, panel: .response)
-
-        #expect(!store.isEnabled(renderMode: .raw, panel: .response))
-        #expect(store.responseTabs == [custom])
-        #expect(store.customTabs(for: .response) == [custom])
-    }
-
-    @Test("Enable built-in raw tab does not reuse custom raw tab")
-    func enableBuiltInRawDoesNotReuseCustomTab() {
-        let store = makeCleanStore()
-        let custom = store.addCustomTab(name: "Raw+", panel: .response)
-        let builtIn = store.enableTab(renderMode: .raw, panel: .response)
-
-        #expect(custom.id != builtIn.id)
-        #expect(!custom.isBuiltIn)
-        #expect(builtIn.isBuiltIn)
-        #expect(store.responseTabs.count == 2)
-        #expect(store.isEnabled(renderMode: .raw, panel: .response))
-    }
-
     @Test("Disable non-existent tab is no-op")
     func disableNonExistent() {
         let store = makeCleanStore()
@@ -105,16 +79,6 @@ struct PreviewTabStoreTests {
         store.enableTab(renderMode: .json, panel: .request)
         #expect(store.isEnabled(renderMode: .json, panel: .request))
         #expect(!store.isEnabled(renderMode: .json, panel: .response))
-    }
-
-    // MARK: - Remove by ID
-
-    @Test("Remove tab by ID removes from correct panel")
-    func removeByID() {
-        let store = makeCleanStore()
-        let tab = store.enableTab(renderMode: .xml, panel: .request)
-        store.removeTab(id: tab.id)
-        #expect(store.requestTabs.isEmpty)
     }
 
     // MARK: - Multiple Tabs
@@ -145,17 +109,20 @@ struct PreviewTabStoreTests {
         #expect(store.responseTabs.count == 1)
     }
 
-    @Test("Custom tab names are trimmed and uniqued per panel")
-    func customTabNamesAreTrimmedAndUniqued() {
-        let store = makeCleanStore()
+    @Test("Persisted custom raw tabs are ignored")
+    func persistedCustomTabsIgnored() throws {
+        UserDefaults.standard.removeObject(forKey: TestIdentity.previewTabBeautifyKey)
+        let tabs = [
+            PreviewTab(name: "Legacy Raw", renderMode: .raw, panel: .response, isBuiltIn: false),
+            PreviewTab(renderMode: .raw, panel: .response),
+        ]
+        UserDefaults.standard.set(try JSONEncoder().encode(tabs), forKey: TestIdentity.previewTabStorageKey)
 
-        let first = store.addCustomTab(name: " Raw+ ", panel: .request)
-        let second = store.addCustomTab(name: "Raw+", panel: .request)
-        let response = store.addCustomTab(name: "Raw+", panel: .response)
+        let store = PreviewTabStore()
 
-        #expect(first.name == "Raw+")
-        #expect(second.name == "Raw+ 2")
-        #expect(response.name == "Raw+")
+        #expect(store.responseTabs.count == 1)
+        #expect(store.responseTabs.first?.isBuiltIn == true)
+        #expect(store.responseTabs.first?.name == "Raw")
     }
 
     @Test("Auto beautify preference persists when toggled")

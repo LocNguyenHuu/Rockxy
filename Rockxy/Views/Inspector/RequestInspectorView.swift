@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Left half of the inspector split view. Provides tabbed access to request-side data:
 /// headers, query parameters, body, cookies, raw text, synopsis, and comments.
-/// Also supports custom preview tabs from PreviewTabStore.
+/// Also supports optional body preview tabs from PreviewTabStore.
 struct RequestInspectorView: View {
     // MARK: Internal
 

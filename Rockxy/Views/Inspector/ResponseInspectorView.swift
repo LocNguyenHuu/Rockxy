@@ -7,7 +7,7 @@ import SwiftUI
 
 /// Right half of the inspector split view. Provides tabbed access to response-side data:
 /// headers, body (with format picker), Set-Cookie headers, auth, and timing breakdown.
-/// Also supports custom preview tabs from PreviewTabStore.
+/// Also supports optional body preview tabs from PreviewTabStore.
 /// Conditionally shows protocol-specific tabs (WebSocket, GraphQL) when the selected
 /// transaction has protocol-specific data.
 struct ResponseInspectorView: View {
