@@ -132,17 +132,10 @@ Signaler les vuln&eacute;rabilit&eacute;s via [SECURITY.md](SECURITY.md). Voir l
 
 ## Feuille de route
 
-- [x] Interception HTTP/HTTPS/WebSocket/GraphQL
-- [x] Map Local, Map Remote, Breakpoints, Block, Throttle
-- [x] Syst&egrave;me de plugins JavaScript (ex&eacute;cution sandbox&eacute;e)
-- [x] Import/export HAR, fichiers de session natifs, diff de requ&ecirc;tes
-- [x] Corr&eacute;lation OSLog et masquage des identifiants
-- [x] Serveur Model Context Protocol (MCP) pour les assistants IA (Claude CLI, Claude Desktop)
-- [ ] Support HTTP/2 et HTTP/3
-- [ ] Proxy d'appareil distant (iOS via USB/Wi-Fi)
-- [ ] Mode headless pour les pipelines CI/CD
-- [ ] Inspection gRPC / Protocol Buffers
-- [ ] Regroupement d'erreurs et tableau de bord analytique
+La feuille de route publique de Rockxy est orient&eacute;e workflows et sans dates promises. Elle se concentre sur la fiabilit&eacute;, l'UX macOS native, les workflows de d&eacute;bogage, les protocoles, la documentation et l'accueil des contributeurs.
+
+- [ROADMAP.md](ROADMAP.md) : direction d'ing&eacute;nierie publique de haut niveau
+- [Rockxy Public Roadmap](https://github.com/orgs/RockxyApp/projects/1) : visibilit&eacute; op&eacute;rationnelle des issues suivies dans la feuille de route
 
 ## Documentation
 
