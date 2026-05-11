@@ -132,17 +132,10 @@ Schwachstellen melden &uuml;ber [SECURITY.md](SECURITY.md). Siehe die [vollst&au
 
 ## Roadmap
 
-- [x] HTTP/HTTPS/WebSocket/GraphQL-Interception
-- [x] Map Local, Map Remote, Breakpoints, Block, Throttle
-- [x] JavaScript-Plugin-System (Sandbox-Ausf&uuml;hrung)
-- [x] HAR-Import/Export, native Sitzungsdateien, Request-Diff
-- [x] OSLog-Korrelation und Maskierung von Anmeldeinformationen
-- [x] Model Context Protocol (MCP)-Server f&uuml;r KI-Assistenten (Claude CLI, Claude Desktop)
-- [ ] HTTP/2- und HTTP/3-Unterst&uuml;tzung
-- [ ] Remote-Ger&auml;te-Proxy (iOS &uuml;ber USB/Wi-Fi)
-- [ ] Headless-Modus f&uuml;r CI/CD-Pipelines
-- [ ] gRPC / Protocol Buffers-Inspektion
-- [ ] Fehlergruppierung und Analyse-Dashboard
+Rockxys &ouml;ffentliche Roadmap ist workflow-orientiert und ohne feste Datumsversprechen. Sie konzentriert sich auf Zuverl&auml;ssigkeit, native macOS-UX, Debugging-Workflows, Protokollunterst&uuml;tzung, Dokumentation und Contributor-Onboarding.
+
+- [ROADMAP.md](ROADMAP.md): &ouml;ffentliche technische Richtung auf hoher Ebene
+- [Rockxy Public Roadmap](https://github.com/orgs/RockxyApp/projects/1): operative Sicht auf roadmap-relevante Issues
 
 ## Dokumentation
 
