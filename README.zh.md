@@ -132,17 +132,10 @@ Rockxy 拦截网络流量 — 安全是基础，不是可选项。
 
 ## 路线图
 
-- [x] HTTP/HTTPS/WebSocket/GraphQL 拦截
-- [x] Map Local、Map Remote、Breakpoints、Block、Throttle
-- [x] JavaScript 插件系统（沙箱执行）
-- [x] HAR 导入/导出、原生会话文件、请求对比
-- [x] OSLog 关联和凭证脱敏
-- [x] 面向 AI 助手的 Model Context Protocol (MCP) 服务器（Claude CLI、Claude Desktop）
-- [ ] HTTP/2 和 HTTP/3 支持
-- [ ] 远程设备代理（iOS 通过 USB/Wi-Fi）
-- [ ] CI/CD 流水线的 Headless 模式
-- [ ] gRPC / Protocol Buffers 检查
-- [ ] 错误分组和分析仪表板
+Rockxy 的公开路线图以调试工作流为中心，不承诺固定日期。它关注可靠性、原生 macOS 体验、调试工作流、协议支持、文档和贡献者入门。
+
+- [ROADMAP.md](ROADMAP.md)：高层公开工程方向
+- [Rockxy Public Roadmap](https://github.com/orgs/RockxyApp/projects/1)：路线图相关 issue 的执行视图
 
 ## 文档
 
